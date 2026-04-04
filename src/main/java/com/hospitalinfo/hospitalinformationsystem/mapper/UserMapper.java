@@ -1,4 +1,8 @@
 package com.hospitalinfo.hospitalinformationsystem.mapper;
 
-public class UserMapper {
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.hospitalinfo.hospitalinformationsystem.entity.User;
+
+public interface UserMapper extends BaseMapper<User> {
+
 }

@@ -1,8 +1,10 @@
 package com.hospitalinfo.hospitalinformationsystem.entity;
 
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
+@TableName("patient")
 public class User {
     private String id;//用哈希值随机生成
     private String username;
