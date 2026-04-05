@@ -12,4 +12,5 @@ public class RegisterDto {
     String phone;
     String address;
     String idCard;
+    int age;
 }

@@ -24,14 +24,21 @@ public class UserController {
     //登录
     @PostMapping("/login")
     public Result login(@RequestBody LoginDto loginDto, HttpSession session){
-        //TODO 登录逻辑
+        // 登录逻辑
         return userService.login(loginDto,session);
+    }
+
+    //登出
+    @PostMapping("/loginout")
+    public Result loginOut(HttpSession session){
+        //todo 登出逻辑
+        return Result.fail("功能未实现");
     }
 
     //注册
     @PostMapping("/register")
     public Result register(@RequestBody RegisterDto registerDto){
-        //TODO 注册逻辑
+        //注册逻辑
         return userService.register(registerDto);
     }
 
