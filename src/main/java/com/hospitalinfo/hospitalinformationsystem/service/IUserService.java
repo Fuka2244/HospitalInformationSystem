@@ -9,4 +9,8 @@ public interface IUserService {
     Result login(LoginDto loginDto, HttpSession session);
 
     Result register(RegisterDto registerDto);
+
+    Result loginOut(HttpSession session);
+
+    Result info(HttpSession session);
 }

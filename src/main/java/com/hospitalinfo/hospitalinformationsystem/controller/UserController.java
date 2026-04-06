@@ -9,10 +9,7 @@ import com.hospitalinfo.hospitalinformationsystem.service.IUserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -31,8 +28,9 @@ public class UserController {
     //登出
     @PostMapping("/loginout")
     public Result loginOut(HttpSession session){
-        //todo 登出逻辑
-        return Result.fail("功能未实现");
+        //登出逻辑
+        return userService.loginOut(session);
+        //return Result.fail("功能未实现");
     }
 
     //注册
@@ -40,6 +38,12 @@ public class UserController {
     public Result register(@RequestBody RegisterDto registerDto){
         //注册逻辑
         return userService.register(registerDto);
+    }
+
+    //查看个人信息
+    @GetMapping("/me")
+    public Result info(HttpSession session){
+        return userService.info(session);
     }
 
 

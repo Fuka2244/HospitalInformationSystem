@@ -5,12 +5,14 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hospitalinfo.hospitalinformationsystem.dto.LoginDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.RegisterDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
+import com.hospitalinfo.hospitalinformationsystem.dto.UserDto;
 import com.hospitalinfo.hospitalinformationsystem.entity.User;
 import com.hospitalinfo.hospitalinformationsystem.mapper.UserMapper;
 import com.hospitalinfo.hospitalinformationsystem.service.IUserService;
 import com.hospitalinfo.hospitalinformationsystem.utils.EncodePassword;
 import com.hospitalinfo.hospitalinformationsystem.utils.MatchPassword;
 import com.hospitalinfo.hospitalinformationsystem.utils.RegexTool;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Service;
 
@@ -43,7 +45,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             return Result.fail("密码不正确");
         }
         //5.登录成功
-        return Result.ok();
+        UserDto userDto = new UserDto();
+        //userDto.setId(user.getId());
+        userDto.setUsername(user.getUsername());
+        userDto.setAccount(user.getAccount());
+        userDto.setGender(user.getGender());
+        userDto.setAge(user.getAge());
+        userDto.setPhone(user.getPhone());
+        session.setAttribute("user",userDto);
+        session.setAttribute("phone",user.getPhone());
+        return Result.ok(userDto);
     }
 
     @Override
@@ -103,5 +114,31 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         boolean success = this.save(user);
         //6.4返回成功/失败信息
         return success ? Result.ok(user) : Result.fail("注册失败，请稍后再试");
+    }
+
+    @Override
+    public Result loginOut(HttpSession session) {
+        //1.检查session是否存在
+        if(session == null){
+            return Result.fail("未登录");
+        }
+        //2.移除session
+        session.removeAttribute("user");
+        session.invalidate();
+        //3.返回登出成功信息
+        return Result.ok("登出成功");
+    }
+
+    @Override
+    public Result info(HttpSession session) {
+        //1.检查session是否存在
+        if(session == null){
+            return Result.fail("未登录");
+        }
+        //2.获取session中的用户信息
+        UserDto userDto = (UserDto) session.getAttribute("user");
+        //3.返回用户信息
+        //todo 是否需要身份证之类的
+        return Result.ok(userDto);
     }
 }
