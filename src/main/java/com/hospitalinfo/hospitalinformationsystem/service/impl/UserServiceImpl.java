@@ -2,10 +2,7 @@ package com.hospitalinfo.hospitalinformationsystem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.hospitalinfo.hospitalinformationsystem.dto.LoginDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.RegisterDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.Result;
-import com.hospitalinfo.hospitalinformationsystem.dto.UserDto;
+import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.entity.User;
 import com.hospitalinfo.hospitalinformationsystem.mapper.UserMapper;
 import com.hospitalinfo.hospitalinformationsystem.service.IUserService;
@@ -60,7 +57,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     public Result register(RegisterDto registerDto) {
         //1.查询手机号、身份证是否符合规矩
-        //String name = registerDto.getName();
+        String name = registerDto.getName();
         int age = registerDto.getAge();
         String username = registerDto.getUsername();
         String password = registerDto.getPassword();
@@ -70,8 +67,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         String address = registerDto.getAddress();
         String idCard = registerDto.getIdCard();
 
-        Boolean isPhone = RegexTool.isPhone(phone);
-        Boolean isIdCard = RegexTool.isIdCard(idCard);
+        boolean isPhone = RegexTool.isPhone(phone);
+        boolean isIdCard = RegexTool.isIdCard(idCard);
         //1.1不符合，返回错误信息
         if(!isPhone || !isIdCard){
             return Result.fail("手机号或身份证格式不正确");
@@ -103,6 +100,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         User user = new User();
         user.setAccount(account);
         user.setUsername(username);
+        user.setName(name);
         String encodePassword = EncodePassword.encrypt(password);
         user.setPassword(encodePassword);
         user.setGender(gender);
@@ -118,27 +116,86 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public Result loginOut(HttpSession session) {
-        //1.检查session是否存在
-        if(session == null){
-            return Result.fail("未登录");
-        }
-        //2.移除session
+        // 移除session
         session.removeAttribute("user");
         session.invalidate();
-        //3.返回登出成功信息
         return Result.ok("登出成功");
     }
 
     @Override
     public Result info(HttpSession session) {
-        //1.检查session是否存在
-        if(session == null){
-            return Result.fail("未登录");
-        }
-        //2.获取session中的用户信息
+        // 获取session中的用户信息
         UserDto userDto = (UserDto) session.getAttribute("user");
-        //3.返回用户信息
-        //todo 是否需要身份证之类的
         return Result.ok(userDto);
+    }
+
+    @Override
+    public Result update(UpdateDto updateDto, HttpSession session) {
+        // 获取当前用户手机号
+        String phone = (String) session.getAttribute("phone");
+        String password = updateDto.getPassword();
+        User user = this.lambdaQuery()
+                .eq(User::getPhone, phone)
+                .one();
+        String encodePassword = user.getPassword();
+        boolean match = MatchPassword.match(password, encodePassword);
+        if(!match){
+            return Result.fail("密码不正确");
+        }
+        //3.修改信息：地址、电话、用户名（只更新非空字段）
+        String address = updateDto.getAddress();
+        String phone1 = updateDto.getPhone();
+        String username = updateDto.getUsername();
+
+        //4.如果新电话非空，则进行手机号校验
+        if(phone1 != null && !phone1.isEmpty()){
+            boolean isPhone = RegexTool.isPhone(phone1);
+            if(!isPhone){
+                return Result.fail("手机号格式不正确");
+            }
+            //5.如果新电话非空，则进行手机号校验
+            long count = this.lambdaQuery()
+                    .eq(User::getPhone, phone1)
+                    .count();
+            if(count > 0){
+                return Result.fail("该手机号已被注册");
+            }
+        }
+
+        // 进行修改
+        this.lambdaUpdate()
+                .eq(User::getPhone, phone)
+                .set(address != null && !address.isEmpty(), User::getAddress, address)
+                .set(phone1 != null && !phone1.isEmpty(), User::getPhone, phone1)
+                .set(username != null && !username.isEmpty(), User::getUsername, username)
+                .update();
+
+        // 同步更新session中的信息
+        if (phone1 != null && !phone1.isEmpty()) {
+            // 修改了手机号，需要更新session中的phone和userDto.phone
+            session.setAttribute("phone", phone1);
+            UserDto userDto = (UserDto) session.getAttribute("user");
+            if (userDto != null) {
+                userDto.setPhone(phone1);
+                session.setAttribute("user", userDto);
+            }
+        }
+
+        if (username != null && !username.isEmpty()) {
+            // 修改了用户名，需要更新session中的userDto.username
+            UserDto userDto = (UserDto) session.getAttribute("user");
+            if (userDto != null) {
+                userDto.setUsername(username);
+                session.setAttribute("user", userDto);
+            }
+        }
+
+        return  Result.ok("修改成功");
+    }
+
+    @Override
+    public Result updatePassword(UpdatePasswordDto updatePasswordDto, HttpSession session) {
+        //1.判断
+        return null;
     }
 }

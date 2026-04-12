@@ -1,10 +1,7 @@
 package com.hospitalinfo.hospitalinformationsystem.controller;
 
 
-import com.hospitalinfo.hospitalinformationsystem.dto.LoginDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.RegisterDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.Result;
-import com.hospitalinfo.hospitalinformationsystem.dto.UserDto;
+import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.service.IUserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
@@ -44,6 +41,18 @@ public class UserController {
     @GetMapping("/me")
     public Result info(HttpSession session){
         return userService.info(session);
+    }
+
+    //修改个人信息
+    @PutMapping("/me/update")
+    public Result update(@RequestBody UpdateDto updateDto, HttpSession session){
+        return userService.update(updateDto,session);
+    }
+
+    //忘记密码
+    @PutMapping("/login/forget")
+    public Result updatePassword(@RequestBody UpdatePasswordDto updatePasswordDto, HttpSession session){
+        return userService.updatePassword(updatePasswordDto,session);
     }
 
 

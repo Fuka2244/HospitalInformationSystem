@@ -8,8 +8,8 @@ import lombok.Data;
 @Data
 @TableName("patient")
 public class User {
-    @TableField("name")
     private String username;
+    private String name;
     @TableId
     private String account;//uuid随机生成
     private String password;

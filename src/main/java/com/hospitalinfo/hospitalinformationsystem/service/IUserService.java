@@ -1,8 +1,6 @@
 package com.hospitalinfo.hospitalinformationsystem.service;
 
-import com.hospitalinfo.hospitalinformationsystem.dto.LoginDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.RegisterDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.Result;
+import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import jakarta.servlet.http.HttpSession;
 
 public interface IUserService {
@@ -13,4 +11,8 @@ public interface IUserService {
     Result loginOut(HttpSession session);
 
     Result info(HttpSession session);
+
+    Result update(UpdateDto updateDto, HttpSession session);
+
+    Result updatePassword(UpdatePasswordDto updatePasswordDto, HttpSession session);
 }
