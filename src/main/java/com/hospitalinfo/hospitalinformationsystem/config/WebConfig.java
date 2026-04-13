@@ -21,8 +21,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")                    // 拦截所有路径
                 .excludePathPatterns(                      // 排除不需要拦截的路径
-                        "/user/login/**",                     // 登录接口及忘记密码接口
-                        "/user/register",                  // 注册接口
+                        "/patient/login/**",                     // 登录接口及忘记密码接口
+                        "/patient/register",                  // 注册接口
                         "/medicine/list",                  // 药品列表（公开查询）
                         "/medicine/*",                     // 药品详情（公开查询）
                         "/medicine/ai-recommend",          // AI药品推荐
