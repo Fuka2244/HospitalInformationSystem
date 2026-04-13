@@ -51,6 +51,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         userDto.setPhone(user.getPhone());
         session.setAttribute("user",userDto);
         session.setAttribute("phone",user.getPhone());
+        session.setAttribute("account",user.getAccount());
         return Result.ok(userDto);
     }
 
@@ -195,7 +196,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public Result updatePassword(UpdatePasswordDto updatePasswordDto, HttpSession session) {
-        //1.判断
-        return null;
+        String phone = updatePasswordDto.getPhone();
+        String newPassword = updatePasswordDto.getNewPassword();
+        String confirmPassword = updatePasswordDto.getConfirmPassword();
+
+        // 1.校验手机号格式
+        if (phone == null || !RegexTool.isPhone(phone)) {
+            return Result.fail("手机号格式不正确");
+        }
+        // 2.校验两次密码一致
+        if (newPassword == null || !newPassword.equals(confirmPassword)) {
+            return Result.fail("两次密码不一致");
+        }
+        // 3.查找用户
+        User user = this.lambdaQuery().eq(User::getPhone, phone).one();
+        if (user == null) {
+            return Result.fail("该手机号未注册");
+        }
+        // 4.加密新密码并更新
+        String encoded = EncodePassword.encrypt(newPassword);
+        this.lambdaUpdate()
+                .eq(User::getPhone, phone)
+                .set(User::getPassword, encoded)
+                .update();
+
+        return Result.ok("密码修改成功");
     }
 }
