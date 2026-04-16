@@ -11,4 +11,5 @@ public class ReportGenerationResult {
     private String diagnosis;
     private String treatment;
     private String recommendation;
+    private String thoughtChain;
 }

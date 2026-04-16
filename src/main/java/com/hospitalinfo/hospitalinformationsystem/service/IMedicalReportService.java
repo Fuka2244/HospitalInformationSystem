@@ -2,6 +2,7 @@ package com.hospitalinfo.hospitalinformationsystem.service;
 
 import com.hospitalinfo.hospitalinformationsystem.dto.ReportGenerateDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
+import com.hospitalinfo.hospitalinformationsystem.entity.MedicalRecord;
 
 /**
  * 医疗报告服务接口
@@ -17,9 +18,15 @@ public interface IMedicalReportService {
     /** 获取报告详情 */
     Result getReportDetail(Long reportId);
 
-    /** 导出PDF */
-    Result exportPdf(Long reportId);
+    /** 导出PDF - 返回PDF文件路径 */
+    String exportPdf(Long reportId);
 
     /** 确认报告 */
     Result confirmReport(Long reportId);
+
+    /** 获取病历记录 */
+    MedicalRecord getMedicalRecordById(Long id);
+
+    /** 获取患者历史记录摘要 */
+    String getPatientHistory(String patientId);
 }

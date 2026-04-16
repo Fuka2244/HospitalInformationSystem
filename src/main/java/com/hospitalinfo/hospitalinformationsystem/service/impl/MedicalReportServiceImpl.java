@@ -79,6 +79,7 @@ public class MedicalReportServiceImpl implements IMedicalReportService {
         report.setAiDiagnosis(aiResult.getDiagnosis());
         report.setAiTreatment(aiResult.getTreatment());
         report.setAiRecommendation(aiResult.getRecommendation());
+        report.setAiThoughtChain(aiResult.getThoughtChain());
         report.setStatus(0); // 草稿
 
         medicalReportMapper.insert(report);
@@ -113,10 +114,10 @@ public class MedicalReportServiceImpl implements IMedicalReportService {
     }
 
     @Override
-    public Result exportPdf(Long reportId) {
+    public String exportPdf(Long reportId) {
         MedicalReport report = medicalReportMapper.selectById(reportId);
         if (report == null) {
-            return Result.fail("报告不存在");
+            return null;
         }
 
         try {
@@ -173,10 +174,10 @@ public class MedicalReportServiceImpl implements IMedicalReportService {
             report.setPdfPath(filePath);
             medicalReportMapper.updateById(report);
 
-            return Result.ok(filePath);
+            return filePath;
         } catch (Exception e) {
             log.error("PDF生成失败: {}", e.getMessage(), e);
-            return Result.fail("PDF生成失败: " + e.getMessage());
+            return null;
         }
     }
 
@@ -207,6 +208,36 @@ public class MedicalReportServiceImpl implements IMedicalReportService {
             String doctorName = doctor != null ? doctor.getName() : "未知";
             sb.append(String.format("- 就诊时间: %s, 医生: %s, 诊断: %s, 治疗: %s\n",
                     r.getVisitDate(), doctorName, r.getDiagnosis(), r.getTreatmentPlan()));
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public MedicalRecord getMedicalRecordById(Long id) {
+        return medicalRecordMapper.selectById(id);
+    }
+
+    @Override
+    public String getPatientHistory(String patientId) {
+        List<MedicalRecord> historyRecords = medicalRecordMapper.selectList(
+                new QueryWrapper<MedicalRecord>()
+                        .eq("patient_id", patientId)
+                        .eq("status", 1)
+                        .orderByDesc("visit_date")
+                        .last("LIMIT 3"));
+
+        if (historyRecords.isEmpty()) return "";
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < historyRecords.size(); i++) {
+            MedicalRecord r = historyRecords.get(i);
+            Doctor doctor = doctorMapper.selectById(r.getDoctorId());
+            String doctorName = doctor != null ? doctor.getName() : "未知";
+            sb.append(String.format("%d. %s - %s医生: %s",
+                    i + 1, r.getVisitDate(), doctorName, r.getDiagnosis()));
+            if (i < historyRecords.size() - 1) {
+                sb.append("\n");
+            }
         }
         return sb.toString();
     }

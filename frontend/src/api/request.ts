@@ -57,4 +57,24 @@ export function del<T = any>(url: string, config?: AxiosRequestConfig): Promise<
   return instance.delete(url, config).then((res) => res.data)
 }
 
+/** 下载文件 */
+export function download(url: string, filename: string, params?: any) {
+  return instance.get(url, {
+    params,
+    responseType: 'blob'
+  }).then((response) => {
+    // 检查是否是错误响应（404等）
+    if (response.status !== 200) {
+      throw new Error('下载失败')
+    }
+
+    const blob = new Blob([response.data])
+    const link = document.createElement('a')
+    link.href = window.URL.createObjectURL(blob)
+    link.download = filename
+    link.click()
+    window.URL.revokeObjectURL(link.href)
+  })
+}
+
 export default instance

@@ -29,6 +29,8 @@ public class MedicalReport {
     private String aiTreatment;
     @TableField("ai_recommendation")
     private String aiRecommendation;
+    @TableField("ai_thought_chain")
+    private String aiThoughtChain;
     @TableField("pdf_path")
     private String pdfPath;
     private Integer status;

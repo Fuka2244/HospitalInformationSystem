@@ -220,3 +220,6 @@ CREATE TABLE IF NOT EXISTS `doctor_schedule` (
     UNIQUE KEY `uk_doctor_date_slot` (`doctor_id`, `schedule_date`, `time_slot`),
     KEY `idx_schedule_date` (`schedule_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='医生排班表';
+
+-- 添加AI思维链字段到医疗报告表
+ALTER TABLE `medical_report` ADD COLUMN `ai_thought_chain` TEXT DEFAULT NULL COMMENT 'AI思维链' AFTER `ai_recommendation`;

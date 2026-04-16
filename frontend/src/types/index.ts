@@ -316,6 +316,7 @@ export interface MedicalReport {
   aiDiagnosis: string | null
   aiTreatment: string | null
   aiRecommendation: string | null
+  aiThoughtChain: string | null
   pdfPath: string | null
   status: number
   createTime: string
