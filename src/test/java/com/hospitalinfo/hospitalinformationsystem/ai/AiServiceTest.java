@@ -33,17 +33,16 @@ import static org.mockito.Mockito.*;
 @DisplayName("AI服务模块")
 class AiServiceTest {
 
-    @Mock private ChatLanguageModel chatModel;
-    @Spy private ObjectMapper objectMapper = new ObjectMapper();
-    @Mock private DepartmentMapper departmentMapper;
-    @Mock private DoctorMapper doctorMapper;
-    @Mock private MedicineMapper medicineMapper;
-
     // ==================== AI预约推荐 ====================
 
     @Nested
     @DisplayName("AI预约推荐服务")
     class AiAppointmentServiceTests {
+
+        @Mock private ChatLanguageModel chatModel;
+        @Mock private DepartmentMapper departmentMapper;
+        @Mock private DoctorMapper doctorMapper;
+        @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
         @InjectMocks
         private AiAppointmentService aiAppointmentService;
@@ -152,6 +151,10 @@ class AiServiceTest {
     @DisplayName("AI药品推荐服务")
     class AiMedicineServiceTests {
 
+        @Mock private ChatLanguageModel chatModel;
+        @Mock private MedicineMapper medicineMapper;
+        @Spy private ObjectMapper objectMapper = new ObjectMapper();
+
         @InjectMocks
         private AiMedicineService aiMedicineService;
 
@@ -252,6 +255,9 @@ class AiServiceTest {
     @DisplayName("AI费用解释服务")
     class AiBillingServiceTests {
 
+        @Mock private ChatLanguageModel chatModel;
+        @Spy private ObjectMapper objectMapper = new ObjectMapper();
+
         @InjectMocks
         private AiBillingService aiBillingService;
 
@@ -347,6 +353,9 @@ class AiServiceTest {
     @Nested
     @DisplayName("AI报告生成服务")
     class AiReportServiceTests {
+
+        @Mock private ChatLanguageModel chatModel;
+        @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
         @InjectMocks
         private AiReportService aiReportService;

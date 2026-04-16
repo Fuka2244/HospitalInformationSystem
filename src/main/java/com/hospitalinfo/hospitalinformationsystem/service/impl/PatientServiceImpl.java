@@ -218,7 +218,15 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
     // ==================== 患者业务数据 ====================
 
     @Override
-    public Result getPatientInfo(String patientId) {
+    public Result getPatientInfo(String patientId, HttpSession session) {
+        // 权限验证：患者只能查看自己的信息，医生/药师/管理员可以查看
+        Object role = session.getAttribute("role");
+        String currentAccount = (String) session.getAttribute("account");
+        
+        if ("patient".equals(role) && !patientId.equals(currentAccount)) {
+            return Result.fail("无权查看其他患者的信息");
+        }
+        
         Patient patient = this.getById(patientId);
         if (patient == null) {
             return Result.fail("患者不存在");
@@ -228,7 +236,13 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
     }
 
     @Override
-    public Result listPatients(String keyword, Integer page, Integer size) {
+    public Result listPatients(String keyword, Integer page, Integer size, HttpSession session) {
+        // 权限验证：只有管理员和医生可以查询患者列表
+        Object role = session.getAttribute("role");
+        if (role == null || (!"admin".equals(role) && !"doctor".equals(role) && !"pharmacist".equals(role))) {
+            return Result.fail("无权限查询患者列表");
+        }
+        
         Page<Patient> pageParam = new Page<>(page, size);
         QueryWrapper<Patient> wrapper = new QueryWrapper<>();
         if (keyword != null && !keyword.isEmpty()) {
@@ -241,7 +255,31 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
     }
 
     @Override
-    public Result getMedicalRecords(String patientId, Integer page, Integer size) {
+    public Result getMedicalRecords(String patientId, Integer page, Integer size, HttpSession session) {
+        // 权限验证：只允许患者本人、医生、药师、管理员访问
+        Object role = session.getAttribute("role");
+        String currentAccount = (String) session.getAttribute("account");
+        String currentPhone = (String) session.getAttribute("phone");
+        
+        // 如果是患者，只能查看自己的病历
+        if ("patient".equals(role) && !patientId.equals(currentAccount)) {
+            return Result.fail("无权访问其他患者的病历");
+        }
+        
+        // 如果是医生，需要验证是否有业务关联（接诊过该患者）
+        if ("doctor".equals(role)) {
+            Long doctorId = (Long) session.getAttribute("doctorId");
+            boolean hasAccess = medicalRecordMapper.selectCount(
+                    new QueryWrapper<MedicalRecord>()
+                            .eq("patient_id", patientId)
+                            .eq("doctor_id", doctorId)
+                            .eq("status", 1)
+            ) > 0;
+            if (!hasAccess) {
+                return Result.fail("您未接诊过该患者，无权访问其病历");
+            }
+        }
+        
         Page<MedicalRecord> pageParam = new Page<>(page, size);
         QueryWrapper<MedicalRecord> wrapper = new QueryWrapper<MedicalRecord>()
                 .eq("patient_id", patientId)
@@ -253,11 +291,29 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
     }
 
     @Override
-    public Result getMedicalRecordDetail(Long recordId) {
+    public Result getMedicalRecordDetail(Long recordId, HttpSession session) {
         MedicalRecord record = medicalRecordMapper.selectById(recordId);
         if (record == null) {
             return Result.fail("病历不存在");
         }
+        
+        // 权限验证
+        Object role = session.getAttribute("role");
+        String currentAccount = (String) session.getAttribute("account");
+        
+        // 如果是患者，只能查看自己的病历
+        if ("patient".equals(role) && !record.getPatientId().equals(currentAccount)) {
+            return Result.fail("无权访问其他患者的病历");
+        }
+        
+        // 如果是医生，需要验证是否是该病历的接诊医生
+        if ("doctor".equals(role)) {
+            Long doctorId = (Long) session.getAttribute("doctorId");
+            if (!record.getDoctorId().equals(doctorId)) {
+                return Result.fail("您不是该病历的接诊医生，无权访问");
+            }
+        }
+        
         fillMedicalRecordNames(List.of(record));
 
         Prescription prescription = prescriptionMapper.selectOne(
@@ -285,7 +341,31 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
 
     @Override
     public Result getVisitHistory(String patientId, Long departmentId, Long doctorId,
-                                   String startDate, String endDate, Integer page, Integer size) {
+                                   String startDate, String endDate, Integer page, Integer size,
+                                   HttpSession session) {
+        // 权限验证
+        Object role = session.getAttribute("role");
+        String currentAccount = (String) session.getAttribute("account");
+        
+        // 如果是患者，只能查看自己的就诊历史
+        if ("patient".equals(role) && !patientId.equals(currentAccount)) {
+            return Result.fail("无权查看其他患者的就诊历史");
+        }
+        
+        // 如果是医生，只能查看自己接诊过的患者
+        if ("doctor".equals(role)) {
+            Long currentDoctorId = (Long) session.getAttribute("doctorId");
+            boolean hasAccess = medicalRecordMapper.selectCount(
+                    new QueryWrapper<MedicalRecord>()
+                            .eq("patient_id", patientId)
+                            .eq("doctor_id", currentDoctorId)
+                            .eq("status", 1)
+            ) > 0;
+            if (!hasAccess) {
+                return Result.fail("您未接诊过该患者，无权访问其就诊历史");
+            }
+        }
+        
         Page<MedicalRecord> pageParam = new Page<>(page, size);
         QueryWrapper<MedicalRecord> wrapper = new QueryWrapper<MedicalRecord>()
                 .eq("patient_id", patientId)

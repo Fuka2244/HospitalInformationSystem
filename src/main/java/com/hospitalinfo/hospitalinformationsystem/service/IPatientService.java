@@ -31,18 +31,19 @@ public interface IPatientService {
     // ========== 患者业务数据（原IPatientService） ==========
 
     /** 获取患者基本信息 */
-    Result getPatientInfo(String patientId);
+    Result getPatientInfo(String patientId, HttpSession session);
 
     /** 分页查询患者列表 */
-    Result listPatients(String keyword, Integer page, Integer size);
+    Result listPatients(String keyword, Integer page, Integer size, HttpSession session);
 
     /** 获取患者电子病历列表 */
-    Result getMedicalRecords(String patientId, Integer page, Integer size);
+    Result getMedicalRecords(String patientId, Integer page, Integer size, HttpSession session);
 
     /** 获取单条病历详情 */
-    Result getMedicalRecordDetail(Long recordId);
+    Result getMedicalRecordDetail(Long recordId, HttpSession session);
 
     /** 获取患者历史就诊记录 */
     Result getVisitHistory(String patientId, Long departmentId, Long doctorId,
-                           String startDate, String endDate, Integer page, Integer size);
+                           String startDate, String endDate, Integer page, Integer size,
+                           HttpSession session);
 }

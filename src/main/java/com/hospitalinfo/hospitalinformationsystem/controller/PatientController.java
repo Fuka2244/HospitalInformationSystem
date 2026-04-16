@@ -64,7 +64,7 @@ public class PatientController {
     @GetMapping("/info")
     public Result getMyInfo(HttpSession session) {
         String patientId = (String) session.getAttribute("account");
-        return patientService.getPatientInfo(patientId);
+        return patientService.getPatientInfo(patientId, session);
     }
 
     /**
@@ -72,8 +72,8 @@ public class PatientController {
      * GET /patient/{patientId}
      */
     @GetMapping("/{patientId}")
-    public Result getPatientInfo(@PathVariable String patientId) {
-        return patientService.getPatientInfo(patientId);
+    public Result getPatientInfo(@PathVariable String patientId, HttpSession session) {
+        return patientService.getPatientInfo(patientId, session);
     }
 
     /**
@@ -83,8 +83,9 @@ public class PatientController {
     @GetMapping("/list")
     public Result listPatients(@RequestParam(required = false) String keyword,
                                @RequestParam(defaultValue = "1") Integer page,
-                               @RequestParam(defaultValue = "10") Integer size) {
-        return patientService.listPatients(keyword, page, size);
+                               @RequestParam(defaultValue = "10") Integer size,
+                               HttpSession session) {
+        return patientService.listPatients(keyword, page, size, session);
     }
 
     /**
@@ -96,18 +97,19 @@ public class PatientController {
                                        @RequestParam(defaultValue = "10") Integer size,
                                        HttpSession session) {
         String patientId = (String) session.getAttribute("account");
-        return patientService.getMedicalRecords(patientId, page, size);
+        return patientService.getMedicalRecords(patientId, page, size, session);
     }
 
     /**
-     * 获取指定患者的电子病历
+     * 获取指定患者的电子病历（医生/药师/管理员用）
      * GET /patient/{patientId}/medical-records?page=1&size=10
      */
     @GetMapping("/{patientId}/medical-records")
     public Result getPatientMedicalRecords(@PathVariable String patientId,
                                             @RequestParam(defaultValue = "1") Integer page,
-                                            @RequestParam(defaultValue = "10") Integer size) {
-        return patientService.getMedicalRecords(patientId, page, size);
+                                            @RequestParam(defaultValue = "10") Integer size,
+                                            HttpSession session) {
+        return patientService.getMedicalRecords(patientId, page, size, session);
     }
 
     /**
@@ -115,8 +117,8 @@ public class PatientController {
      * GET /patient/medical-record/{recordId}
      */
     @GetMapping("/medical-record/{recordId}")
-    public Result getMedicalRecordDetail(@PathVariable Long recordId) {
-        return patientService.getMedicalRecordDetail(recordId);
+    public Result getMedicalRecordDetail(@PathVariable Long recordId, HttpSession session) {
+        return patientService.getMedicalRecordDetail(recordId, session);
     }
 
     /**
@@ -133,6 +135,6 @@ public class PatientController {
                                      HttpSession session) {
         String patientId = (String) session.getAttribute("account");
         return patientService.getVisitHistory(patientId, departmentId, doctorId,
-                startDate, endDate, page, size);
+                startDate, endDate, page, size, session);
     }
 }

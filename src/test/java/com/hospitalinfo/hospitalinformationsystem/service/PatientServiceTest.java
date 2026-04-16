@@ -384,11 +384,13 @@ class PatientServiceTest {
         @Test
         @DisplayName("成功获取患者信息 - 包含就诊统计")
         void getPatientInfoSuccess() {
+            when(session.getAttribute("role")).thenReturn("admin");
+            when(session.getAttribute("account")).thenReturn("test-account-uuid");
             when(patientMapper.selectById("test-account-uuid")).thenReturn(mockPatient);
             when(medicalRecordMapper.selectCount(any(QueryWrapper.class))).thenReturn(5L);
             when(medicalRecordMapper.selectOne(any(QueryWrapper.class))).thenReturn(mockRecord);
 
-            Result result = patientService.getPatientInfo("test-account-uuid");
+            Result result = patientService.getPatientInfo("test-account-uuid", session);
 
             assertTrue(result.getSuccess());
             assertNotNull(result.getData());
@@ -399,9 +401,10 @@ class PatientServiceTest {
         @Test
         @DisplayName("患者不存在 - 返回失败")
         void getPatientInfoNotFound() {
+            when(session.getAttribute("role")).thenReturn("admin");
             when(patientMapper.selectById("not-exist")).thenReturn(null);
 
-            Result result = patientService.getPatientInfo("not-exist");
+            Result result = patientService.getPatientInfo("not-exist", session);
 
             assertFalse(result.getSuccess());
             assertEquals("患者不存在", result.getErrorMsg());
@@ -410,11 +413,13 @@ class PatientServiceTest {
         @Test
         @DisplayName("无就诊记录 - lastVisitDate为空")
         void getPatientInfoNoVisitHistory() {
+            when(session.getAttribute("role")).thenReturn("admin");
+            when(session.getAttribute("account")).thenReturn("test-account-uuid");
             when(patientMapper.selectById("test-account-uuid")).thenReturn(mockPatient);
             when(medicalRecordMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
             when(medicalRecordMapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
 
-            Result result = patientService.getPatientInfo("test-account-uuid");
+            Result result = patientService.getPatientInfo("test-account-uuid", session);
 
             assertTrue(result.getSuccess());
         }
@@ -429,12 +434,13 @@ class PatientServiceTest {
         @Test
         @DisplayName("无关键词查询 - 返回全部分页数据")
         void listPatientsNoKeyword() {
+            when(session.getAttribute("role")).thenReturn("admin");
             Page<Patient> page = new Page<>(1, 10);
             page.setRecords(List.of(mockPatient));
             page.setTotal(1L);
             when(patientMapper.selectPage(any(Page.class), any(QueryWrapper.class))).thenReturn(page);
 
-            Result result = patientService.listPatients(null, 1, 10);
+            Result result = patientService.listPatients(null, 1, 10, session);
 
             assertTrue(result.getSuccess());
             assertEquals(1L, result.getTotal());
@@ -443,12 +449,13 @@ class PatientServiceTest {
         @Test
         @DisplayName("关键词搜索 - 按姓名/手机/身份证模糊匹配")
         void listPatientsWithKeyword() {
+            when(session.getAttribute("role")).thenReturn("admin");
             Page<Patient> page = new Page<>(1, 10);
             page.setRecords(List.of(mockPatient));
             page.setTotal(1L);
             when(patientMapper.selectPage(any(Page.class), any(QueryWrapper.class))).thenReturn(page);
 
-            Result result = patientService.listPatients("张三", 1, 10);
+            Result result = patientService.listPatients("张三", 1, 10, session);
 
             assertTrue(result.getSuccess());
             verify(patientMapper).selectPage(any(Page.class), any(QueryWrapper.class));
@@ -457,12 +464,13 @@ class PatientServiceTest {
         @Test
         @DisplayName("空关键词等同于无条件查询")
         void listPatientsEmptyKeyword() {
+            when(session.getAttribute("role")).thenReturn("admin");
             Page<Patient> page = new Page<>(1, 10);
             page.setRecords(List.of());
             page.setTotal(0L);
             when(patientMapper.selectPage(any(Page.class), any(QueryWrapper.class))).thenReturn(page);
 
-            Result result = patientService.listPatients("", 1, 10);
+            Result result = patientService.listPatients("", 1, 10, session);
 
             assertTrue(result.getSuccess());
             assertEquals(0L, result.getTotal());
@@ -478,6 +486,8 @@ class PatientServiceTest {
         @Test
         @DisplayName("成功获取病历列表 - 填充关联名称")
         void getMedicalRecordsSuccess() {
+            when(session.getAttribute("role")).thenReturn("admin");
+            when(session.getAttribute("account")).thenReturn("test-account-uuid");
             Page<MedicalRecord> page = new Page<>(1, 10);
             page.setRecords(List.of(mockRecord));
             page.setTotal(1L);
@@ -487,7 +497,7 @@ class PatientServiceTest {
             when(doctorMapper.selectById(1L)).thenReturn(mockDoctor);
             when(departmentMapper.selectById(1L)).thenReturn(mockDept);
 
-            Result result = patientService.getMedicalRecords("test-account-uuid", 1, 10);
+            Result result = patientService.getMedicalRecords("test-account-uuid", 1, 10, session);
 
             assertTrue(result.getSuccess());
             assertEquals(1L, result.getTotal());
@@ -496,12 +506,14 @@ class PatientServiceTest {
         @Test
         @DisplayName("无病历记录 - 返回空列表")
         void getMedicalRecordsEmpty() {
+            when(session.getAttribute("role")).thenReturn("admin");
+            when(session.getAttribute("account")).thenReturn("test-account-uuid");
             Page<MedicalRecord> page = new Page<>(1, 10);
             page.setRecords(List.of());
             page.setTotal(0L);
             when(medicalRecordMapper.selectPage(any(Page.class), any(QueryWrapper.class))).thenReturn(page);
 
-            Result result = patientService.getMedicalRecords("test-account-uuid", 1, 10);
+            Result result = patientService.getMedicalRecords("test-account-uuid", 1, 10, session);
 
             assertTrue(result.getSuccess());
             assertEquals(0L, result.getTotal());
@@ -517,6 +529,7 @@ class PatientServiceTest {
         @Test
         @DisplayName("成功获取病历详情 - 含处方和药品信息")
         void getDetailWithPrescription() {
+            when(session.getAttribute("role")).thenReturn("admin");
             Prescription prescription = new Prescription();
             prescription.setId(1L);
             prescription.setMedicalRecordId(1L);
@@ -538,7 +551,7 @@ class PatientServiceTest {
             when(prescriptionItemMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of(item));
             when(medicineMapper.selectById(1L)).thenReturn(medicine);
 
-            Result result = patientService.getMedicalRecordDetail(1L);
+            Result result = patientService.getMedicalRecordDetail(1L, session);
 
             assertTrue(result.getSuccess());
             assertNotNull(result.getData());
@@ -549,7 +562,7 @@ class PatientServiceTest {
         void getDetailNotFound() {
             when(medicalRecordMapper.selectById(999L)).thenReturn(null);
 
-            Result result = patientService.getMedicalRecordDetail(999L);
+            Result result = patientService.getMedicalRecordDetail(999L, session);
 
             assertFalse(result.getSuccess());
             assertEquals("病历不存在", result.getErrorMsg());
@@ -558,13 +571,15 @@ class PatientServiceTest {
         @Test
         @DisplayName("病历无处方 - 只返回病历信息")
         void getDetailNoPrescription() {
+            when(session.getAttribute("role")).thenReturn("admin");
+            when(session.getAttribute("account")).thenReturn("test-account-uuid");
             when(medicalRecordMapper.selectById(1L)).thenReturn(mockRecord);
             when(patientMapper.selectById("test-account-uuid")).thenReturn(mockPatient);
             when(doctorMapper.selectById(1L)).thenReturn(mockDoctor);
             when(departmentMapper.selectById(1L)).thenReturn(mockDept);
             when(prescriptionMapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
 
-            Result result = patientService.getMedicalRecordDetail(1L);
+            Result result = patientService.getMedicalRecordDetail(1L, session);
 
             assertTrue(result.getSuccess());
         }
@@ -579,6 +594,8 @@ class PatientServiceTest {
         @Test
         @DisplayName("成功获取就诊历史 - 含处方摘要")
         void getVisitHistorySuccess() {
+            when(session.getAttribute("role")).thenReturn("admin");
+            when(session.getAttribute("account")).thenReturn("test-account-uuid");
             Page<MedicalRecord> page = new Page<>(1, 10);
             page.setRecords(List.of(mockRecord));
             page.setTotal(1L);
@@ -601,7 +618,7 @@ class PatientServiceTest {
             when(medicineMapper.selectById(1L)).thenReturn(med);
 
             Result result = patientService.getVisitHistory(
-                    "test-account-uuid", null, null, null, null, 1, 10);
+                    "test-account-uuid", null, null, null, null, 1, 10, session);
 
             assertTrue(result.getSuccess());
             assertEquals(1L, result.getTotal());
@@ -610,6 +627,8 @@ class PatientServiceTest {
         @Test
         @DisplayName("按科室和日期范围筛选")
         void getVisitHistoryFiltered() {
+            when(session.getAttribute("role")).thenReturn("admin");
+            when(session.getAttribute("account")).thenReturn("test-account-uuid");
             Page<MedicalRecord> page = new Page<>(1, 10);
             page.setRecords(List.of());
             page.setTotal(0L);
@@ -617,7 +636,7 @@ class PatientServiceTest {
             when(medicalRecordMapper.selectPage(any(Page.class), any(QueryWrapper.class))).thenReturn(page);
 
             Result result = patientService.getVisitHistory(
-                    "test-account-uuid", 1L, null, "2025-01-01", "2025-12-31", 1, 10);
+                    "test-account-uuid", 1L, null, "2025-01-01", "2025-12-31", 1, 10, session);
 
             assertTrue(result.getSuccess());
             assertEquals(0L, result.getTotal());
