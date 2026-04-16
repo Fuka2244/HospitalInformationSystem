@@ -86,6 +86,20 @@ public class AppointmentController {
     }
 
     /**
+     * AI智能预约推荐并查询可用排班
+     * POST /appointment/ai-recommend-with-schedules
+     * 请求体: { "symptom": "我最近头痛，应该挂什么科？" }
+     */
+    @PostMapping("/ai-recommend-with-schedules")
+    public Result aiRecommendWithSchedules(@RequestBody java.util.Map<String, String> body) {
+        String symptom = body.get("symptom");
+        if (symptom == null || symptom.isEmpty()) {
+            return Result.fail("请描述您的症状");
+        }
+        return appointmentService.aiRecommendWithSchedules(symptom);
+    }
+
+    /**
      * 获取可用排班
      * GET /appointment/schedules?departmentId=1&doctorId=1&date=2024-01-15
      */

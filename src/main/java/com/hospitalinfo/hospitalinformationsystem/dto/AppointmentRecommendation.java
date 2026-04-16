@@ -8,7 +8,10 @@ import lombok.Data;
 @Data
 public class AppointmentRecommendation {
     private String department;
+    private Long departmentId;
     private String doctor;
+    private Long doctorId;
     private String recommendedTime;
+    private String recommendedDate;
     private String reason;
 }

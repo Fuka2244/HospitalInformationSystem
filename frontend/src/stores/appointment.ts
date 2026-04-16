@@ -9,6 +9,7 @@ export const useAppointmentStore = defineStore('appointment', () => {
   const loading = ref(false)
   const schedules = ref<DoctorSchedule[]>([])
   const aiRecommendation = ref<AppointmentRecommendation | null>(null)
+  const aiAvailableSchedules = ref<DoctorSchedule[]>([])
 
   /** 获取预约列表 */
   async function fetchList(params: AppointmentQueryParams) {
@@ -44,11 +45,19 @@ export const useAppointmentStore = defineStore('appointment', () => {
     return res
   }
 
+  /** AI推荐并查询可用排班 */
+  async function aiRecommendWithSchedules(symptom: string) {
+    const res = await appointmentApi.aiRecommendWithSchedules({ symptom })
+    aiRecommendation.value = res.data.recommendation
+    aiAvailableSchedules.value = res.data.availableSchedules || []
+    return res
+  }
+
   /** 获取排班 */
   async function fetchSchedules(params: { departmentId?: number; doctorId?: number; date?: string }) {
     const res = await appointmentApi.getAvailableSchedules(params)
     schedules.value = res.data || []
   }
 
-  return { appointments, total, loading, schedules, aiRecommendation, fetchList, create, cancel, reschedule, aiRecommend, fetchSchedules }
+  return { appointments, total, loading, schedules, aiRecommendation, aiAvailableSchedules, fetchList, create, cancel, reschedule, aiRecommend, aiRecommendWithSchedules, fetchSchedules }
 })

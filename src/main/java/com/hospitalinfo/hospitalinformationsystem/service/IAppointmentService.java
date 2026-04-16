@@ -25,6 +25,9 @@ public interface IAppointmentService {
     /** AI智能预约推荐 */
     Result aiRecommendAppointment(String symptom);
 
+    /** AI智能预约推荐并查询可用排班 */
+    Result aiRecommendWithSchedules(String symptom);
+
     /** 获取可用排班 */
     Result getAvailableSchedules(Long departmentId, Long doctorId, String date);
 }

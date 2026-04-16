@@ -18,9 +18,31 @@
                 <el-tag type="success">{{ recommendation.department }}</el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="推荐医生">{{ recommendation.doctor }}</el-descriptions-item>
+              <el-descriptions-item label="推荐日期">{{ recommendation.recommendedDate }}</el-descriptions-item>
               <el-descriptions-item label="推荐时段">{{ recommendation.recommendedTime }}</el-descriptions-item>
               <el-descriptions-item label="推荐理由">{{ recommendation.reason }}</el-descriptions-item>
             </el-descriptions>
+
+            <!-- 可用排班列表 -->
+            <el-divider>可用时间段</el-divider>
+            <div v-if="store.aiAvailableSchedules.length > 0" class="schedule-list">
+              <div
+                v-for="schedule in store.aiAvailableSchedules"
+                :key="schedule.id"
+                class="schedule-item"
+                :class="{ selected: selectedSchedule?.id === schedule.id }"
+                @click="selectSchedule(schedule)"
+              >
+                <div class="schedule-time">{{ schedule.timeSlot }}</div>
+                <div class="schedule-info">余号: {{ schedule.maxPatients - schedule.bookedCount }}</div>
+              </div>
+              <el-button type="primary" :disabled="!selectedSchedule" style="width: 100%; margin-top: 12px" @click="handleAiBook">
+                确认预约
+              </el-button>
+            </div>
+            <div v-else class="no-schedule">
+              <el-text type="info">该医生在推荐日期无可用排班，建议选择其他日期或医生</el-text>
+            </div>
           </div>
         </el-card>
       </el-col>
@@ -72,40 +94,140 @@
       </el-col>
     </el-row>
 
-    <!-- 新建预约对话框 -->
-    <el-dialog v-model="showCreate" title="新建预约" width="550px">
-      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
-        <el-form-item label="科室" prop="departmentId">
-          <el-select v-model="createForm.departmentId" placeholder="请选择科室" @change="onDeptChange">
-            <el-option v-for="d in departments" :key="d.id" :label="d.name" :value="d.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="医生" prop="doctorId">
-          <el-select v-model="createForm.doctorId" placeholder="请选择医生">
-            <el-option v-for="d in deptDoctors" :key="d.id" :label="`${d.name} - ${d.title}`" :value="d.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="预约类型" prop="appointmentType">
-          <el-radio-group v-model="createForm.appointmentType">
-            <el-radio value="DOCTOR">医生预约</el-radio>
-            <el-radio value="EXAMINATION">检查预约</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="createForm.appointmentType === 'EXAMINATION'" label="检查类型" prop="examinationType">
-          <el-input v-model="createForm.examinationType" placeholder="如：CT、B超等" />
-        </el-form-item>
-        <el-form-item label="预约日期" prop="appointmentDate">
-          <el-date-picker v-model="createForm.appointmentDate" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" :disabled-date="disablePastDate" />
-        </el-form-item>
-        <el-form-item label="时段" prop="timeSlot">
-          <el-select v-model="createForm.timeSlot" placeholder="选择时段" @focus="loadSchedules">
-            <el-option v-for="s in availableSlots" :key="s" :label="s" :value="s" />
-          </el-select>
-        </el-form-item>
-      </el-form>
+      <!-- 新建预约对话框 -->
+    <el-dialog v-model="showCreate" title="新建预约" width="1400px" @open="resetCreateForm">
+      <!-- 筛选工具栏 -->
+      <div class="filter-toolbar">
+        <el-form :inline="true" class="filter-form">
+          <el-form-item label="科室">
+            <el-select v-model="filterDepartment" placeholder="全部科室" clearable style="width: 180px">
+              <el-option v-for="d in departments" :key="d.id" :label="d.name" :value="d.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="日期">
+            <el-date-picker v-model="filterDate" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" :disabled-date="disablePastDate" style="width: 180px" />
+          </el-form-item>
+          <el-form-item label="时段">
+            <el-select v-model="filterTimeSlot" placeholder="全部时段" clearable style="width: 180px">
+              <el-option label="上午 (08:00-12:00)" value="08:00-12:00" />
+              <el-option label="下午 (14:00-18:00)" value="14:00-18:00" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="applyFilter">筛选</el-button>
+            <el-button @click="resetFilter">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <!-- 医生列表 -->
+      <div class="doctor-table-container">
+        <div v-if="filteredDoctorList.length > 0" class="doctor-table">
+          <div
+            v-for="doctor in filteredDoctorList"
+            :key="doctor.id"
+            class="doctor-row"
+            :class="{ selected: selectedDoctorId === doctor.id }"
+            @click="selectDoctor(doctor)"
+          >
+            <div class="doctor-avatar">
+              <el-avatar :size="60" :icon="'UserFilled'" />
+            </div>
+            <div class="doctor-info-section">
+              <div class="doctor-name">{{ doctor.name }}</div>
+              <div class="doctor-meta">
+                <el-tag size="small" type="primary">{{ doctor.title }}</el-tag>
+                <span class="doctor-dept">{{ getDepartmentName(doctor.departmentId) }}</span>
+                <span class="doctor-gender">{{ doctor.gender }}</span>
+                <span class="doctor-age">{{ doctor.age }}岁</span>
+              </div>
+              <div class="doctor-specialty">专长：{{ doctor.specialty }}</div>
+            </div>
+            <div class="doctor-action-section">
+              <el-button type="primary" :disabled="!filterDate" @click.stop="showDoctorSchedule(doctor)">
+                查看排班
+              </el-button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-state">
+          <el-empty description="暂无符合条件的医生" />
+        </div>
+      </div>
+
+      <!-- 排班选择弹窗 -->
+      <el-dialog v-model="showScheduleDialog" title="选择就诊时段" width="1000px" append-to-body>
+        <div v-if="currentDoctor" class="schedule-dialog-content">
+          <div class="schedule-doctor-info">
+            <el-avatar :size="80" :icon="'UserFilled'" />
+            <div class="doctor-detail">
+              <div class="doctor-detail-name">{{ currentDoctor.name }}</div>
+              <div class="doctor-detail-meta">
+                <el-tag type="primary">{{ currentDoctor.title }}</el-tag>
+                <span>{{ getDepartmentName(currentDoctor.departmentId) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="doctorAvailableSlots.length > 0" class="schedule-slots">
+            <div
+              v-for="slot in doctorAvailableSlots"
+              :key="slot.id"
+              class="schedule-slot-card"
+              :class="{ selected: selectedSlot?.id === slot.id }"
+              @click="selectScheduleSlot(slot)"
+            >
+              <div class="slot-header">
+                <div class="slot-date">{{ slot.scheduleDate }}</div>
+                <div class="slot-time">{{ slot.timeSlot }}</div>
+              </div>
+              <div class="slot-status">
+                <el-tag :type="slot.bookedCount >= slot.maxPatients ? 'danger' : 'success'" size="small">
+                  {{ slot.bookedCount >= slot.maxPatients ? '已满' : '可预约' }}
+                </el-tag>
+                <span class="slot-count">{{ slot.bookedCount }}/{{ slot.maxPatients }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="no-schedule">
+            <el-empty description="该医生暂无可用排班" />
+          </div>
+        </div>
+        <template #footer>
+          <el-button @click="showScheduleDialog = false">取消</el-button>
+          <el-button type="primary" :disabled="!selectedSlot" @click="confirmSchedule">
+            确认选择
+          </el-button>
+        </template>
+      </el-dialog>
+
+      <!-- 已选时段预览 -->
+      <div v-if="selectedSlot" class="selected-preview">
+        <div class="preview-header">已选时段</div>
+        <div class="preview-content">
+          <div class="preview-item">
+            <span class="preview-label">医生：</span>
+            <span class="preview-value">{{ selectedSlot.doctorName }}</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">科室：</span>
+            <span class="preview-value">{{ selectedSlot.departmentName }}</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">日期：</span>
+            <span class="preview-value">{{ selectedSlot.scheduleDate }}</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">时段：</span>
+            <span class="preview-value">{{ selectedSlot.timeSlot }}</span>
+          </div>
+        </div>
+      </div>
+
       <template #footer>
         <el-button @click="showCreate = false">取消</el-button>
-        <el-button type="primary" :loading="createLoading" @click="handleCreate">确认预约</el-button>
+        <el-button type="primary" :loading="createLoading" :disabled="!selectedSlot" @click="handleCreate">
+          确认预约
+        </el-button>
       </template>
     </el-dialog>
 
@@ -127,9 +249,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
 import { useAppointmentStore } from '@/stores/appointment'
-import { getDepartmentList, getDepartmentDoctors } from '@/api/department'
+import { getDepartmentList, getDoctorList } from '@/api/department'
 import type { Appointment, AppointmentCreateDto, AppointmentRecommendation, Department, Doctor } from '@/types'
 
 const store = useAppointmentStore()
@@ -142,49 +263,136 @@ const cancelReason = ref('')
 const cancelTarget = ref<Appointment | null>(null)
 const symptom = ref('')
 const recommendation = ref<AppointmentRecommendation | null>(null)
+const selectedSchedule = ref<DoctorSchedule | null>(null)
 const departments = ref<Department[]>([])
-const deptDoctors = ref<Doctor[]>([])
-const createFormRef = ref<FormInstance>()
+const allDoctors = ref<Doctor[]>([])
+
+// 筛选状态
+const filterDepartment = ref<number | undefined>(undefined)
+const filterDate = ref<string>('')
+const filterTimeSlot = ref<string>('')
+
+// 排班弹窗
+const showScheduleDialog = ref(false)
+const currentDoctor = ref<Doctor | null>(null)
+const selectedDoctorId = ref<number | undefined>(undefined)
+const selectedSlot = ref<DoctorSchedule | null>(null)
 
 const statusMap: Record<number, string> = { 0: '已预约', 1: '已完成', 2: '已取消' }
 const statusTagType: Record<number, string> = { 0: 'warning', 1: 'success', 2: 'info' }
 
-const createForm = reactive<AppointmentCreateDto>({
-  departmentId: 0,
-  doctorId: undefined,
-  appointmentType: 'DOCTOR',
-  examinationType: undefined,
-  appointmentDate: '',
-  timeSlot: '',
-})
+// 医生可用排班
+const doctorAvailableSlots = ref<any[]>([])
 
-const createRules: FormRules<AppointmentCreateDto> = {
-  departmentId: [{ required: true, message: '请选择科室', trigger: 'change' }],
-  appointmentType: [{ required: true, message: '请选择预约类型', trigger: 'change' }],
-  appointmentDate: [{ required: true, message: '请选择预约日期', trigger: 'change' }],
-  timeSlot: [{ required: true, message: '请选择时段', trigger: 'change' }],
-}
+// 根据条件筛选医生列表
+const filteredDoctorList = computed(() => {
+  let result = allDoctors.value
+
+  // 按科室筛选
+  if (filterDepartment.value) {
+    result = result.filter(d => d.departmentId === filterDepartment.value)
+  }
+
+  // 如果选择了日期和时段，还需要有该日期和时段的可用排班
+  if (filterDate.value && filterTimeSlot.value) {
+    result = result.filter(d => {
+      const hasSchedule = doctorAvailableSlots.value.some(s =>
+        s.doctorId === d.id &&
+        s.scheduleDate === filterDate.value &&
+        s.timeSlot === filterTimeSlot.value &&
+        s.bookedCount < s.maxPatients
+      )
+      return hasSchedule
+    })
+  } else if (filterDate.value) {
+    // 如果只选择了日期，显示有该日期排班的医生
+    result = result.filter(d => {
+      const hasSchedule = doctorAvailableSlots.value.some(s =>
+        s.doctorId === d.id &&
+        s.scheduleDate === filterDate.value &&
+        s.bookedCount < s.maxPatients
+      )
+      return hasSchedule
+    })
+  }
+
+  return result
+})
 
 const queryParams = reactive({ page: 1, size: 10, status: undefined as number | undefined })
-
-const availableSlots = computed(() => {
-  return store.schedules
-    .filter(s => {
-      if (createForm.doctorId && s.doctorId !== createForm.doctorId) return false
-      if (createForm.appointmentDate && s.scheduleDate !== createForm.appointmentDate) return false
-      return s.bookedCount < s.maxPatients
-    })
-    .map(s => s.timeSlot)
-})
 
 function disablePastDate(date: Date) {
   return date.getTime() < Date.now() - 86400000
 }
 
-async function onDeptChange(deptId: number) {
-  createForm.doctorId = undefined
-  const res = await getDepartmentDoctors(deptId)
-  deptDoctors.value = res.data || []
+function getDepartmentName(deptId: number): string {
+  const dept = departments.value.find(d => d.id === deptId)
+  return dept?.name || '未知科室'
+}
+
+// 应用筛选条件
+async function applyFilter() {
+  if (filterDate.value) {
+    // 如果选择了日期，查询该日期的排班
+    await store.fetchSchedules({
+      date: filterDate.value,
+    })
+
+    // 只保留可用的排班
+    doctorAvailableSlots.value = store.schedules.filter(s => s.bookedCount < s.maxPatients)
+  } else {
+    doctorAvailableSlots.value = []
+  }
+}
+
+// 重置筛选条件
+function resetFilter() {
+  filterDepartment.value = undefined
+  filterDate.value = ''
+  filterTimeSlot.value = ''
+  doctorAvailableSlots.value = []
+  selectedDoctorId.value = undefined
+  selectedSlot.value = null
+}
+
+// 选择医生
+function selectDoctor(doctor: Doctor) {
+  selectedDoctorId.value = doctor.id
+}
+
+// 查看医生排班
+async function showDoctorSchedule(doctor: Doctor) {
+  currentDoctor.value = doctor
+
+  if (!filterDate.value) {
+    ElMessage.warning('请先选择日期')
+    return
+  }
+
+  // 查询该医生在指定日期的排班
+  await store.fetchSchedules({
+    doctorId: doctor.id,
+    date: filterDate.value,
+  })
+
+  // 过滤可用排班
+  doctorAvailableSlots.value = store.schedules.filter(s => s.bookedCount < s.maxPatients)
+
+  showScheduleDialog.value = true
+}
+
+// 选择排班时段
+function selectScheduleSlot(slot: DoctorSchedule) {
+  selectedSlot.value = slot
+}
+
+// 确认选择时段
+function confirmSchedule() {
+  if (!selectedSlot.value) {
+    ElMessage.warning('请选择时段')
+    return
+  }
+  showScheduleDialog.value = false
 }
 
 async function loadSchedules() {
@@ -203,22 +411,68 @@ async function handleAiRecommend() {
     return
   }
   aiLoading.value = true
+  selectedSchedule.value = null
   try {
-    const res = await store.aiRecommend(symptom.value)
-    recommendation.value = res.data
+    const res = await store.aiRecommendWithSchedules(symptom.value)
+    recommendation.value = res.data.recommendation
   } finally {
     aiLoading.value = false
   }
 }
 
+function selectSchedule(schedule: DoctorSchedule) {
+  selectedSchedule.value = schedule
+}
+
+async function handleAiBook() {
+  if (!selectedSchedule.value || !recommendation.value) {
+    return
+  }
+
+  const createDto: AppointmentCreateDto = {
+    departmentId: recommendation.value.departmentId!,
+    doctorId: recommendation.value.doctorId!,
+    appointmentType: 'DOCTOR',
+    examinationType: undefined,
+    appointmentDate: selectedSchedule.value.scheduleDate,
+    timeSlot: selectedSchedule.value.timeSlot,
+  }
+
+  try {
+    await store.create(createDto)
+    ElMessage.success('预约成功')
+    recommendation.value = null
+    selectedSchedule.value = null
+    symptom.value = ''
+    loadList()
+  } catch (error) {
+    ElMessage.error('预约失败，请重试')
+  }
+}
+
 async function handleCreate() {
-  await createFormRef.value?.validate()
+  if (!selectedSlot.value) {
+    ElMessage.warning('请先选择时段')
+    return
+  }
+
+  const createDto: AppointmentCreateDto = {
+    departmentId: selectedSlot.value.departmentId,
+    doctorId: selectedSlot.value.doctorId,
+    appointmentType: 'DOCTOR',
+    examinationType: undefined,
+    appointmentDate: selectedSlot.value.scheduleDate,
+    timeSlot: selectedSlot.value.timeSlot,
+  }
+
   createLoading.value = true
   try {
-    await store.create(createForm)
+    await store.create(createDto)
     ElMessage.success('预约成功')
     showCreate.value = false
     loadList()
+  } catch (error) {
+    ElMessage.error('预约失败，请重试')
   } finally {
     createLoading.value = false
   }
@@ -246,13 +500,24 @@ async function confirmCancel() {
 async function handleReschedule(row: Appointment) {
   try {
     await ElMessageBox.confirm('改期将取消当前预约并创建新预约，是否继续？', '改期确认', { type: 'warning' })
-    createForm.departmentId = row.departmentId
-    createForm.doctorId = row.doctorId ?? undefined
-    createForm.appointmentType = row.appointmentType as any
-    createForm.appointmentDate = ''
-    createForm.timeSlot = ''
+    filterDepartment.value = row.departmentId
+    filterDate.value = ''
+    filterTimeSlot.value = ''
+    selectedDoctorId.value = row.doctorId ?? undefined
+    selectedSlot.value = null
     showCreate.value = true
   } catch { /* 用户取消 */ }
+}
+
+function resetCreateForm() {
+  filterDepartment.value = undefined
+  filterDate.value = ''
+  filterTimeSlot.value = ''
+  doctorAvailableSlots.value = []
+  selectedDoctorId.value = undefined
+  selectedSlot.value = null
+  showScheduleDialog.value = false
+  currentDoctor.value = null
 }
 
 async function loadList() {
@@ -262,6 +527,10 @@ async function loadList() {
 onMounted(async () => {
   const deptRes = await getDepartmentList()
   departments.value = deptRes.data || []
+
+  const doctorRes = await getDoctorList()
+  allDoctors.value = doctorRes.data || []
+
   loadList()
 })
 </script>
@@ -269,4 +538,294 @@ onMounted(async () => {
 <style scoped>
 .header-row { display: flex; justify-content: space-between; align-items: center; }
 .ai-result { margin-top: 8px; }
+
+/* 筛选工具栏 */
+.filter-toolbar {
+  padding: 16px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.filter-form {
+  margin: 0;
+}
+
+/* 医生表格 */
+.doctor-table-container {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.doctor-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.doctor-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  border: 2px solid #e4e7ed;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: white;
+}
+
+.doctor-row:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 12px 0 rgba(64, 158, 255, 0.15);
+  transform: translateX(4px);
+}
+
+.doctor-row.selected {
+  border-color: #409eff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.doctor-avatar {
+  flex-shrink: 0;
+}
+
+.doctor-info-section {
+  flex: 1;
+}
+
+.doctor-row .doctor-name {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.doctor-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.doctor-dept {
+  color: #909399;
+}
+
+.doctor-row.selected .doctor-dept {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.doctor-gender,
+.doctor-age {
+  color: #606266;
+}
+
+.doctor-row.selected .doctor-gender,
+.doctor-row.selected .doctor-age {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.doctor-specialty {
+  font-size: 13px;
+  color: #909399;
+  line-height: 1.5;
+}
+
+.doctor-row.selected .doctor-specialty {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.doctor-action-section {
+  flex-shrink: 0;
+}
+
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+/* 排班选择弹窗 */
+.schedule-dialog-content {
+  padding: 20px;
+}
+
+.schedule-doctor-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+  margin-bottom: 24px;
+}
+
+.doctor-detail-name {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.doctor-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.schedule-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.schedule-slot-card {
+  border: 2px solid #e4e7ed;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: white;
+}
+
+.schedule-slot-card:hover {
+  border-color: #409eff;
+  box-shadow: 0 4px 16px 0 rgba(64, 158, 255, 0.2);
+  transform: translateY(-4px);
+}
+
+.schedule-slot-card.selected {
+  border-color: #67c23a;
+  background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+  color: white;
+}
+
+.slot-header {
+  margin-bottom: 12px;
+}
+
+.slot-date {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.slot-time {
+  font-size: 14px;
+  color: #606266;
+}
+
+.schedule-slot-card.selected .slot-time {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.slot-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.slot-count {
+  font-size: 13px;
+  color: #909399;
+}
+
+.schedule-slot-card.selected .slot-count {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.no-schedule {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+/* 已选时段预览 */
+.selected-preview {
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px;
+}
+
+.preview-header {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #303133;
+}
+
+.preview-content {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-label {
+  font-weight: 500;
+  color: #606266;
+}
+
+.preview-value {
+  color: #303133;
+  font-weight: bold;
+}
+
+/* AI可用时段 */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.schedule-item {
+  padding: 12px;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.schedule-item:hover {
+  border-color: #409eff;
+  background-color: #ecf5ff;
+}
+
+.schedule-item.selected {
+  border-color: #409eff;
+  background-color: #409eff;
+  color: white;
+}
+
+.schedule-item.selected .schedule-info {
+  color: white;
+}
+
+.schedule-time {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.schedule-info {
+  font-size: 14px;
+  color: #909399;
+}
+
+.no-schedule {
+  padding: 20px;
+  text-align: center;
+}
 </style>

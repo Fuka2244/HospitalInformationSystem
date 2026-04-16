@@ -15,3 +15,8 @@ export function getDepartmentDetail(id: number) {
 export function getDepartmentDoctors(id: number) {
   return get<Doctor[]>(`/department/${id}/doctors`)
 }
+
+/** 所有医生列表 */
+export function getDoctorList() {
+  return get<Doctor[]>('/department/doctors')
+}

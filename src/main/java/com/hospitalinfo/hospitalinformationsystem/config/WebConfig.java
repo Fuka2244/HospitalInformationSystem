@@ -28,6 +28,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/medicine/ai-recommend",          // AI药品推荐
                         "/appointment/schedules",          // 排班查询（公开）
                         "/appointment/ai-recommend",       // AI预约推荐
+                        "/appointment/ai-recommend-with-schedules",  // AI预约推荐+可用排班
                         "/department/**",                  // 科室信息（公开）
                         "/error",                          // 错误页面
                         "/static/**"                       // 静态资源

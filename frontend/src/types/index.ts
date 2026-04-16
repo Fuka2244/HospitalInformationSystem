@@ -186,8 +186,11 @@ export interface AiRecommendDto {
 /** AI预约推荐结果 */
 export interface AppointmentRecommendation {
   department: string
+  departmentId?: number
   doctor: string
-  recommendedTime: string
+  doctorId?: number
+  recommendedTime?: string
+  recommendedDate?: string
   reason: string
 }
 

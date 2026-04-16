@@ -157,6 +157,51 @@ public class AppointmentServiceImpl implements IAppointmentService {
     }
 
     @Override
+    public Result aiRecommendWithSchedules(String symptom) {
+        // 获取AI推荐并查询可用排班
+        AppointmentRecommendation recommendation = aiAppointmentService.recommendWithSchedules(symptom);
+
+        // 如果没有可用的医生ID，返回推荐结果
+        if (recommendation.getDoctorId() == null || recommendation.getRecommendedDate() == null) {
+            return Result.ok(recommendation);
+        }
+
+        // 查询该医生在该日期的所有可用排班
+        LocalDate appointmentDate = LocalDate.parse(recommendation.getRecommendedDate());
+        QueryWrapper<DoctorSchedule> wrapper = new QueryWrapper<DoctorSchedule>()
+                .eq("doctor_id", recommendation.getDoctorId())
+                .eq("schedule_date", appointmentDate)
+                .eq("status", 1)
+                .orderByAsc("time_slot");
+
+        List<DoctorSchedule> schedules = doctorScheduleMapper.selectList(wrapper);
+
+        // 过滤出可用的排班（未约满）
+        List<DoctorSchedule> availableSchedules = schedules.stream()
+                .filter(s -> s.getBookedCount() < s.getMaxPatients())
+                .toList();
+
+        // 填充医生名称和科室名称
+        for (DoctorSchedule schedule : availableSchedules) {
+            Doctor doctor = doctorMapper.selectById(schedule.getDoctorId());
+            if (doctor != null) {
+                schedule.setDoctorName(doctor.getName());
+                Department dept = departmentMapper.selectById(doctor.getDepartmentId());
+                if (dept != null) {
+                    schedule.setDepartmentName(dept.getName());
+                }
+            }
+        }
+
+        // 将可用排班列表放入推荐结果中
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("recommendation", recommendation);
+        result.put("availableSchedules", availableSchedules);
+
+        return Result.ok(result);
+    }
+
+    @Override
     public Result getAvailableSchedules(Long departmentId, Long doctorId, String date) {
         QueryWrapper<DoctorSchedule> wrapper = new QueryWrapper<>();
         if (departmentId != null) {

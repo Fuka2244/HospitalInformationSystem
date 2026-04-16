@@ -56,4 +56,15 @@ public class DepartmentController {
                 new QueryWrapper<Doctor>().eq("department_id", id).eq("status", 1));
         return Result.ok(doctors);
     }
+
+    /**
+     * 获取所有医生列表
+     * GET /department/doctors
+     */
+    @GetMapping("/doctors")
+    public Result getAllDoctors() {
+        List<Doctor> doctors = doctorMapper.selectList(
+                new QueryWrapper<Doctor>().eq("status", 1).orderByAsc("department_id"));
+        return Result.ok(doctors);
+    }
 }
