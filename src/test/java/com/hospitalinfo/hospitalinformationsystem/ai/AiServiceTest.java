@@ -166,7 +166,7 @@ class AiServiceTest {
             mockMedicine.setId(1L);
             mockMedicine.setName("阿莫西林胶囊");
             mockMedicine.setGenericName("阿莫西林");
-            mockMedicine.setCategory("抗生素");
+            mockMedicine.setCategory("化学药品与生物制品");
             mockMedicine.setSpecification("0.5g*24粒");
             mockMedicine.setIngredients("阿莫西林");
             mockMedicine.setEfficacy("用于敏感菌所致的各种感染");

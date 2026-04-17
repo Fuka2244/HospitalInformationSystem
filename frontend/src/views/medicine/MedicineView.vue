@@ -9,10 +9,9 @@
               <span>药品信息查询</span>
               <div>
                 <el-input v-model="queryParams.keyword" placeholder="搜索药品名称/功效" clearable style="width: 220px; margin-right: 8px" @keyup.enter="handleSearch" />
-                <el-select v-model="queryParams.category" placeholder="药品分类" clearable style="width: 140px; margin-right: 8px">
-                  <el-option label="化学药" value="化学药" />
+                <el-select v-model="queryParams.category" placeholder="药品分类" clearable style="width: 180px; margin-right: 8px">
                   <el-option label="中成药" value="中成药" />
-                  <el-option label="生物制品" value="生物制品" />
+                  <el-option label="化学药品与生物制品" value="化学药品与生物制品" />
                 </el-select>
                 <el-button type="primary" @click="handleSearch">搜索</el-button>
               </div>
@@ -24,7 +23,7 @@
             <el-table-column prop="genericName" label="通用名" width="120" />
             <el-table-column prop="category" label="分类" width="90">
               <template #default="{ row }">
-                <el-tag :type="row.category === '化学药' ? '' : row.category === '中成药' ? 'success' : 'warning'" size="small">
+                <el-tag :type="row.category === '化学药品与生物制品' ? '' : row.category === '中成药' ? 'success' : 'warning'" size="small">
                   {{ row.category }}
                 </el-tag>
               </template>

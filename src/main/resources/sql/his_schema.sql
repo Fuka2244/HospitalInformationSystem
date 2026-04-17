@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS `medicine` (
     `id`            BIGINT        NOT NULL AUTO_INCREMENT COMMENT '药品ID',
     `name`          VARCHAR(100)  NOT NULL COMMENT '药品名称',
     `generic_name`  VARCHAR(100)  DEFAULT NULL COMMENT '通用名',
-    `category`      VARCHAR(50)   DEFAULT NULL COMMENT '分类(中成药/化学药/生物制品)',
+    `category`      VARCHAR(50)   DEFAULT NULL COMMENT '分类(中成药/化学药品与生物制品)',
     `specification` VARCHAR(100)  DEFAULT NULL COMMENT '规格',
     `manufacturer`  VARCHAR(200)  DEFAULT NULL COMMENT '生产厂家',
     `ingredients`   TEXT          DEFAULT NULL COMMENT '成分',

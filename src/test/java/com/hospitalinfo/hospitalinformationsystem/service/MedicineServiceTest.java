@@ -46,7 +46,7 @@ class MedicineServiceTest {
         mockMedicine.setId(1L);
         mockMedicine.setName("阿莫西林胶囊");
         mockMedicine.setGenericName("阿莫西林");
-        mockMedicine.setCategory("抗生素");
+        mockMedicine.setCategory("化学药品与生物制品");
         mockMedicine.setSpecification("0.5g*24粒");
         mockMedicine.setManufacturer("某药厂");
         mockMedicine.setIngredients("阿莫西林");
@@ -100,7 +100,7 @@ class MedicineServiceTest {
             page.setTotal(1L);
             when(medicineMapper.selectPage(any(Page.class), any(QueryWrapper.class))).thenReturn(page);
 
-            Result result = medicineService.listMedicines(null, "抗生素", 1, 10);
+            Result result = medicineService.listMedicines(null, "化学药品与生物制品", 1, 10);
 
             assertTrue(result.getSuccess());
         }
@@ -113,7 +113,7 @@ class MedicineServiceTest {
             page.setTotal(1L);
             when(medicineMapper.selectPage(any(Page.class), any(QueryWrapper.class))).thenReturn(page);
 
-            Result result = medicineService.listMedicines("阿莫", "抗生素", 1, 10);
+            Result result = medicineService.listMedicines("阿莫", "化学药品与生物制品", 1, 10);
 
             assertTrue(result.getSuccess());
         }
