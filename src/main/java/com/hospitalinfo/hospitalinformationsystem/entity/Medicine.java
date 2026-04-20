@@ -22,6 +22,7 @@ public class Medicine {
     @TableField("side_effects")
     private String sideEffects;
     private String contraindications;
+    private String dosage;
     private BigDecimal price;
     private Integer stock;
     private Integer status;

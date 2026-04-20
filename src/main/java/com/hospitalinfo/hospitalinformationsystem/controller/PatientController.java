@@ -55,6 +55,12 @@ public class PatientController {
         return patientService.updatePassword(updatePasswordDto, session);
     }
 
+    /** 验证密码后获取完整身份证号 */
+    @GetMapping("/id-card")
+    public Result getIdCard(@RequestParam String password, HttpSession session) {
+        return patientService.getIdCard(password, session);
+    }
+
     // ==================== 患者业务数据 ====================
 
     /**

@@ -1,19 +1,24 @@
 package com.hospitalinfo.hospitalinformationsystem.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Web配置类
- * 用于配置拦截器
+ * 用于配置拦截器和静态资源映射
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
     @Autowired
     private LoginInterceptor loginInterceptor;
+
+    @Value("${file.upload-dir:uploads}")
+    private String uploadDir;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -30,8 +35,17 @@ public class WebConfig implements WebMvcConfigurer {
                         "/appointment/ai-recommend",       // AI预约推荐
                         "/appointment/ai-recommend-with-schedules",  // AI预约推荐+可用排班
                         "/department/**",                  // 科室信息（公开）
+                        "/uploads/**",                     // 上传文件（公开访问）
                         "/error",                          // 错误页面
                         "/static/**"                       // 静态资源
                 );
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 映射上传文件目录，使头像等上传文件可以通过URL直接访问
+        String absolutePath = new java.io.File(uploadDir).getAbsolutePath();
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:" + absolutePath + "/");
     }
 }

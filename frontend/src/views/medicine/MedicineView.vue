@@ -96,6 +96,7 @@
             <el-descriptions-item label="功效" :span="2">{{ detail.efficacy }}</el-descriptions-item>
             <el-descriptions-item label="副作用" :span="2">{{ detail.sideEffects }}</el-descriptions-item>
             <el-descriptions-item label="禁忌" :span="2">{{ detail.contraindications }}</el-descriptions-item>
+            <el-descriptions-item label="用法用量" :span="2">{{ detail.dosage }}</el-descriptions-item>
           </el-descriptions>
         </template>
       </div>

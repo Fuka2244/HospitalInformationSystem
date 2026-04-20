@@ -28,6 +28,9 @@ public interface IPatientService {
     /** 忘记密码 */
     Result updatePassword(UpdatePasswordDto updatePasswordDto, HttpSession session);
 
+    /** 验证密码后获取完整身份证号 */
+    Result getIdCard(String password, HttpSession session);
+
     // ========== 患者业务数据（原IPatientService） ==========
 
     /** 获取患者基本信息 */

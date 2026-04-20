@@ -11,7 +11,7 @@ const routes = [
   {
     path: '/',
     component: () => import('@/layouts/MainLayout.vue'),
-    redirect: '/profile',
+    redirect: '/department',
     children: [
       { path: 'profile', name: 'Profile', component: () => import('@/views/patient/ProfileView.vue'), meta: { title: '个人信息' } },
       { path: 'records', name: 'Records', component: () => import('@/views/patient/RecordsView.vue'), meta: { title: '病历与就诊' } },

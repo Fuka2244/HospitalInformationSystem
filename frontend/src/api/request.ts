@@ -77,4 +77,14 @@ export function download(url: string, filename: string, params?: any) {
   })
 }
 
+/** 上传文件 */
+export function upload<T = any>(url: string, file: File, fieldName = 'file', config?: AxiosRequestConfig): Promise<Result<T>> {
+  const formData = new FormData()
+  formData.append(fieldName, file)
+  return instance.post(url, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    ...config,
+  }).then((res) => res.data)
+}
+
 export default instance

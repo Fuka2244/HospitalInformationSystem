@@ -61,7 +61,7 @@
         <div class="header-right">
           <span class="username">{{ userStore.userInfo?.username || '用户' }}</span>
           <el-dropdown @command="handleCommand">
-            <el-avatar :size="32" icon="User" />
+            <el-avatar :size="32" :icon="User" :src="avatarUrl" />
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人信息</el-dropdown-item>
@@ -81,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -91,6 +91,15 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const isCollapsed = ref(false)
+
+const BASE_URL = '/HIS'
+
+const avatarUrl = computed(() => {
+  if (userStore.userInfo?.avatar) {
+    return BASE_URL + userStore.userInfo.avatar + '?t=' + Date.now()
+  }
+  return undefined
+})
 
 async function handleCommand(cmd: string) {
   if (cmd === 'profile') {

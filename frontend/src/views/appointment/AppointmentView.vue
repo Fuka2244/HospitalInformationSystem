@@ -251,7 +251,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAppointmentStore } from '@/stores/appointment'
 import { getDepartmentList, getDoctorList } from '@/api/department'
-import type { Appointment, AppointmentCreateDto, AppointmentRecommendation, Department, Doctor } from '@/types'
+import type { Appointment, AppointmentCreateDto, AppointmentRecommendation, Department, Doctor, DoctorSchedule } from '@/types'
 
 const store = useAppointmentStore()
 const showCreate = ref(false)
@@ -393,16 +393,6 @@ function confirmSchedule() {
     return
   }
   showScheduleDialog.value = false
-}
-
-async function loadSchedules() {
-  if (createForm.departmentId || createForm.doctorId || createForm.appointmentDate) {
-    await store.fetchSchedules({
-      departmentId: createForm.departmentId || undefined,
-      doctorId: createForm.doctorId || undefined,
-      date: createForm.appointmentDate || undefined,
-    })
-  }
 }
 
 async function handleAiRecommend() {

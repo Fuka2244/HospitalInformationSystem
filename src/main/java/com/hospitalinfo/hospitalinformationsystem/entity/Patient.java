@@ -19,4 +19,6 @@ public class Patient {
     private String idCard;   //身份证
     private String phone;
     private String address;
+    @TableField("avatar")
+    private String avatar;
 }

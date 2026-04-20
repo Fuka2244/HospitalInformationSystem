@@ -35,15 +35,6 @@ export interface LoginDto {
   password: string
 }
 
-/** 登录响应 */
-export interface LoginVo {
-  username: string
-  account: string
-  gender: string
-  age: number
-  phone: string
-}
-
 /** 修改个人信息请求 */
 export interface UpdateProfileDto {
   username?: string
@@ -69,6 +60,8 @@ export interface PatientInfo {
   phone: string
   address: string
   idCard: string
+  idCardVerified: boolean
+  avatar: string | null
   totalVisits: number
   lastVisitDate: string | null
 }
@@ -235,6 +228,7 @@ export interface Medicine {
   efficacy: string
   sideEffects: string
   contraindications: string
+  dosage: string
   price: number
   stock: number
   status: number

@@ -149,6 +149,7 @@ public class AiMedicineService implements CommandLineRunner {
         String efficacy = truncate(med.getEfficacy(), 300);
         String sideEffects = truncate(med.getSideEffects(), 200);
         String contraindications = truncate(med.getContraindications(), 200);
+        String dosage = truncate(med.getDosage(), 200);
 
         String text = String.format("""
                 药品名: %s | 通用名: %s | 分类: %s | 规格: %s
@@ -156,10 +157,11 @@ public class AiMedicineService implements CommandLineRunner {
                 功效: %s
                 副作用: %s
                 禁忌: %s
+                用法用量: %s
                 价格: %.2f元""",
                 med.getName(), med.getGenericName(), med.getCategory(),
                 med.getSpecification(), ingredients, efficacy,
-                sideEffects, contraindications, med.getPrice());
+                sideEffects, contraindications, dosage, med.getPrice());
 
         if (text.length() > MAX_EMBEDDING_TEXT_LENGTH) {
             text = text.substring(0, MAX_EMBEDDING_TEXT_LENGTH);

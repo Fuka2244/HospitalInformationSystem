@@ -104,7 +104,11 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
         patient.setIdCard(idCard);
 
         boolean success = this.save(patient);
-        return success ? Result.ok(patient) : Result.fail("注册失败，请稍后再试");
+        if (success) {
+            PatientInfoVo vo = buildPatientInfoVo(patient);
+            return Result.ok(vo);
+        }
+        return Result.fail("注册失败，请稍后再试");
     }
 
     @Override
@@ -251,7 +255,10 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
                     .or().like("id_card", keyword));
         }
         Page<Patient> result = this.page(pageParam, wrapper);
-        return Result.ok(result.getRecords(), result.getTotal());
+        List<PatientInfoVo> voList = result.getRecords().stream()
+                .map(this::buildPatientInfoVo)
+                .collect(Collectors.toList());
+        return Result.ok(voList, result.getTotal());
     }
 
     @Override
@@ -418,6 +425,15 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
      * 构建PatientInfoVo（含就诊统计）
      */
     private PatientInfoVo buildPatientInfoVo(Patient patient) {
+        return buildPatientInfoVo(patient, false);
+    }
+
+    /**
+     * 构建PatientInfoVo（含就诊统计）
+     * @param patient 患者实体
+     * @param showFullIdCard 是否显示完整身份证
+     */
+    private PatientInfoVo buildPatientInfoVo(Patient patient, boolean showFullIdCard) {
         PatientInfoVo vo = new PatientInfoVo();
         vo.setAccount(patient.getAccount());
         vo.setUsername(patient.getUsername());
@@ -426,7 +442,15 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
         vo.setAge(patient.getAge());
         vo.setPhone(patient.getPhone());
         vo.setAddress(patient.getAddress());
-        vo.setIdCard(patient.getIdCard());
+        vo.setAvatar(patient.getAvatar());
+        vo.setIdCardVerified(showFullIdCard);
+
+        // 身份证脱敏处理：默认只显示前3位+****+后4位
+        if (showFullIdCard) {
+            vo.setIdCard(patient.getIdCard());
+        } else {
+            vo.setIdCard(maskIdCard(patient.getIdCard()));
+        }
 
         // 统计就诊次数
         Long totalVisits = medicalRecordMapper.selectCount(
@@ -466,5 +490,39 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
                 }
             }
         }
+    }
+
+    /**
+     * 身份证脱敏：前3位 + **** + 后4位
+     * 如 110101200001011234 → 110***********1234
+     */
+    private String maskIdCard(String idCard) {
+        if (idCard == null || idCard.length() < 7) {
+            return idCard;
+        }
+        return idCard.substring(0, 3) + "***********" + idCard.substring(idCard.length() - 4);
+    }
+
+    @Override
+    public Result getIdCard(String password, HttpSession session) {
+        String account = (String) session.getAttribute("account");
+        if (account == null) {
+            return Result.fail("请先登录");
+        }
+        Patient patient = this.getById(account);
+        if (patient == null) {
+            return Result.fail("用户不存在");
+        }
+
+        // 验证密码
+        boolean match = MatchPassword.match(password, patient.getPassword());
+        if (!match) {
+            return Result.fail("密码不正确");
+        }
+
+        // 返回完整身份证
+        Map<String, Object> data = new HashMap<>();
+        data.put("idCard", patient.getIdCard());
+        return Result.ok(data);
     }
 }

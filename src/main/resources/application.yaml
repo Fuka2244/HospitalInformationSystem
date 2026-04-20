@@ -6,6 +6,11 @@ server:
       timeout: 30m
 
 spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 10MB
   datasource:
     url: jdbc:mysql://localhost:3306/his?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true
     username: root
@@ -34,3 +39,8 @@ ai:
       api-key: ${DASH_SCOPE_API_KEY:YOUR_QWEN_API_KEY}
       model-name: text-embedding-v2
       base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+
+# 文件上传配置
+file:
+  upload-dir: ${user.dir}/uploads
+  avatar-max-size: 5242880  # 5MB

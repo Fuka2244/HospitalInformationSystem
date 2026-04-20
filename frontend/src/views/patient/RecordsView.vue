@@ -80,7 +80,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getVisitHistory, getMedicalRecordDetail } from '@/api/patient'
-import { getDepartmentList, getDepartmentDoctors } from '@/api/department'
+import { getDepartmentList, getDepartmentDoctors, getDoctorList } from '@/api/department'
 import type { VisitRecord, VisitHistoryParams, MedicalRecordDetail, Department, Doctor } from '@/types'
 
 const loading = ref(false)
@@ -136,6 +136,10 @@ function handleSearch() {
 onMounted(async () => {
   const deptRes = await getDepartmentList()
   departments.value = deptRes.data || []
+
+  const doctorRes = await getDoctorList()
+  doctors.value = doctorRes.data || []
+
   loadRecords()
 })
 </script>
