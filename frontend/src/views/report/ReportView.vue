@@ -1,12 +1,21 @@
 <template>
-  <div class="report-container" style="padding: 20px">
-    <el-row :gutter="20">
+  <div class="page report-container">
+    <div class="page-header">
+      <div>
+        <div class="page-title">医疗报告</div>
+        <div class="page-subtitle">查看报告、导出 PDF，并可通过 AI 从病历生成草稿报告</div>
+      </div>
+    </div>
+    <el-row class="fill-row" :gutter="20">
       <!-- 报告列表 -->
-      <el-col :span="16">
-        <el-card shadow="hover">
+      <el-col :xs="24" :lg="16" class="fill-col">
+        <el-card class="fill-card list-card" shadow="hover">
           <template #header>
             <div class="header-row">
-              <span>医疗报告</span>
+              <div class="head-left">
+                <span>报告列表</span>
+                <el-tag effect="light" type="info" size="small">共 {{ total }} 条</el-tag>
+              </div>
               <el-button type="primary" @click="showGenerate = true">AI 生成报告</el-button>
             </div>
           </template>
@@ -45,8 +54,8 @@
       </el-col>
 
       <!-- 快速信息面板 -->
-      <el-col :span="8">
-        <el-card shadow="hover">
+      <el-col :xs="24" :lg="8" class="fill-col">
+        <el-card class="fill-card side-card" shadow="hover">
           <template #header>
             <span>报告生成说明</span>
           </template>
@@ -456,7 +465,34 @@ onMounted(loadReports)
 </script>
 
 <style scoped>
-.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.head-left{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.list-card :deep(.el-card__body){
+  display:flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.list-card :deep(.el-table){
+  flex: 1;
+}
+.list-card :deep(.el-pagination){
+  margin-top: auto;
+}
+.side-card :deep(.el-card__body){
+  display:flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.side-card :deep(.el-alert){
+  margin-top: auto;
+}
 
 /* 报告生成对话框 */
 .generate-report-container {
@@ -470,7 +506,7 @@ onMounted(loadReports)
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #e4e7ed;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
   padding-right: 20px;
   min-width: 280px;
 }
@@ -495,24 +531,28 @@ onMounted(loadReports)
 }
 
 .record-item {
-  border: 2px solid #e4e7ed;
-  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 16px;
   padding: 16px;
   margin-bottom: 12px;
   cursor: pointer;
-  transition: all 0.3s;
-  background: white;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(10px);
 }
 
 .record-item:hover {
-  border-color: #409eff;
-  box-shadow: 0 2px 12px 0 rgba(64, 158, 255, 0.15);
-  transform: translateX(4px);
+  border-color: rgba(47, 128, 237, 0.20);
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);
+  transform: translateY(-1px);
 }
 
 .record-item.selected {
-  border-color: #409eff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: rgba(47, 128, 237, 0.30);
+  background:
+    radial-gradient(700px 340px at 20% 0%, rgba(47, 128, 237, 0.42), transparent 60%),
+    radial-gradient(700px 340px at 100% 20%, rgba(120, 87, 255, 0.36), transparent 60%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.84) 100%);
   color: white;
 }
 
@@ -592,7 +632,7 @@ onMounted(loadReports)
   flex: 1;
   overflow-y: auto;
   min-width: 280px;
-  border-right: 1px solid #e4e7ed;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
   padding-right: 20px;
 }
 
@@ -603,8 +643,9 @@ onMounted(loadReports)
 }
 
 .selected-record-preview {
-  background: #f5f7fa;
-  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.02);
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -670,10 +711,10 @@ onMounted(loadReports)
   display: flex;
   gap: 12px;
   padding: 12px;
-  background: #f5f7fa;
-  border-radius: 8px;
-  transition: all 0.3s;
-  border: 1px solid #e4e7ed;
+  background: rgba(15, 23, 42, 0.02);
+  border-radius: 14px;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .thought-step-item.active {

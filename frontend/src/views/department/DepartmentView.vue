@@ -1,9 +1,15 @@
 <template>
-  <div class="department-container" style="padding: 20px">
-    <el-row :gutter="20">
+  <div class="page department-container">
+    <div class="page-header">
+      <div>
+        <div class="page-title">科室信息</div>
+        <div class="page-subtitle">浏览科室介绍与在岗医生信息</div>
+      </div>
+    </div>
+    <el-row class="fill-row" :gutter="20">
       <!-- 科室列表 -->
-      <el-col :span="8">
-        <el-card shadow="hover">
+      <el-col :xs="24" :lg="8" class="fill-col">
+        <el-card class="fill-card" shadow="hover">
           <template #header>
             <span>科室列表</span>
           </template>
@@ -21,15 +27,15 @@
       </el-col>
 
       <!-- 科室详情与医生 -->
-      <el-col :span="16">
-        <el-card v-if="selectedDept" shadow="hover">
+      <el-col :xs="24" :lg="16" class="fill-col">
+        <el-card v-if="selectedDept" class="fill-card" shadow="hover">
           <template #header>
             <div class="header-row">
               <span>{{ selectedDept.name }}</span>
               <el-tag>{{ selectedDept.location }}</el-tag>
             </div>
           </template>
-          <p style="color: #606266; margin-bottom: 20px">{{ selectedDept.description }}</p>
+          <p class="dept-description">{{ selectedDept.description }}</p>
 
           <el-divider>科室医生</el-divider>
           <el-table :data="doctors" v-loading="doctorLoading" stripe>
@@ -47,7 +53,7 @@
           </el-table>
           <el-empty v-if="doctors.length === 0 && !doctorLoading" description="该科室暂无在岗医生" />
         </el-card>
-        <el-card v-else shadow="hover">
+        <el-card v-else class="fill-card" shadow="hover">
           <el-empty description="请从左侧选择一个科室" />
         </el-card>
       </el-col>
@@ -95,19 +101,40 @@ onMounted(loadDepartments)
 </script>
 
 <style scoped>
+.department-container :deep(.el-card__body){
+  display:flex;
+  flex-direction: column;
+}
+.department-container :deep(.el-table){
+  flex: 1;
+}
 .dept-item {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: rgba(15, 23, 42, 0.02);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
-.dept-item:hover { background: #f5f7fa; }
-.dept-item.active { background: #ecf5ff; }
+.dept-item:hover {
+  transform: translateY(-1px);
+  background: rgba(47, 128, 237, 0.06);
+  border-color: rgba(47, 128, 237, 0.18);
+}
+.dept-item.active {
+  background: rgba(47, 128, 237, 0.10);
+  border-color: rgba(47, 128, 237, 0.26);
+}
 .dept-info { flex: 1; }
 .dept-name { font-weight: bold; color: #303133; }
 .dept-desc { font-size: 12px; color: #909399; margin-top: 2px; }
 .header-row { display: flex; justify-content: space-between; align-items: center; }
+.dept-description{
+  color: rgba(15, 23, 42, 0.62);
+  margin-bottom: 18px;
+  line-height: 1.7;
+}
 </style>

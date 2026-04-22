@@ -29,7 +29,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
     @Override
     @Transactional
     public Result createAppointment(AppointmentCreateDto dto, String patientId) {
-        // 校验排班是否存在且有余号
+        // 校验排班是否存在且有余号（使用原子操作防止并发超卖）
         if (dto.getDoctorId() != null) {
             DoctorSchedule schedule = doctorScheduleMapper.selectOne(
                     new QueryWrapper<DoctorSchedule>()
@@ -44,9 +44,12 @@ public class AppointmentServiceImpl implements IAppointmentService {
                 return Result.fail("该时段已约满，请选择其他时间");
             }
 
-            // 更新已预约数
-            schedule.setBookedCount(schedule.getBookedCount() + 1);
-            doctorScheduleMapper.updateById(schedule);
+            // 使用原子操作递增已预约数，防止并发超卖
+            int updated = doctorScheduleMapper.incrementBookedCount(
+                    dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
+            if (updated == 0) {
+                return Result.fail("该时段已约满，请选择其他时间");
+            }
         }
 
         // 创建预约
@@ -122,17 +125,10 @@ public class AppointmentServiceImpl implements IAppointmentService {
         appointment.setCancelReason(cancelReason);
         appointmentMapper.updateById(appointment);
 
-        // 释放排班号源
+        // 释放排班号源（使用原子操作防止并发计数不一致）
         if (appointment.getDoctorId() != null) {
-            DoctorSchedule schedule = doctorScheduleMapper.selectOne(
-                    new QueryWrapper<DoctorSchedule>()
-                            .eq("doctor_id", appointment.getDoctorId())
-                            .eq("schedule_date", appointment.getAppointmentDate())
-                            .eq("time_slot", appointment.getTimeSlot()));
-            if (schedule != null && schedule.getBookedCount() > 0) {
-                schedule.setBookedCount(schedule.getBookedCount() - 1);
-                doctorScheduleMapper.updateById(schedule);
-            }
+            doctorScheduleMapper.decrementBookedCount(
+                    appointment.getDoctorId(), appointment.getAppointmentDate(), appointment.getTimeSlot());
         }
 
         return Result.ok();

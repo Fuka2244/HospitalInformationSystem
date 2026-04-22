@@ -22,7 +22,7 @@ instance.interceptors.response.use(
     const { data } = response
     if (data.success === false) {
       ElMessage.error(data.errorMsg || '请求失败')
-      return Promise.reject(new Error(data.errorMsg))
+      return Promise.reject(new Error(data.errorMsg || '请求失败'))
     }
     return response
   },

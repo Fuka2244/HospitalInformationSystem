@@ -1,11 +1,20 @@
 <template>
-  <div class="profile-container">
-    <el-row :gutter="20">
+  <div class="page profile-container">
+    <div class="page-header">
+      <div>
+        <div class="page-title">个人信息</div>
+        <div class="page-subtitle">资料概览与安全信息维护</div>
+      </div>
+    </div>
+    <el-row class="fill-row" :gutter="20">
       <!-- 个人信息卡片 -->
-      <el-col :span="8">
-        <el-card shadow="hover">
+      <el-col :xs="24" :lg="8" class="fill-col">
+        <el-card class="fill-card" shadow="hover">
           <template #header>
-            <span>个人信息</span>
+            <div class="card-head">
+              <span>资料概览</span>
+              <el-tag effect="light" type="primary" size="small">已登录</el-tag>
+            </div>
           </template>
           <div v-loading="infoLoading">
             <div class="avatar-section">
@@ -24,12 +33,15 @@
                 @change="handleFileChange"
               />
               <h3>{{ profile?.name || profile?.username }}</h3>
-              <el-tag>{{ profile?.gender }}</el-tag>
+              <div class="meta-row">
+                <el-tag effect="light">{{ profile?.gender }}</el-tag>
+                <el-tag effect="light" type="info">{{ profile?.age ? profile.age + ' 岁' : '年龄未填' }}</el-tag>
+              </div>
             </div>
             <el-descriptions :column="1" border size="small" style="margin-top: 16px">
               <el-descriptions-item label="账户ID">{{ profile?.account }}</el-descriptions-item>
               <el-descriptions-item label="手机号">{{ profile?.phone }}</el-descriptions-item>
-              <el-descriptions-item label="年龄">{{ profile?.age }}</el-descriptions-item>
+              <el-descriptions-item label="年龄">{{ profile?.age ? profile.age + ' 岁' : '未填写' }}</el-descriptions-item>
               <el-descriptions-item label="身份证">
                 <div class="id-card-field">
                   <span>{{ displayIdCard }}</span>
@@ -62,10 +74,13 @@
       </el-col>
 
       <!-- 修改信息 -->
-      <el-col :span="16">
-        <el-card shadow="hover">
+      <el-col :xs="24" :lg="16" class="fill-col">
+        <el-card class="fill-card" shadow="hover">
           <template #header>
-            <span>修改个人信息</span>
+            <div class="card-head">
+              <span>资料编辑</span>
+              <el-tag effect="light" type="info" size="small">需验证密码</el-tag>
+            </div>
           </template>
           <el-form ref="formRef" :model="updateForm" :rules="updateRules" label-width="100px" v-loading="updateLoading">
             <el-form-item label="用户名" prop="username">
@@ -271,7 +286,13 @@ onMounted(loadProfile)
 </script>
 
 <style scoped>
-.profile-container { padding: 20px; }
+.profile-container { padding: 0; }
+.card-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+}
 .avatar-section {
   display: flex;
   flex-direction: column;
@@ -305,9 +326,18 @@ onMounted(loadProfile)
 .avatar-wrapper:hover .avatar-overlay {
   opacity: 1;
 }
+.meta-row{
+  display:flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content:center;
+}
 .id-card-field {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+:deep(.el-descriptions__label){
+  color: rgba(15, 23, 42, 0.62);
 }
 </style>

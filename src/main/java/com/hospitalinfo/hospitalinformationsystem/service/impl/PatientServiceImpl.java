@@ -10,6 +10,7 @@ import com.hospitalinfo.hospitalinformationsystem.service.IPatientService;
 import com.hospitalinfo.hospitalinformationsystem.utils.EncodePassword;
 import com.hospitalinfo.hospitalinformationsystem.utils.MatchPassword;
 import com.hospitalinfo.hospitalinformationsystem.utils.RegexTool;
+import com.hospitalinfo.hospitalinformationsystem.utils.VerificationCodeService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
     private final PrescriptionMapper prescriptionMapper;
     private final PrescriptionItemMapper prescriptionItemMapper;
     private final MedicineMapper medicineMapper;
+    private final VerificationCodeService verificationCodeService;
 
     // ==================== 账户管理 ====================
 
@@ -195,13 +197,41 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
     }
 
     @Override
+    public Result sendVerificationCode(String phone) {
+        if (phone == null || !RegexTool.isPhone(phone)) {
+            return Result.fail("手机号格式不正确");
+        }
+        Patient patient = this.lambdaQuery().eq(Patient::getPhone, phone).one();
+        if (patient == null) {
+            return Result.fail("该手机号未注册");
+        }
+        String code = verificationCodeService.generateCode(phone);
+        if (code == null) {
+            return Result.fail("验证码发送过于频繁，请60秒后重试");
+        }
+        // TODO: 生产环境应调用短信服务发送验证码，而非直接返回
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("message", "验证码已发送");
+        // 开发阶段返回验证码，生产环境必须移除
+        data.put("code", code);
+        return Result.ok(data);
+    }
+
+    @Override
     public Result updatePassword(UpdatePasswordDto updatePasswordDto, HttpSession session) {
         String phone = updatePasswordDto.getPhone();
         String newPassword = updatePasswordDto.getNewPassword();
         String confirmPassword = updatePasswordDto.getConfirmPassword();
+        String verificationCode = updatePasswordDto.getVerificationCode();
 
         if (phone == null || !RegexTool.isPhone(phone)) {
             return Result.fail("手机号格式不正确");
+        }
+        if (verificationCode == null || verificationCode.isEmpty()) {
+            return Result.fail("请输入验证码");
+        }
+        if (!verificationCodeService.verifyCode(phone, verificationCode)) {
+            return Result.fail("验证码错误或已过期，请重新获取");
         }
         if (newPassword == null || !newPassword.equals(confirmPassword)) {
             return Result.fail("两次密码不一致");

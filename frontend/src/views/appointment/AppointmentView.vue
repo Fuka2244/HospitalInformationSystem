@@ -1,11 +1,23 @@
 <template>
-  <div class="appointment-container" style="padding: 20px">
-    <el-row :gutter="20">
+  <div class="page appointment-container">
+    <div class="page-header">
+      <div>
+        <div class="page-title">预约挂号</div>
+        <div class="page-subtitle">AI 智能导诊、医生排班与预约管理</div>
+      </div>
+      <div class="page-actions">
+        <el-button type="primary" @click="showCreate = true">新建预约</el-button>
+      </div>
+    </div>
+    <el-row class="fill-row" :gutter="20">
       <!-- AI智能导诊 -->
-      <el-col :span="8">
-        <el-card shadow="hover">
+      <el-col :xs="24" :lg="8" class="fill-col">
+        <el-card class="ai-card fill-card" shadow="hover">
           <template #header>
-            <span>AI 智能导诊</span>
+            <div class="card-head">
+              <span>AI 智能导诊</span>
+              <el-tag effect="light" type="warning" size="small">仅供参考</el-tag>
+            </div>
           </template>
           <el-input v-model="symptom" type="textarea" :rows="3" placeholder="请描述您的症状，如：我最近头痛，应该挂什么科？" />
           <el-button type="primary" :loading="aiLoading" style="width: 100%; margin-top: 12px" @click="handleAiRecommend">
@@ -48,12 +60,14 @@
       </el-col>
 
       <!-- 预约列表 -->
-      <el-col :span="16">
-        <el-card shadow="hover">
+      <el-col :xs="24" :lg="16" class="fill-col">
+        <el-card class="list-card fill-card" shadow="hover">
           <template #header>
             <div class="header-row">
-              <span>我的预约</span>
-              <el-button type="primary" @click="showCreate = true">新建预约</el-button>
+              <div class="head-left">
+                <span>我的预约</span>
+                <el-tag effect="light" type="info" size="small">共 {{ store.total }} 条</el-tag>
+              </div>
             </div>
           </template>
           <el-table :data="store.appointments" v-loading="store.loading" stripe>
@@ -144,7 +158,7 @@
               <div class="doctor-specialty">专长：{{ doctor.specialty }}</div>
             </div>
             <div class="doctor-action-section">
-              <el-button type="primary" :disabled="!filterDate" @click.stop="showDoctorSchedule(doctor)">
+              <el-button type="primary" @click.stop="showDoctorSchedule(doctor)">
                 查看排班
               </el-button>
             </div>
@@ -364,15 +378,10 @@ function selectDoctor(doctor: Doctor) {
 async function showDoctorSchedule(doctor: Doctor) {
   currentDoctor.value = doctor
 
-  if (!filterDate.value) {
-    ElMessage.warning('请先选择日期')
-    return
-  }
-
-  // 查询该医生在指定日期的排班
+  // 查询该医生的排班，有日期按日期查，无日期查未来7天
   await store.fetchSchedules({
     doctorId: doctor.id,
-    date: filterDate.value,
+    date: filterDate.value || undefined,
   })
 
   // 过滤可用排班
@@ -526,14 +535,55 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.card-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+}
 .header-row { display: flex; justify-content: space-between; align-items: center; }
+.head-left{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.ai-card :deep(.el-card__header){
+  background: linear-gradient(180deg, rgba(47, 128, 237, 0.10), rgba(255,255,255,0));
+}
+.list-card :deep(.el-card__header){
+  background: linear-gradient(180deg, rgba(120, 87, 255, 0.08), rgba(255,255,255,0));
+}
 .ai-result { margin-top: 8px; }
+.ai-card :deep(.el-card__body){
+  display:flex;
+  flex-direction: column;
+}
+.ai-card .ai-result{
+  margin-top: 12px;
+  flex: 1;
+  overflow: auto;
+  padding-right: 4px;
+}
+.list-card :deep(.el-card__body){
+  display:flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.list-card :deep(.el-table){
+  flex: 1;
+}
+.list-card :deep(.el-pagination){
+  margin-top: auto;
+}
 
 /* 筛选工具栏 */
 .filter-toolbar {
   padding: 16px;
-  background: #f5f7fa;
-  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
   margin-bottom: 20px;
 }
 
@@ -558,22 +608,26 @@ onMounted(async () => {
   align-items: center;
   gap: 20px;
   padding: 20px;
-  border: 2px solid #e4e7ed;
-  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.3s;
-  background: white;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(10px);
 }
 
 .doctor-row:hover {
-  border-color: #409eff;
-  box-shadow: 0 2px 12px 0 rgba(64, 158, 255, 0.15);
-  transform: translateX(4px);
+  border-color: rgba(47, 128, 237, 0.20);
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);
+  transform: translateY(-1px);
 }
 
 .doctor-row.selected {
-  border-color: #409eff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: rgba(47, 128, 237, 0.30);
+  background:
+    radial-gradient(700px 340px at 20% 0%, rgba(47, 128, 237, 0.42), transparent 60%),
+    radial-gradient(700px 340px at 100% 20%, rgba(120, 87, 255, 0.36), transparent 60%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.84) 100%);
   color: white;
 }
 
@@ -646,10 +700,14 @@ onMounted(async () => {
   align-items: center;
   gap: 20px;
   padding: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  background:
+    radial-gradient(700px 340px at 20% 0%, rgba(47, 128, 237, 0.52), transparent 60%),
+    radial-gradient(700px 340px at 100% 20%, rgba(120, 87, 255, 0.42), transparent 60%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.84) 100%);
+  border-radius: 18px;
   color: white;
   margin-bottom: 24px;
+  border: 1px solid rgba(255,255,255,0.16);
 }
 
 .doctor-detail-name {
@@ -674,23 +732,24 @@ onMounted(async () => {
 }
 
 .schedule-slot-card {
-  border: 2px solid #e4e7ed;
-  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 16px;
   padding: 20px;
   cursor: pointer;
-  transition: all 0.3s;
-  background: white;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(10px);
 }
 
 .schedule-slot-card:hover {
-  border-color: #409eff;
-  box-shadow: 0 4px 16px 0 rgba(64, 158, 255, 0.2);
-  transform: translateY(-4px);
+  border-color: rgba(47, 128, 237, 0.20);
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);
+  transform: translateY(-2px);
 }
 
 .schedule-slot-card.selected {
-  border-color: #67c23a;
-  background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+  border-color: rgba(47, 128, 237, 0.28);
+  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
   color: white;
 }
 
@@ -737,8 +796,10 @@ onMounted(async () => {
 .selected-preview {
   margin-top: 20px;
   padding: 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  border-radius: 12px;
+  background: rgba(255,255,255,0.72);
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
 }
 
 .preview-header {
@@ -780,23 +841,25 @@ onMounted(async () => {
 
 .schedule-item {
   padding: 12px;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: rgba(15, 23, 42, 0.02);
 }
 
 .schedule-item:hover {
-  border-color: #409eff;
-  background-color: #ecf5ff;
+  border-color: rgba(47, 128, 237, 0.20);
+  background: rgba(47, 128, 237, 0.06);
+  transform: translateY(-1px);
 }
 
 .schedule-item.selected {
-  border-color: #409eff;
-  background-color: #409eff;
+  border-color: rgba(47, 128, 237, 0.25);
+  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
   color: white;
 }
 

@@ -56,10 +56,15 @@ public class BillingServiceImpl implements IBillingService {
     }
 
     @Override
-    public Result getBillingDetail(Long billingId) {
+    public Result getBillingDetail(Long billingId, String currentPatientId, Object role) {
         Billing billing = billingMapper.selectById(billingId);
         if (billing == null) {
             return Result.fail("费用记录不存在");
+        }
+        // 权限验证：患者只能查看自己的费用，管理员/医生/药师可查看所有
+        if (!billing.getPatientId().equals(currentPatientId) &&
+                (role == null || (!"admin".equals(role) && !"doctor".equals(role) && !"pharmacist".equals(role)))) {
+            return Result.fail("无权查看该费用记录");
         }
         Patient patient = patientMapper.selectById(billing.getPatientId());
         if (patient != null) billing.setPatientName(patient.getName());

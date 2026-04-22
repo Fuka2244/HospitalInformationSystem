@@ -231,13 +231,25 @@ class MedicalReportServiceTest {
     class GetReportDetailTests {
 
         @Test
-        @DisplayName("获取报告详情成功")
+        @DisplayName("获取报告详情成功 - 患者本人查看")
         void getDetailSuccess() {
             when(medicalReportMapper.selectById(1L)).thenReturn(mockReport);
             when(patientMapper.selectById("patient-001")).thenReturn(mockPatient);
             when(doctorMapper.selectById(1L)).thenReturn(mockDoctor);
 
-            Result result = reportService.getReportDetail(1L);
+            Result result = reportService.getReportDetail(1L, "patient-001", "patient");
+
+            assertTrue(result.getSuccess());
+        }
+
+        @Test
+        @DisplayName("获取报告详情 - 管理员可查看")
+        void getDetailByAdmin() {
+            when(medicalReportMapper.selectById(1L)).thenReturn(mockReport);
+            when(patientMapper.selectById("patient-001")).thenReturn(mockPatient);
+            when(doctorMapper.selectById(1L)).thenReturn(mockDoctor);
+
+            Result result = reportService.getReportDetail(1L, "other-patient", "admin");
 
             assertTrue(result.getSuccess());
         }
@@ -247,7 +259,7 @@ class MedicalReportServiceTest {
         void getDetailNotFound() {
             when(medicalReportMapper.selectById(999L)).thenReturn(null);
 
-            Result result = reportService.getReportDetail(999L);
+            Result result = reportService.getReportDetail(999L, "patient-001", "patient");
 
             assertFalse(result.getSuccess());
             assertEquals("报告不存在", result.getErrorMsg());
@@ -265,14 +277,26 @@ class MedicalReportServiceTest {
         void exportPdfNotFound() {
             when(medicalReportMapper.selectById(999L)).thenReturn(null);
 
-            Result result = reportService.exportPdf(999L);
+            String result = reportService.exportPdf(999L);
 
-            assertFalse(result.getSuccess());
-            assertEquals("报告不存在", result.getErrorMsg());
+            assertNull(result);
+        }
+
+        @Test
+        @DisplayName("导出PDF成功 - 返回文件路径")
+        void exportPdfSuccess() {
+            when(medicalReportMapper.selectById(1L)).thenReturn(mockReport);
+            when(patientMapper.selectById("patient-001")).thenReturn(mockPatient);
+            when(medicalReportMapper.updateById(any(MedicalReport.class))).thenReturn(1);
+
+            String result = reportService.exportPdf(1L);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".pdf"));
         }
 
         // 注意：PDF生成涉及iText库和文件系统，适合集成测试
-        // 此处仅验证报告不存在的情况，实际PDF生成需在集成测试中验证
+        // 此处验证报告不存在的情况和基本PDF生成
     }
 
     // ==================== 确认报告 ====================
@@ -287,7 +311,7 @@ class MedicalReportServiceTest {
             when(medicalReportMapper.selectById(1L)).thenReturn(mockReport);
             when(medicalReportMapper.updateById(any(MedicalReport.class))).thenReturn(1);
 
-            Result result = reportService.confirmReport(1L);
+            Result result = reportService.confirmReport(1L, "patient-001", "patient");
 
             assertTrue(result.getSuccess());
             verify(medicalReportMapper).updateById(any(MedicalReport.class));
@@ -298,7 +322,7 @@ class MedicalReportServiceTest {
         void confirmFailNotFound() {
             when(medicalReportMapper.selectById(999L)).thenReturn(null);
 
-            Result result = reportService.confirmReport(999L);
+            Result result = reportService.confirmReport(999L, "patient-001", "patient");
 
             assertFalse(result.getSuccess());
             assertEquals("报告不存在", result.getErrorMsg());
@@ -311,7 +335,7 @@ class MedicalReportServiceTest {
             when(medicalReportMapper.selectById(1L)).thenReturn(mockReport);
             when(medicalReportMapper.updateById(any(MedicalReport.class))).thenReturn(1);
 
-            Result result = reportService.confirmReport(1L);
+            Result result = reportService.confirmReport(1L, "patient-001", "patient");
 
             assertTrue(result.getSuccess());
         }

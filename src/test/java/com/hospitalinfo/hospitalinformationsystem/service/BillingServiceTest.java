@@ -167,7 +167,7 @@ class BillingServiceTest {
             when(billingMapper.selectById(1L)).thenReturn(mockBilling);
             when(patientMapper.selectById("patient-001")).thenReturn(mockPatient);
 
-            Result result = billingService.getBillingDetail(1L);
+            Result result = billingService.getBillingDetail(1L, "patient-001", "patient");
 
             assertTrue(result.getSuccess());
             assertNotNull(result.getData());
@@ -178,10 +178,21 @@ class BillingServiceTest {
         void getDetailNotFound() {
             when(billingMapper.selectById(999L)).thenReturn(null);
 
-            Result result = billingService.getBillingDetail(999L);
+            Result result = billingService.getBillingDetail(999L, "patient-001", "patient");
 
             assertFalse(result.getSuccess());
             assertEquals("费用记录不存在", result.getErrorMsg());
+        }
+
+        @Test
+        @DisplayName("无权查看他人费用 - 返回失败")
+        void getDetailNoAccess() {
+            when(billingMapper.selectById(1L)).thenReturn(mockBilling);
+
+            Result result = billingService.getBillingDetail(1L, "other-patient", null);
+
+            assertFalse(result.getSuccess());
+            assertEquals("无权查看该费用记录", result.getErrorMsg());
         }
     }
 

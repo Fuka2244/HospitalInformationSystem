@@ -12,8 +12,8 @@ public interface IBillingService {
     /** 分页查询费用列表 */
     Result listBillings(String patientId, BillingQueryDto queryDto);
 
-    /** 获取费用详情 */
-    Result getBillingDetail(Long billingId);
+    /** 获取费用详情（含权限验证） */
+    Result getBillingDetail(Long billingId, String currentPatientId, Object role);
 
     /** AI费用解释 */
     Result aiExplainBilling(String patientId, String question, String startDate, String endDate);

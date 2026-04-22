@@ -46,6 +46,7 @@ export interface UpdateProfileDto {
 /** 忘记密码请求 */
 export interface ForgetPasswordDto {
   phone: string
+  verificationCode: string
   newPassword: string
   confirmPassword: string
 }
@@ -283,6 +284,17 @@ export interface BillingExplanation {
   breakdown: string
   explanation: string
   suggestion: string
+}
+
+export interface BillingTypeSummaryItem {
+  itemType: 'REGISTRATION' | 'EXAMINATION' | 'MEDICINE' | 'OTHER' | string
+  amount: number
+  count: number
+}
+
+export interface BillingTypeSummary {
+  totalAmount: number
+  items: BillingTypeSummaryItem[]
 }
 
 // ==================== 医疗报告模块 ====================

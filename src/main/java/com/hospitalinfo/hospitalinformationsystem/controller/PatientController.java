@@ -49,7 +49,14 @@ public class PatientController {
         return patientService.update(updateDto, session);
     }
 
-    /** 忘记密码 */
+    /** 发送验证码（忘记密码用） */
+    @PostMapping("/login/send-code")
+    public Result sendVerificationCode(@RequestBody java.util.Map<String, String> body) {
+        String phone = body.get("phone");
+        return patientService.sendVerificationCode(phone);
+    }
+
+    /** 忘记密码（需验证码） */
     @PutMapping("/login/forget")
     public Result updatePassword(@RequestBody UpdatePasswordDto updatePasswordDto, HttpSession session) {
         return patientService.updatePassword(updatePasswordDto, session);

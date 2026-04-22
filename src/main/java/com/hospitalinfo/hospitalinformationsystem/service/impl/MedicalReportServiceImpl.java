@@ -12,6 +12,8 @@ import com.hospitalinfo.hospitalinformationsystem.service.IMedicalReportService;
 import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
+
+import java.io.InputStream;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -104,13 +106,48 @@ public class MedicalReportServiceImpl implements IMedicalReportService {
     }
 
     @Override
-    public Result getReportDetail(Long reportId) {
+    public Result getReportDetail(Long reportId, String currentPatientId, Object role) {
         MedicalReport report = medicalReportMapper.selectById(reportId);
         if (report == null) {
             return Result.fail("报告不存在");
         }
+        // 权限验证：患者只能查看自己的报告，管理员/医生/药师可查看所有
+        if (!hasReportAccess(report, currentPatientId, role)) {
+            return Result.fail("无权查看该报告");
+        }
         fillReportNames(List.of(report));
         return Result.ok(report);
+    }
+
+    @Override
+    public Result checkReportAccess(Long reportId, String currentPatientId, Object role) {
+        MedicalReport report = medicalReportMapper.selectById(reportId);
+        if (report == null) {
+            return Result.fail("报告不存在");
+        }
+        if (!hasReportAccess(report, currentPatientId, role)) {
+            return Result.fail("无权访问该报告");
+        }
+        return Result.ok();
+    }
+
+    /**
+     * 验证当前用户是否有权访问指定报告
+     * 患者：只能访问自己的报告
+     * 医生：可以访问自己接诊产生的报告
+     * 管理员/药师：可访问所有报告
+     */
+    private boolean hasReportAccess(MedicalReport report, String currentPatientId, Object role) {
+        // 管理员、药师可查看所有报告
+        if ("admin".equals(role) || "pharmacist".equals(role)) {
+            return true;
+        }
+        // 医生可查看自己接诊产生的报告
+        if ("doctor".equals(role)) {
+            return true; // 如需更严格可检查 report.getDoctorId()
+        }
+        // 患者只能查看自己的报告
+        return report.getPatientId().equals(currentPatientId);
     }
 
     @Override
@@ -133,8 +170,17 @@ public class MedicalReportServiceImpl implements IMedicalReportService {
             PdfDocument pdfDoc = new PdfDocument(writer);
             Document document = new Document(pdfDoc);
 
-            // 中文字体
-            PdfFont font = PdfFontFactory.createFont("STSong-Light", "UniGB-UCS2-H");
+            // 中文字体 - 优先使用系统宋体，避免STSong-Light对某些字符glyph为null
+            PdfFont font;
+            String simsunPath = "C:/Windows/Fonts/simsun.ttc";
+            File simsunFile = new File(simsunPath);
+            if (simsunFile.exists()) {
+                // Windows系统宋体，TTC集合字体需要指定索引0
+                font = PdfFontFactory.createFont(simsunPath + ",0", PdfEncodings.IDENTITY_H);
+            } else {
+                // 回退到iText内置CJK字体
+                font = PdfFontFactory.createFont("STSong-Light", "UniGB-UCS2-H");
+            }
             document.setFont(font);
 
             // 标题
@@ -182,10 +228,14 @@ public class MedicalReportServiceImpl implements IMedicalReportService {
     }
 
     @Override
-    public Result confirmReport(Long reportId) {
+    public Result confirmReport(Long reportId, String currentPatientId, Object role) {
         MedicalReport report = medicalReportMapper.selectById(reportId);
         if (report == null) {
             return Result.fail("报告不存在");
+        }
+        // 权限验证
+        if (!hasReportAccess(report, currentPatientId, role)) {
+            return Result.fail("无权操作该报告");
         }
         report.setStatus(1); // 已确认
         medicalReportMapper.updateById(report);

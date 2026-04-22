@@ -1,13 +1,22 @@
 <template>
-  <div class="medicine-container" style="padding: 20px">
-    <el-row :gutter="20">
+  <div class="page medicine-container">
+    <div class="page-header">
+      <div>
+        <div class="page-title">药品查询</div>
+        <div class="page-subtitle">搜索药品信息，并通过 AI 获取用药建议（仅供参考）</div>
+      </div>
+    </div>
+    <el-row class="fill-row" :gutter="20">
       <!-- 药品列表 -->
-      <el-col :span="16">
-        <el-card shadow="hover">
+      <el-col :xs="24" :lg="16" class="fill-col">
+        <el-card class="fill-card list-card" shadow="hover">
           <template #header>
             <div class="header-row">
-              <span>药品信息查询</span>
-              <div>
+              <div class="head-left">
+                <span>药品信息</span>
+                <el-tag effect="light" type="info" size="small">共 {{ total }} 条</el-tag>
+              </div>
+              <div class="filters">
                 <el-input v-model="queryParams.keyword" placeholder="搜索药品名称/功效" clearable style="width: 220px; margin-right: 8px" @keyup.enter="handleSearch" />
                 <el-select v-model="queryParams.category" placeholder="药品分类" clearable style="width: 180px; margin-right: 8px">
                   <el-option label="中成药" value="中成药" />
@@ -29,7 +38,8 @@
               </template>
             </el-table-column>
             <el-table-column prop="specification" label="规格" width="120" />
-            <el-table-column prop="efficacy" label="功效" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="efficacy" label="功效" min-width="180" show-overflow-tooltip />
+            <el-table-column prop="dosage" label="用法用量" min-width="160" show-overflow-tooltip />
             <el-table-column prop="price" label="价格" width="90">
               <template #default="{ row }">¥{{ row.price?.toFixed(2) }}</template>
             </el-table-column>
@@ -53,8 +63,8 @@
       </el-col>
 
       <!-- AI药品推荐 -->
-      <el-col :span="8">
-        <el-card shadow="hover">
+      <el-col :xs="24" :lg="8" class="fill-col">
+        <el-card class="fill-card ai-card" shadow="hover">
           <template #header>
             <span>AI 药品推荐</span>
           </template>
@@ -67,7 +77,7 @@
             <el-alert type="warning" :closable="false" style="margin-bottom: 12px">
               AI推荐仅供参考，请遵医嘱用药
             </el-alert>
-            <el-card v-for="(item, idx) in aiResults" :key="idx" shadow="never" style="margin-bottom: 12px">
+            <el-card v-for="(item, idx) in aiResults" :key="idx" class="ai-item-card" shadow="never" style="margin-bottom: 12px">
               <template #header>
                 <strong>{{ item.medicineName }}</strong>
               </template>
@@ -94,9 +104,9 @@
             <el-descriptions-item label="库存">{{ detail.stock }}</el-descriptions-item>
             <el-descriptions-item label="成分" :span="2">{{ detail.ingredients }}</el-descriptions-item>
             <el-descriptions-item label="功效" :span="2">{{ detail.efficacy }}</el-descriptions-item>
+            <el-descriptions-item label="用法用量" :span="2">{{ detail.dosage }}</el-descriptions-item>
             <el-descriptions-item label="副作用" :span="2">{{ detail.sideEffects }}</el-descriptions-item>
             <el-descriptions-item label="禁忌" :span="2">{{ detail.contraindications }}</el-descriptions-item>
-            <el-descriptions-item label="用法用量" :span="2">{{ detail.dosage }}</el-descriptions-item>
           </el-descriptions>
         </template>
       </div>
@@ -170,6 +180,56 @@ onMounted(loadMedicines)
 </script>
 
 <style scoped>
-.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.head-left{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.filters{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filters :deep(.el-input__wrapper),
+.filters :deep(.el-select__wrapper){
+  background: rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: none;
+}
+.ai-results{
+  margin-top: 4px;
+  overflow: auto;
+  padding-right: 4px;
+}
 .ai-results p { margin: 4px 0; font-size: 13px; color: #606266; }
+.ai-item-card{
+  border-radius: 16px;
+  background: rgba(255,255,255,0.72);
+}
+:deep(.ai-item-card .el-card__header){
+  background: linear-gradient(180deg, rgba(47, 128, 237, 0.10), rgba(255,255,255,0));
+}
+
+.list-card :deep(.el-card__body){
+  display:flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.list-card :deep(.el-table){
+  flex: 1;
+}
+.list-card :deep(.el-pagination){
+  margin-top: auto;
+}
+.ai-card :deep(.el-card__body){
+  display:flex;
+  flex-direction: column;
+}
+.ai-card .ai-results{
+  flex: 1;
+}
 </style>

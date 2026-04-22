@@ -25,7 +25,10 @@ public interface IPatientService {
     /** 修改个人信息 */
     Result update(UpdateDto updateDto, HttpSession session);
 
-    /** 忘记密码 */
+    /** 发送验证码（忘记密码用） */
+    Result sendVerificationCode(String phone);
+
+    /** 忘记密码（需验证码） */
     Result updatePassword(UpdatePasswordDto updatePasswordDto, HttpSession session);
 
     /** 验证密码后获取完整身份证号 */

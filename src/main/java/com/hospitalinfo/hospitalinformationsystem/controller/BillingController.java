@@ -34,7 +34,14 @@ public class BillingController {
      * GET /billing/{patientId}/list
      */
     @GetMapping("/{patientId}/list")
-    public Result listPatientBillings(@PathVariable String patientId, BillingQueryDto queryDto) {
+    public Result listPatientBillings(@PathVariable String patientId, BillingQueryDto queryDto, HttpSession session) {
+        // 权限验证：只有管理员/医生/药师可查看其他患者费用
+        Object role = session.getAttribute("role");
+        String currentAccount = (String) session.getAttribute("account");
+        if (!patientId.equals(currentAccount) &&
+                (role == null || (!"admin".equals(role) && !"doctor".equals(role) && !"pharmacist".equals(role)))) {
+            return Result.fail("无权查看其他患者的费用信息");
+        }
         return billingService.listBillings(patientId, queryDto);
     }
 
@@ -43,8 +50,10 @@ public class BillingController {
      * GET /billing/detail/{id}
      */
     @GetMapping("/detail/{id}")
-    public Result getBillingDetail(@PathVariable Long id) {
-        return billingService.getBillingDetail(id);
+    public Result getBillingDetail(@PathVariable Long id, HttpSession session) {
+        String currentPatientId = (String) session.getAttribute("account");
+        Object role = session.getAttribute("role");
+        return billingService.getBillingDetail(id, currentPatientId, role);
     }
 
     /**

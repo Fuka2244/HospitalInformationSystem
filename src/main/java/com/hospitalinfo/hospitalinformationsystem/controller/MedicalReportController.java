@@ -269,8 +269,10 @@ public class MedicalReportController {
      * GET /report/{id}
      */
     @GetMapping("/{id}")
-    public Result getReportDetail(@PathVariable Long id) {
-        return reportService.getReportDetail(id);
+    public Result getReportDetail(@PathVariable Long id, HttpSession session) {
+        String currentPatientId = (String) session.getAttribute("account");
+        Object role = session.getAttribute("role");
+        return reportService.getReportDetail(id, currentPatientId, role);
     }
 
     /**
@@ -278,7 +280,19 @@ public class MedicalReportController {
      * GET /report/{id}/export-pdf
      */
     @GetMapping("/{id}/export-pdf")
-    public void exportPdf(@PathVariable Long id, HttpServletResponse response) throws IOException {
+    public void exportPdf(@PathVariable Long id, HttpServletResponse response, HttpSession session) throws IOException {
+        String currentPatientId = (String) session.getAttribute("account");
+        Object role = session.getAttribute("role");
+
+        // 权限验证：先检查是否有权访问该报告
+        Result accessCheck = reportService.checkReportAccess(id, currentPatientId, role);
+        if (!accessCheck.getSuccess()) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"success\":false,\"errorMsg\":\"" + accessCheck.getErrorMsg() + "\"}");
+            return;
+        }
+
         String pdfPath = reportService.exportPdf(id);
 
         if (pdfPath == null || pdfPath.isEmpty()) {
@@ -307,7 +321,9 @@ public class MedicalReportController {
      * PUT /report/{id}/confirm
      */
     @PutMapping("/{id}/confirm")
-    public Result confirmReport(@PathVariable Long id) {
-        return reportService.confirmReport(id);
+    public Result confirmReport(@PathVariable Long id, HttpSession session) {
+        String currentPatientId = (String) session.getAttribute("account");
+        Object role = session.getAttribute("role");
+        return reportService.confirmReport(id, currentPatientId, role);
     }
 }

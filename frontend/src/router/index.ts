@@ -11,8 +11,9 @@ const routes = [
   {
     path: '/',
     component: () => import('@/layouts/MainLayout.vue'),
-    redirect: '/department',
+    redirect: '/home',
     children: [
+      { path: 'home', name: 'Home', component: () => import('@/views/home/HomeView.vue'), meta: { title: '首页', public: true } },
       { path: 'profile', name: 'Profile', component: () => import('@/views/patient/ProfileView.vue'), meta: { title: '个人信息' } },
       { path: 'records', name: 'Records', component: () => import('@/views/patient/RecordsView.vue'), meta: { title: '病历与就诊' } },
       { path: 'appointment', name: 'Appointment', component: () => import('@/views/appointment/AppointmentView.vue'), meta: { title: '预约挂号' } },
@@ -20,6 +21,7 @@ const routes = [
       { path: 'billing', name: 'Billing', component: () => import('@/views/billing/BillingView.vue'), meta: { title: '费用查询' } },
       { path: 'report', name: 'Report', component: () => import('@/views/report/ReportView.vue'), meta: { title: '医疗报告' } },
       { path: 'department', name: 'Department', component: () => import('@/views/department/DepartmentView.vue'), meta: { title: '科室信息', public: true } },
+      { path: 'about', name: 'About', component: () => import('@/views/about/AboutView.vue'), meta: { title: '系统概况', public: true } },
     ],
   },
 ]
@@ -27,6 +29,9 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior() {
+    return { top: 0 }
+  },
 })
 
 // 路由守卫

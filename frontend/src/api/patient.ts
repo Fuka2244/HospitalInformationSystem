@@ -39,6 +39,11 @@ export function updateProfile(data: UpdateProfileDto) {
   return put('/patient/me/update', data)
 }
 
+/** 发送验证码（忘记密码用） */
+export function sendVerificationCode(phone: string) {
+  return post('/patient/login/send-code', { phone })
+}
+
 /** 忘记密码 */
 export function forgetPassword(data: ForgetPasswordDto) {
   return put('/patient/login/forget', data)

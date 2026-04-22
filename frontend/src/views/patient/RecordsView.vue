@@ -1,10 +1,19 @@
 <template>
-  <div class="records-container" style="padding: 20px">
-    <el-card shadow="hover">
+  <div class="page records-container">
+    <div class="page-header">
+      <div>
+        <div class="page-title">病历与就诊</div>
+        <div class="page-subtitle">按科室/医生/日期快速筛选与查看病历详情</div>
+      </div>
+    </div>
+    <el-card class="records-card" shadow="hover">
       <template #header>
         <div class="header-row">
-          <span>病历与就诊记录</span>
-          <div>
+          <div class="head-left">
+            <span>就诊记录</span>
+            <el-tag effect="light" type="info" size="small">共 {{ total }} 条</el-tag>
+          </div>
+          <div class="filters">
             <el-select v-model="query.departmentId" placeholder="按科室筛选" clearable style="width: 160px; margin-right: 8px">
               <el-option v-for="d in departments" :key="d.id" :label="d.name" :value="d.id" />
             </el-select>
@@ -80,7 +89,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getVisitHistory, getMedicalRecordDetail } from '@/api/patient'
-import { getDepartmentList, getDepartmentDoctors, getDoctorList } from '@/api/department'
+import { getDepartmentList, getDoctorList } from '@/api/department'
 import type { VisitRecord, VisitHistoryParams, MedicalRecordDetail, Department, Doctor } from '@/types'
 
 const loading = ref(false)
@@ -145,10 +154,45 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.records-card{
+  min-height: calc(100vh - var(--his-header-height) - 120px);
+}
+.records-card :deep(.el-card__body){
+  display:flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.records-card :deep(.el-table){
+  flex: 1;
+}
+.records-card :deep(.el-pagination){
+  margin-top: auto;
+}
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
+  gap: 12px;
+}
+.head-left{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.filters{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filters :deep(.el-input__wrapper),
+.filters :deep(.el-select__wrapper),
+.filters :deep(.el-range-editor.el-input__wrapper){
+  background: rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: none;
 }
 </style>

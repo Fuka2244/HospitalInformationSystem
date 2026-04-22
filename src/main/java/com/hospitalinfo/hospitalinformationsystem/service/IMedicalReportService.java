@@ -15,14 +15,17 @@ public interface IMedicalReportService {
     /** 获取报告列表 */
     Result listReports(String patientId, String reportType, Integer page, Integer size);
 
-    /** 获取报告详情 */
-    Result getReportDetail(Long reportId);
+    /** 获取报告详情（含权限验证） */
+    Result getReportDetail(Long reportId, String currentPatientId, Object role);
+
+    /** 检查报告访问权限 */
+    Result checkReportAccess(Long reportId, String currentPatientId, Object role);
 
     /** 导出PDF - 返回PDF文件路径 */
     String exportPdf(Long reportId);
 
-    /** 确认报告 */
-    Result confirmReport(Long reportId);
+    /** 确认报告（含权限验证） */
+    Result confirmReport(Long reportId, String currentPatientId, Object role);
 
     /** 获取病历记录 */
     MedicalRecord getMedicalRecordById(Long id);

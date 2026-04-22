@@ -74,6 +74,14 @@
         <el-form-item label="手机号" prop="phone">
           <el-input v-model="forgetForm.phone" placeholder="请输入注册手机号" maxlength="11" />
         </el-form-item>
+        <el-form-item label="验证码" prop="verificationCode">
+          <div style="display: flex; gap: 8px; width: 100%">
+            <el-input v-model="forgetForm.verificationCode" placeholder="请输入验证码" maxlength="6" style="flex: 1" />
+            <el-button :disabled="codeCooldown > 0" :loading="codeLoading" @click="handleSendCode">
+              {{ codeCooldown > 0 ? `${codeCooldown}s 后重发` : '获取验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
         <el-form-item label="新密码" prop="newPassword">
           <el-input v-model="forgetForm.newPassword" type="password" placeholder="请输入新密码" show-password />
         </el-form-item>
@@ -95,7 +103,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { forgetPassword } from '@/api/patient'
+import { forgetPassword, sendVerificationCode } from '@/api/patient'
 import type { LoginDto, RegisterDto, ForgetPasswordDto } from '@/types'
 
 const router = useRouter()
@@ -103,6 +111,9 @@ const userStore = useUserStore()
 const loading = ref(false)
 const isLogin = ref(true)
 const showForget = ref(false)
+const codeLoading = ref(false)
+const codeCooldown = ref(0)
+let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
 // ===== 手机号校验 =====
 const phoneValidator = (_rule: any, value: string, callback: any) => {
@@ -185,9 +196,10 @@ async function handleRegister() {
 
 // ===== 忘记密码 =====
 const forgetFormRef = ref<FormInstance>()
-const forgetForm = reactive<ForgetPasswordDto>({ phone: '', newPassword: '', confirmPassword: '' })
+const forgetForm = reactive<ForgetPasswordDto>({ phone: '', verificationCode: '', newPassword: '', confirmPassword: '' })
 const forgetRules: FormRules<ForgetPasswordDto> = {
   phone: [{ required: true, message: '请输入手机号', trigger: 'blur' }, { validator: phoneValidator, trigger: 'blur' }],
+  verificationCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
     { min: 6, message: '密码至少6位', trigger: 'blur' },
@@ -202,6 +214,32 @@ const forgetRules: FormRules<ForgetPasswordDto> = {
       trigger: 'blur',
     },
   ],
+}
+
+async function handleSendCode() {
+  if (!/^1[3-9]\d{9}$/.test(forgetForm.phone)) {
+    ElMessage.warning('请先输入正确的手机号')
+    return
+  }
+  codeLoading.value = true
+  try {
+    const res = await sendVerificationCode(forgetForm.phone)
+    if (res.success) {
+      ElMessage.success('验证码已发送')
+      codeCooldown.value = 60
+      cooldownTimer = setInterval(() => {
+        codeCooldown.value--
+        if (codeCooldown.value <= 0 && cooldownTimer) {
+          clearInterval(cooldownTimer)
+          cooldownTimer = null
+        }
+      }, 1000)
+    } else {
+      ElMessage.error(res.errorMsg || '发送失败')
+    }
+  } finally {
+    codeLoading.value = false
+  }
 }
 
 async function handleForget() {
@@ -224,11 +262,42 @@ async function handleForget() {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background:
+    radial-gradient(900px 450px at 20% 0%, rgba(47, 128, 237, 0.45), transparent 60%),
+    radial-gradient(900px 450px at 100% 20%, rgba(120, 87, 255, 0.40), transparent 60%),
+    linear-gradient(135deg, #0b1220 0%, #111b34 50%, #0f172a 100%);
+  position: relative;
+  overflow: hidden;
+}
+.login-container::before,
+.login-container::after{
+  content:"";
+  position:absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  filter: blur(0px);
+  opacity: 0.55;
+  pointer-events:none;
+  transform: translate3d(0,0,0);
+}
+.login-container::before{
+  left: -180px;
+  top: -200px;
+  background: radial-gradient(circle at 30% 30%, rgba(79, 172, 254, 1), rgba(0, 242, 254, 0) 62%);
+}
+.login-container::after{
+  right: -220px;
+  bottom: -220px;
+  background: radial-gradient(circle at 30% 30%, rgba(250, 112, 154, 1), rgba(254, 225, 64, 0) 62%);
 }
 .login-card {
   width: 480px;
   border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.86);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.35);
 }
 .card-header {
   text-align: center;
