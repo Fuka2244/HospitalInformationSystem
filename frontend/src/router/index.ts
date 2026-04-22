@@ -44,14 +44,17 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   const userStore = useUserStore()
-  if (!userStore.isLoggedIn) {
-    try {
-      await userStore.fetchProfile()
-      next()
-    } catch {
-      next({ path: '/login', query: { redirect: to.fullPath } })
-    }
-  } else {
+  if (userStore.isLoggedIn) {
+    next()
+    return
+  }
+
+  try {
+    await userStore.fetchProfile()
+    next()
+  } catch {
+    // 后端不可用或未登录：不强制跳转登录页，允许浏览公开内容
+    // 将需要登录的页面也放行，由各页面内部处理未登录状态
     next()
   }
 })

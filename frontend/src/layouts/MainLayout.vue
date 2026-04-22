@@ -48,16 +48,21 @@
         </el-menu>
 
         <div class="header-right">
-          <span class="username">{{ userStore.userInfo?.username || '用户' }}</span>
-          <el-dropdown @command="handleCommand">
-            <el-avatar :size="34" icon="User" :src="avatarUrl" class="avatar" />
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人信息</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <template v-if="userStore.isLoggedIn">
+            <span class="username">{{ userStore.userInfo?.username || '用户' }}</span>
+            <el-dropdown @command="handleCommand">
+              <el-avatar :size="34" icon="User" :src="avatarUrl" class="avatar" />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+                  <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
+          <template v-else>
+            <el-button type="primary" size="default" @click="router.push('/login')">登 录</el-button>
+          </template>
         </div>
       </div>
     </el-header>

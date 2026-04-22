@@ -7,6 +7,7 @@ import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.entity.*;
 import com.hospitalinfo.hospitalinformationsystem.mapper.*;
 import com.hospitalinfo.hospitalinformationsystem.service.impl.AppointmentServiceImpl;
+import com.hospitalinfo.hospitalinformationsystem.utils.RedisDistributedLock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,11 +18,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -38,6 +40,7 @@ class AppointmentServiceTest {
     @Mock private DepartmentMapper departmentMapper;
     @Mock private PatientMapper patientMapper;
     @Mock private AiAppointmentService aiAppointmentService;
+    @Mock private RedisDistributedLock distributedLock;
 
     @InjectMocks
     private AppointmentServiceImpl appointmentService;
@@ -90,6 +93,9 @@ class AppointmentServiceTest {
         mockDept = new Department();
         mockDept.setId(1L);
         mockDept.setName("内科");
+
+        // 默认模拟分布式锁获取成功
+        when(distributedLock.tryLock(anyString())).thenReturn("mock-lock-value");
     }
 
     // ==================== 创建预约 ====================
@@ -101,46 +107,59 @@ class AppointmentServiceTest {
         @Test
         @DisplayName("创建预约成功 - 有排班且未满")
         void createSuccess() {
-            when(doctorScheduleMapper.selectOne(any(QueryWrapper.class))).thenReturn(mockSchedule);
-            when(doctorScheduleMapper.updateById(any(DoctorSchedule.class))).thenReturn(1);
+            when(appointmentMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
+            when(doctorScheduleMapper.incrementBookedCount(anyLong(), any(), anyString())).thenReturn(1);
             when(appointmentMapper.insert(any(Appointment.class))).thenReturn(1);
 
             Result result = appointmentService.createAppointment(createDto, "patient-001");
 
             assertTrue(result.getSuccess());
-            verify(doctorScheduleMapper).updateById(any(DoctorSchedule.class)); // bookedCount+1
+            verify(doctorScheduleMapper).incrementBookedCount(anyLong(), any(), anyString());
             verify(appointmentMapper).insert(any(Appointment.class));
-        }
-
-        @Test
-        @DisplayName("创建预约失败 - 排班不存在")
-        void createFailNoSchedule() {
-            when(doctorScheduleMapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
-
-            Result result = appointmentService.createAppointment(createDto, "patient-001");
-
-            assertFalse(result.getSuccess());
-            assertEquals("该时段无排班，请选择其他时间", result.getErrorMsg());
+            verify(distributedLock).unlock(anyString(), anyString());
         }
 
         @Test
         @DisplayName("创建预约失败 - 号源已满")
         void createFailScheduleFull() {
-            mockSchedule.setBookedCount(20); // 已约满
-            when(doctorScheduleMapper.selectOne(any(QueryWrapper.class))).thenReturn(mockSchedule);
+            when(appointmentMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
+            when(doctorScheduleMapper.incrementBookedCount(anyLong(), any(), anyString())).thenReturn(0);
 
             Result result = appointmentService.createAppointment(createDto, "patient-001");
 
             assertFalse(result.getSuccess());
             assertEquals("该时段已约满，请选择其他时间", result.getErrorMsg());
+            verify(distributedLock).unlock(anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("创建预约失败 - 重复预约")
+        void createFailDuplicate() {
+            when(appointmentMapper.selectCount(any(QueryWrapper.class))).thenReturn(1L);
+
+            Result result = appointmentService.createAppointment(createDto, "patient-001");
+
+            assertFalse(result.getSuccess());
+            assertEquals("您已预约该时段，请勿重复预约", result.getErrorMsg());
+            verify(distributedLock).unlock(anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("创建预约失败 - 获取分布式锁失败")
+        void createFailLockAcquiredFailed() {
+            when(distributedLock.tryLock(anyString())).thenReturn(null);
+
+            Result result = appointmentService.createAppointment(createDto, "patient-001");
+
+            assertFalse(result.getSuccess());
+            assertEquals("当前预约人数较多，请稍后再试", result.getErrorMsg());
         }
 
         @Test
         @DisplayName("创建预约成功 - 边界值：最后一个号源")
         void createSuccessLastSlot() {
-            mockSchedule.setBookedCount(19); // 还剩1个
-            when(doctorScheduleMapper.selectOne(any(QueryWrapper.class))).thenReturn(mockSchedule);
-            when(doctorScheduleMapper.updateById(any(DoctorSchedule.class))).thenReturn(1);
+            when(appointmentMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
+            when(doctorScheduleMapper.incrementBookedCount(anyLong(), any(), anyString())).thenReturn(1);
             when(appointmentMapper.insert(any(Appointment.class))).thenReturn(1);
 
             Result result = appointmentService.createAppointment(createDto, "patient-001");
@@ -240,13 +259,12 @@ class AppointmentServiceTest {
         void cancelSuccess() {
             when(appointmentMapper.selectById(1L)).thenReturn(mockAppointment);
             when(appointmentMapper.updateById(any(Appointment.class))).thenReturn(1);
-            when(doctorScheduleMapper.selectOne(any(QueryWrapper.class))).thenReturn(mockSchedule);
-            when(doctorScheduleMapper.updateById(any(DoctorSchedule.class))).thenReturn(1);
+            when(doctorScheduleMapper.decrementBookedCount(anyLong(), any(), anyString())).thenReturn(1);
 
             Result result = appointmentService.cancelAppointment(1L, "不想要了", "patient-001");
 
             assertTrue(result.getSuccess());
-            verify(doctorScheduleMapper).updateById(any(DoctorSchedule.class)); // bookedCount-1
+            verify(doctorScheduleMapper).decrementBookedCount(anyLong(), any(), anyString());
         }
 
         @Test
@@ -295,14 +313,14 @@ class AppointmentServiceTest {
         void rescheduleSuccess() {
             when(appointmentMapper.selectById(1L)).thenReturn(mockAppointment);
             when(appointmentMapper.updateById(any(Appointment.class))).thenReturn(1);
-            when(doctorScheduleMapper.selectOne(any(QueryWrapper.class))).thenReturn(mockSchedule);
-            when(doctorScheduleMapper.updateById(any(DoctorSchedule.class))).thenReturn(1);
+            when(doctorScheduleMapper.decrementBookedCount(anyLong(), any(), anyString())).thenReturn(1);
+            when(appointmentMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
+            when(doctorScheduleMapper.incrementBookedCount(anyLong(), any(), anyString())).thenReturn(1);
             when(appointmentMapper.insert(any(Appointment.class))).thenReturn(1);
 
             Result result = appointmentService.rescheduleAppointment(1L, createDto, "patient-001");
 
             assertTrue(result.getSuccess());
-            // 取消旧预约 + 创建新预约
             verify(appointmentMapper).updateById(any(Appointment.class));
             verify(appointmentMapper).insert(any(Appointment.class));
         }

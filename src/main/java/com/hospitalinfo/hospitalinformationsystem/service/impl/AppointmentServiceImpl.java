@@ -8,6 +8,7 @@ import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.entity.*;
 import com.hospitalinfo.hospitalinformationsystem.mapper.*;
 import com.hospitalinfo.hospitalinformationsystem.service.IAppointmentService;
+import com.hospitalinfo.hospitalinformationsystem.utils.RedisDistributedLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,30 +26,45 @@ public class AppointmentServiceImpl implements IAppointmentService {
     private final DepartmentMapper departmentMapper;
     private final PatientMapper patientMapper;
     private final AiAppointmentService aiAppointmentService;
+    private final RedisDistributedLock distributedLock;
+
+    /** 分布式锁Key前缀 */
+    private static final String APPOINTMENT_LOCK_PREFIX = "lock:appointment:";
 
     @Override
     @Transactional
     public Result createAppointment(AppointmentCreateDto dto, String patientId) {
-        // 校验排班是否存在且有余号（使用原子操作防止并发超卖）
         if (dto.getDoctorId() != null) {
-            DoctorSchedule schedule = doctorScheduleMapper.selectOne(
-                    new QueryWrapper<DoctorSchedule>()
-                            .eq("doctor_id", dto.getDoctorId())
-                            .eq("schedule_date", dto.getAppointmentDate())
-                            .eq("time_slot", dto.getTimeSlot()));
+            // 分布式锁：按排班维度加锁，同一排班同时只能有一个预约操作
+            String lockKey = APPOINTMENT_LOCK_PREFIX + dto.getDoctorId() + ":"
+                    + dto.getAppointmentDate() + ":" + dto.getTimeSlot();
+            String lockValue = distributedLock.tryLock(lockKey);
 
-            if (schedule == null) {
-                return Result.fail("该时段无排班，请选择其他时间");
-            }
-            if (schedule.getBookedCount() >= schedule.getMaxPatients()) {
-                return Result.fail("该时段已约满，请选择其他时间");
+            if (lockValue == null) {
+                return Result.fail("当前预约人数较多，请稍后再试");
             }
 
-            // 使用原子操作递增已预约数，防止并发超卖
-            int updated = doctorScheduleMapper.incrementBookedCount(
-                    dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
-            if (updated == 0) {
-                return Result.fail("该时段已约满，请选择其他时间");
+            try {
+                // 防重复预约：同一患者不能重复预约同一医生同一时段
+                Long existCount = appointmentMapper.selectCount(
+                        new QueryWrapper<Appointment>()
+                                .eq("patient_id", patientId)
+                                .eq("doctor_id", dto.getDoctorId())
+                                .eq("appointment_date", dto.getAppointmentDate())
+                                .eq("time_slot", dto.getTimeSlot())
+                                .in("status", 0, 1));
+                if (existCount > 0) {
+                    return Result.fail("您已预约该时段，请勿重复预约");
+                }
+
+                // 原子操作递增已预约数，根据返回值判断是否约满
+                int updated = doctorScheduleMapper.incrementBookedCount(
+                        dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
+                if (updated == 0) {
+                    return Result.fail("该时段已约满，请选择其他时间");
+                }
+            } finally {
+                distributedLock.unlock(lockKey, lockValue);
             }
         }
 
@@ -125,10 +141,23 @@ public class AppointmentServiceImpl implements IAppointmentService {
         appointment.setCancelReason(cancelReason);
         appointmentMapper.updateById(appointment);
 
-        // 释放排班号源（使用原子操作防止并发计数不一致）
+        // 释放排班号源：加分布式锁 + 原子操作
         if (appointment.getDoctorId() != null) {
-            doctorScheduleMapper.decrementBookedCount(
-                    appointment.getDoctorId(), appointment.getAppointmentDate(), appointment.getTimeSlot());
+            String lockKey = APPOINTMENT_LOCK_PREFIX + appointment.getDoctorId() + ":"
+                    + appointment.getAppointmentDate() + ":" + appointment.getTimeSlot();
+            String lockValue = distributedLock.tryLock(lockKey);
+            if (lockValue != null) {
+                try {
+                    doctorScheduleMapper.decrementBookedCount(
+                            appointment.getDoctorId(), appointment.getAppointmentDate(), appointment.getTimeSlot());
+                } finally {
+                    distributedLock.unlock(lockKey, lockValue);
+                }
+            } else {
+                // 获取锁失败仍执行原子递减（原子SQL本身安全，锁只是额外保障）
+                doctorScheduleMapper.decrementBookedCount(
+                        appointment.getDoctorId(), appointment.getAppointmentDate(), appointment.getTimeSlot());
+            }
         }
 
         return Result.ok();
