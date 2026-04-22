@@ -50,7 +50,7 @@
         <div class="header-right">
           <span class="username">{{ userStore.userInfo?.username || '用户' }}</span>
           <el-dropdown @command="handleCommand">
-            <el-avatar :size="34" icon="User" class="avatar" />
+            <el-avatar :size="34" icon="User" :src="avatarUrl" class="avatar" />
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人信息</el-dropdown-item>
@@ -71,7 +71,7 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { watch } from 'vue'
+import { watch, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { Calendar, Document, FirstAidKit, HomeFilled, InfoFilled, Notebook, OfficeBuilding, User, Wallet } from '@element-plus/icons-vue'
@@ -79,6 +79,13 @@ import { Calendar, Document, FirstAidKit, HomeFilled, InfoFilled, Notebook, Offi
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+const avatarUrl = computed(() => {
+  if (userStore.userInfo?.avatar) {
+    return '/HIS' + userStore.userInfo.avatar
+  }
+  return undefined
+})
 
 // 路由切换时滚动到页面顶部
 watch(() => route.path, () => {
