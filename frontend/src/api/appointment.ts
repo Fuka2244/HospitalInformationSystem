@@ -7,6 +7,8 @@ import type {
   AiRecommendDto,
   DoctorSchedule,
   ScheduleQueryParams,
+  TriageChatRequest,
+  TriageChatResponse,
 } from '@/types'
 
 /** 创建预约 */
@@ -45,6 +47,11 @@ export function aiRecommendWithSchedules(data: AiRecommendDto) {
     recommendation: AppointmentRecommendation
     availableSchedules: DoctorSchedule[]
   }>('/appointment/ai-recommend-with-schedules', data)
+}
+
+/** AI多轮对话式智能导诊 */
+export function aiTriageChat(data: TriageChatRequest) {
+  return post<TriageChatResponse>('/appointment/ai-triage-chat', data)
 }
 
 /** 可用排班查询 */

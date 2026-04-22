@@ -3,6 +3,8 @@ package com.hospitalinfo.hospitalinformationsystem.ai;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hospitalinfo.hospitalinformationsystem.dto.AppointmentRecommendation;
+import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
+import com.hospitalinfo.hospitalinformationsystem.dto.TriageChatResponse;
 import com.hospitalinfo.hospitalinformationsystem.entity.Department;
 import com.hospitalinfo.hospitalinformationsystem.entity.Doctor;
 import com.hospitalinfo.hospitalinformationsystem.entity.DoctorSchedule;
@@ -54,6 +56,37 @@ public class AiAppointmentService {
             4. 【必须】recommendedTime 必须从【可用排班】中的时间段选择
             5. 推荐时优先选择余号较多的时间段
             6. 推荐理由应包含症状分析、医生擅长领域匹配、以及选择的排班信息
+            """;
+
+    /** 多轮导诊对话的System Prompt */
+    private static final String TRIAGE_CHAT_SYSTEM_PROMPT = """
+            你是一个专业、友好的医疗导诊AI助手。你的任务是通过对话逐步了解患者的症状和就诊时间偏好，然后为其推荐最合适的科室、医生和就诊时间。
+
+            ## 对话流程规则：
+            1. **第一步：询问症状** - 如果患者还没有描述症状，请温和地询问其症状。如果患者已经描述了症状，可以适当追问细节（如持续时间、严重程度、伴随症状等），但不要过于啰嗦。
+            2. **第二步：询问时间偏好** - 在了解症状后，询问患者希望什么时间段就诊（如上午/下午、具体日期等）。
+            3. **第三步：给出推荐** - 当症状和时间偏好都收集完毕后，进行导诊推荐。
+
+            ## 回复格式规则：
+            你必须在每次回复的最后附上一个JSON块来指示对话状态，格式如下：
+
+            当还在收集信息时（还需要继续对话）：
+            ```json
+            {"completed": false}
+            ```
+
+            当信息已收集完毕，准备给出推荐时：
+            ```json
+            {"completed": true}
+            ```
+
+            ## 重要注意事项：
+            - 语气亲切自然，像一位专业的导诊护士
+            - 不要一次性问太多问题，每次只问1-2个关键问题
+            - 如果患者描述的症状比较模糊，适当追问以明确
+            - 如果患者提供了足够的信息，不要再追问，直接标记为completed
+            - 你只需要负责收集信息，具体的科室和医生推荐由后台完成，你不需要在对话中推荐科室
+            - 每次回复必须以JSON块结尾，不要遗漏
             """;
 
     /**
@@ -270,6 +303,120 @@ public class AiAppointmentService {
               .append("\n");
         }
         return sb.toString();
+    }
+
+    /**
+     * 多轮对话式智能导诊
+     */
+    public TriageChatResponse triageChat(String userMessage, List<ChatMessageDto> history) {
+        // 构建对话上下文
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append(TRIAGE_CHAT_SYSTEM_PROMPT).append("\n\n");
+
+        // 添加科室和医生基础信息作为背景知识
+        String context = buildDepartmentAndDoctorContext();
+        promptBuilder.append("当前医院可用的科室和医生信息：\n").append(context).append("\n\n");
+
+        // 添加历史对话
+        if (history != null && !history.isEmpty()) {
+            promptBuilder.append("===对话历史===\n");
+            for (ChatMessageDto msg : history) {
+                if ("user".equals(msg.getRole())) {
+                    promptBuilder.append("患者：").append(msg.getContent()).append("\n");
+                } else if ("assistant".equals(msg.getRole())) {
+                    promptBuilder.append("导诊助手：").append(msg.getContent()).append("\n");
+                }
+            }
+            promptBuilder.append("\n");
+        }
+
+        // 添加当前用户消息
+        promptBuilder.append("患者：").append(userMessage).append("\n\n");
+        promptBuilder.append("请根据以上对话，继续与患者沟通。记住在回复最后附上JSON状态块。\n");
+
+        String response = chatModel.generate(promptBuilder.toString());
+        log.info("导诊对话AI原始响应: {}", response);
+
+        // 解析AI回复，提取文本部分和状态JSON
+        return parseTriageChatResponse(response, userMessage, history);
+    }
+
+    /**
+     * 解析导诊对话AI的回复
+     */
+    private TriageChatResponse parseTriageChatResponse(String response, String userMessage, List<ChatMessageDto> history) {
+        // 提取completed状态
+        boolean completed = false;
+        String replyText = response;
+
+        try {
+            // 尝试从回复末尾提取JSON状态块
+            if (response.contains("```json")) {
+                int lastJsonBlock = response.lastIndexOf("```json");
+                String jsonPart = response.substring(lastJsonBlock + 7);
+                jsonPart = jsonPart.substring(0, jsonPart.indexOf("```")).trim();
+
+                var statusNode = objectMapper.readTree(jsonPart);
+                if (statusNode.has("completed")) {
+                    completed = statusNode.get("completed").asBoolean();
+                }
+
+                // 移除回复中的JSON块，只保留对话文本
+                replyText = response.substring(0, lastJsonBlock).trim();
+                // 也尝试移除其他位置的json块
+                replyText = replyText.replaceAll("```json\\s*\\{[^}]*}\\s*```", "").trim();
+            } else if (response.contains("```")) {
+                int lastBlock = response.lastIndexOf("```");
+                String blockContent = response.substring(response.lastIndexOf("```", lastBlock - 1) + 3, lastBlock).trim();
+
+                try {
+                    var statusNode = objectMapper.readTree(blockContent);
+                    if (statusNode.has("completed")) {
+                        completed = statusNode.get("completed").asBoolean();
+                    }
+                } catch (Exception ignored) {}
+
+                replyText = response.substring(0, response.lastIndexOf("```", lastBlock - 1)).trim();
+                replyText = replyText.replaceAll("```\\s*\\{[^}]*}\\s*```", "").trim();
+            }
+        } catch (Exception e) {
+            log.warn("解析导诊对话状态失败，默认为未完成: {}", e.getMessage());
+        }
+
+        // 清理回复文本中可能残留的JSON标记
+        replyText = replyText.replaceAll("```\\w*\\s*", "").trim();
+        if (replyText.endsWith("```")) {
+            replyText = replyText.substring(0, replyText.length() - 3).trim();
+        }
+
+        if (!completed) {
+            // 还在收集信息，返回对话
+            return TriageChatResponse.ongoing(replyText);
+        }
+
+        // 信息收集完毕，进行导诊推荐
+        // 构建完整的症状描述（包含历史对话中的关键信息）
+        String fullSymptom = buildFullSymptomFromHistory(userMessage, history);
+        log.info("导诊对话完成，综合症状描述: {}", fullSymptom);
+
+        AppointmentRecommendation recommendation = recommendWithSchedules(fullSymptom);
+        return TriageChatResponse.completed(replyText, recommendation);
+    }
+
+    /**
+     * 从对话历史中提取综合症状描述
+     */
+    private String buildFullSymptomFromHistory(String currentUserMessage, List<ChatMessageDto> history) {
+        StringBuilder symptomBuilder = new StringBuilder();
+        if (history != null) {
+            for (ChatMessageDto msg : history) {
+                if ("user".equals(msg.getRole())) {
+                    symptomBuilder.append(msg.getContent()).append("；");
+                }
+            }
+        }
+        symptomBuilder.append(currentUserMessage);
+        return symptomBuilder.toString();
     }
 
     /**
