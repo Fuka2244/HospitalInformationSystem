@@ -1,0 +1,121 @@
+:root{
+  --his-bg: #f5f7ff;
+  --his-bg-2: #f3f6fb;
+  --his-card: rgba(255, 255, 255, 0.78);
+  --his-card-strong: rgba(255, 255, 255, 0.92);
+  --his-border: rgba(15, 23, 42, 0.08);
+  --his-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --his-shadow-sm: 0 8px 18px rgba(15, 23, 42, 0.08);
+  --his-radius: 16px;
+
+  --el-color-primary: #2f80ed;
+  --el-color-primary-light-3: #6aa7ff;
+  --el-color-primary-light-5: #8fbeff;
+  --el-border-radius-base: 12px;
+  --el-border-color: rgba(15, 23, 42, 0.12);
+  --el-fill-color-blank: rgba(255, 255, 255, 0.92);
+  --el-box-shadow-light: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --el-font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+  --his-header-height: 64px;
+}
+
+html, body{
+  background: radial-gradient(1200px 600px at 10% -10%, rgba(47, 128, 237, 0.18), transparent 60%),
+    radial-gradient(1200px 600px at 90% 0%, rgba(120, 87, 255, 0.16), transparent 60%),
+    linear-gradient(180deg, var(--his-bg) 0%, var(--his-bg-2) 100%);
+}
+
+body{
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* nicer scrollbars (WebKit) */
+*::-webkit-scrollbar{ width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb{
+  background: rgba(15, 23, 42, 0.18);
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.65);
+}
+*::-webkit-scrollbar-track{ background: transparent; }
+
+.page{
+  padding: 16px;
+  min-height: calc(100vh - var(--his-header-height));
+}
+
+.page-header{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.page-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* layout helpers for “full” pages */
+.fill-row{ align-items: stretch; }
+.fill-col{ display:flex; }
+.fill-col > .el-card{ width: 100%; }
+.fill-card{ height: 100%; }
+
+@media (max-width: 768px){
+  .page{ padding: 14px; }
+}
+.page-title{
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+.page-subtitle{
+  margin-top: 6px;
+  color: rgba(15, 23, 42, 0.60);
+  font-size: 13px;
+}
+
+/* Element Plus polish */
+.el-card{
+  border: 1px solid var(--his-border);
+  background: var(--his-card-strong);
+  border-radius: var(--his-radius);
+  box-shadow: var(--his-shadow-sm);
+  backdrop-filter: blur(10px);
+  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+.el-card.is-never-shadow{ box-shadow: none; }
+.el-card.is-hover-shadow:hover{
+  box-shadow: var(--his-shadow);
+  transform: translateY(-1px);
+  border-color: rgba(47, 128, 237, 0.18);
+}
+.el-card__header{
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+.el-dialog{
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+.el-dialog__header{
+  background: linear-gradient(180deg, rgba(47, 128, 237, 0.10), rgba(255,255,255,0));
+}
+.el-table{
+  border-radius: 14px;
+  overflow: hidden;
+}
+.el-table th.el-table__cell{
+  background: rgba(15, 23, 42, 0.02);
+}
+.el-button{
+  border-radius: 12px;
+}
+.el-input__wrapper, .el-textarea__inner, .el-select__wrapper{
+  border-radius: 12px;
+}
