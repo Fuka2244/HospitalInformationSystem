@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Appointment, AppointmentCreateDto, AppointmentQueryParams, AppointmentRecommendation, DoctorSchedule } from '@/types'
+import type { Appointment, AppointmentCreateDto, AppointmentQueryParams, AppointmentRecommendation, ChatMessageDto, DoctorSchedule, TriageChatResponse } from '@/types'
 import * as appointmentApi from '@/api/appointment'
 
 export const useAppointmentStore = defineStore('appointment', () => {
@@ -53,11 +53,17 @@ export const useAppointmentStore = defineStore('appointment', () => {
     return res
   }
 
+  /** AI多轮对话式导诊 */
+  async function aiTriageChat(message: string, history: ChatMessageDto[]): Promise<TriageChatResponse> {
+    const res = await appointmentApi.aiTriageChat({ message, history })
+    return res.data
+  }
+
   /** 获取排班 */
   async function fetchSchedules(params: { departmentId?: number; doctorId?: number; date?: string }) {
     const res = await appointmentApi.getAvailableSchedules(params)
     schedules.value = res.data || []
   }
 
-  return { appointments, total, loading, schedules, aiRecommendation, aiAvailableSchedules, fetchList, create, cancel, reschedule, aiRecommend, aiRecommendWithSchedules, fetchSchedules }
+  return { appointments, total, loading, schedules, aiRecommendation, aiAvailableSchedules, fetchList, create, cancel, reschedule, aiRecommend, aiRecommendWithSchedules, aiTriageChat, fetchSchedules }
 })

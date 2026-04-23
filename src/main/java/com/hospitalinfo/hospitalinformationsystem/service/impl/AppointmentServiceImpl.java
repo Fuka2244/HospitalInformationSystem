@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -219,11 +220,65 @@ public class AppointmentServiceImpl implements IAppointmentService {
         }
 
         // 将可用排班列表放入推荐结果中
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        Map<String, Object> result = new java.util.HashMap<>();
         result.put("recommendation", recommendation);
         result.put("availableSchedules", availableSchedules);
 
         return Result.ok(result);
+    }
+
+    @Override
+    public Result aiTriageChat(String message, List<ChatMessageDto> history) {
+        if (message == null || message.trim().isEmpty()) {
+            return Result.fail("请输入您的消息");
+        }
+        TriageChatResponse chatResponse = aiAppointmentService.triageChat(message, history);
+
+        if (!chatResponse.isCompleted()) {
+            // 还在对话中，直接返回
+            return Result.ok(chatResponse);
+        }
+
+        // 对话完成，需要附带可用排班
+        AppointmentRecommendation recommendation = chatResponse.getRecommendation();
+        if (recommendation == null || recommendation.getDoctorId() == null) {
+            return Result.ok(chatResponse);
+        }
+
+        // 查询推荐医生的可用排班
+        if (recommendation.getRecommendedDate() != null) {
+            LocalDate appointmentDate = LocalDate.parse(recommendation.getRecommendedDate());
+            QueryWrapper<DoctorSchedule> wrapper = new QueryWrapper<DoctorSchedule>()
+                    .eq("doctor_id", recommendation.getDoctorId())
+                    .eq("schedule_date", appointmentDate)
+                    .eq("status", 1)
+                    .orderByAsc("time_slot");
+
+            List<DoctorSchedule> schedules = doctorScheduleMapper.selectList(wrapper);
+            List<DoctorSchedule> availableSchedules = schedules.stream()
+                    .filter(s -> s.getBookedCount() < s.getMaxPatients())
+                    .toList();
+
+            for (DoctorSchedule schedule : availableSchedules) {
+                Doctor doctor = doctorMapper.selectById(schedule.getDoctorId());
+                if (doctor != null) {
+                    schedule.setDoctorName(doctor.getName());
+                    Department dept = departmentMapper.selectById(doctor.getDepartmentId());
+                    if (dept != null) {
+                        schedule.setDepartmentName(dept.getName());
+                    }
+                }
+            }
+
+            Map<String, Object> resultData = new java.util.HashMap<>();
+            resultData.put("reply", chatResponse.getReply());
+            resultData.put("completed", true);
+            resultData.put("recommendation", recommendation);
+            resultData.put("availableSchedules", availableSchedules);
+            return Result.ok(resultData);
+        }
+
+        return Result.ok(chatResponse);
     }
 
     @Override

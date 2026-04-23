@@ -2,6 +2,8 @@ package com.hospitalinfo.hospitalinformationsystem.service;
 
 import com.hospitalinfo.hospitalinformationsystem.dto.*;
 
+import java.util.List;
+
 /**
  * 预约系统服务接口
  */
@@ -27,6 +29,9 @@ public interface IAppointmentService {
 
     /** AI智能预约推荐并查询可用排班 */
     Result aiRecommendWithSchedules(String symptom);
+
+    /** AI多轮对话式智能导诊 */
+    Result aiTriageChat(String message, List<ChatMessageDto> history);
 
     /** 获取可用排班 */
     Result getAvailableSchedules(Long departmentId, Long doctorId, String date);

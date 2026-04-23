@@ -7,6 +7,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * 预约系统控制器（含AI智能预约）
  */
@@ -97,6 +99,19 @@ public class AppointmentController {
             return Result.fail("请描述您的症状");
         }
         return appointmentService.aiRecommendWithSchedules(symptom);
+    }
+
+    /**
+     * AI多轮对话式智能导诊
+     * POST /appointment/ai-triage-chat
+     * 请求体: { "message": "我头痛", "history": [{"role":"user","content":"..."},{"role":"assistant","content":"..."}] }
+     */
+    @PostMapping("/ai-triage-chat")
+    public Result aiTriageChat(@RequestBody TriageChatRequest request) {
+        if (request.getMessage() == null || request.getMessage().trim().isEmpty()) {
+            return Result.fail("请输入您的消息");
+        }
+        return appointmentService.aiTriageChat(request.getMessage(), request.getHistory());
     }
 
     /**

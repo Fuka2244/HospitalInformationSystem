@@ -188,6 +188,26 @@ export interface AppointmentRecommendation {
   reason: string
 }
 
+/** 导诊对话消息 */
+export interface ChatMessageDto {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+/** 导诊对话请求 */
+export interface TriageChatRequest {
+  message: string
+  history: ChatMessageDto[]
+}
+
+/** 导诊对话响应 */
+export interface TriageChatResponse {
+  reply: string
+  completed: boolean
+  recommendation?: AppointmentRecommendation
+  availableSchedules?: DoctorSchedule[]
+}
+
 /** 排班查询参数 */
 export interface ScheduleQueryParams {
   departmentId?: number

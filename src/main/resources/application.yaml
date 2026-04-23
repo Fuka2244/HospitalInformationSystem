@@ -45,3 +45,7 @@ ai:
 file:
   upload-dir: ${user.dir}/uploads
   avatar-max-size: 5242880  # 5MB
+
+logging:
+  level:
+    com.hospitalinfo.hospitalinformationsystem: debug

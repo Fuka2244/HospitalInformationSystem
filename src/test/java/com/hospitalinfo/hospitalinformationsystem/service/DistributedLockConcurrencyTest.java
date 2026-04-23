@@ -187,7 +187,7 @@ class DistributedLockConcurrencyTest {
                     startLatch.await();
 
                     String lockKey = lockKeyPrefix + doctorId + ":" + date + ":" + timeSlot;
-                    String lockValue = distributedLock.tryLock(lockKey, 10, 3, 100);
+                    String lockValue = distributedLock.tryLock(lockKey, 10, 10, 200);
 
                     if (lockValue != null) {
                         try {

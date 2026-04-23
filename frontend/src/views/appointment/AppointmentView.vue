@@ -16,14 +16,44 @@
           <template #header>
             <div class="card-head">
               <span>AI 智能导诊</span>
-              <el-tag effect="light" type="warning" size="small">仅供参考</el-tag>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <el-tag v-if="chatCompleted" effect="light" type="success" size="small">推荐完成</el-tag>
+                <el-tag v-else effect="light" type="warning" size="small">仅供参考</el-tag>
+                <el-button v-if="chatMessages.length > 1" link type="info" size="small" @click="resetChat">重新开始</el-button>
+              </div>
             </div>
           </template>
-          <el-input v-model="symptom" type="textarea" :rows="3" placeholder="请描述您的症状，如：我最近头痛，应该挂什么科？" />
-          <el-button type="primary" :loading="aiLoading" style="width: 100%; margin-top: 12px" @click="handleAiRecommend">
-            AI 智能推荐
-          </el-button>
-          <div v-if="recommendation" class="ai-result">
+
+          <!-- 聊天消息列表 -->
+          <div class="chat-messages" ref="chatMessagesRef">
+            <div v-for="(msg, idx) in chatMessages" :key="idx" class="chat-message" :class="msg.role">
+              <div class="chat-avatar">
+                <el-avatar v-if="msg.role === 'assistant'" :size="32" style="background: linear-gradient(135deg, #2f80ed, #7857ff);">
+                  AI
+                </el-avatar>
+                <el-avatar v-else :size="32" style="background: #67c23a;">
+                  我
+                </el-avatar>
+              </div>
+              <div class="chat-bubble">
+                <div class="chat-content">{{ msg.content }}</div>
+              </div>
+            </div>
+            <!-- AI正在输入提示 -->
+            <div v-if="chatLoading" class="chat-message assistant">
+              <div class="chat-avatar">
+                <el-avatar :size="32" style="background: linear-gradient(135deg, #2f80ed, #7857ff);">AI</el-avatar>
+              </div>
+              <div class="chat-bubble">
+                <div class="chat-typing">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 推荐结果区域 -->
+          <div v-if="recommendation && chatCompleted" class="ai-result">
             <el-divider>推荐结果</el-divider>
             <el-descriptions :column="1" border size="small">
               <el-descriptions-item label="推荐科室">
@@ -37,9 +67,9 @@
 
             <!-- 可用排班列表 -->
             <el-divider>可用时间段</el-divider>
-            <div v-if="store.aiAvailableSchedules.length > 0" class="schedule-list">
+            <div v-if="aiAvailableSchedules.length > 0" class="schedule-list">
               <div
-                v-for="schedule in store.aiAvailableSchedules"
+                v-for="schedule in aiAvailableSchedules"
                 :key="schedule.id"
                 class="schedule-item"
                 :class="{ selected: selectedSchedule?.id === schedule.id }"
@@ -55,6 +85,22 @@
             <div v-else class="no-schedule">
               <el-text type="info">该医生在推荐日期无可用排班，建议选择其他日期或医生</el-text>
             </div>
+          </div>
+
+          <!-- 输入框 -->
+          <div class="chat-input-area">
+            <el-input
+              v-model="chatInput"
+              placeholder="请描述您的症状或回答问题..."
+              :disabled="chatLoading || chatCompleted"
+              @keyup.enter="sendChatMessage"
+            >
+              <template #append>
+                <el-button :loading="chatLoading" :disabled="!chatInput.trim() || chatCompleted" @click="sendChatMessage">
+                  发送
+                </el-button>
+              </template>
+            </el-input>
           </div>
         </el-card>
       </el-col>
@@ -261,25 +307,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAppointmentStore } from '@/stores/appointment'
 import { getDepartmentList, getDoctorList } from '@/api/department'
-import type { Appointment, AppointmentCreateDto, AppointmentRecommendation, Department, Doctor, DoctorSchedule } from '@/types'
+import type { Appointment, AppointmentCreateDto, AppointmentRecommendation, ChatMessageDto, Department, Doctor, DoctorSchedule } from '@/types'
 
 const store = useAppointmentStore()
 const showCreate = ref(false)
 const createLoading = ref(false)
-const aiLoading = ref(false)
 const cancelVisible = ref(false)
 const cancelLoading = ref(false)
 const cancelReason = ref('')
 const cancelTarget = ref<Appointment | null>(null)
-const symptom = ref('')
 const recommendation = ref<AppointmentRecommendation | null>(null)
 const selectedSchedule = ref<DoctorSchedule | null>(null)
+const aiAvailableSchedules = ref<DoctorSchedule[]>([])
 const departments = ref<Department[]>([])
 const allDoctors = ref<Doctor[]>([])
+
+// 聊天相关状态
+const chatMessages = ref<ChatMessageDto[]>([
+  { role: 'assistant', content: '您好！我是AI导诊助手，请问您今天哪里不舒服？请描述一下您的症状。' }
+])
+const chatInput = ref('')
+const chatLoading = ref(false)
+const chatCompleted = ref(false)
+const chatMessagesRef = ref<HTMLElement | null>(null)
 
 // 筛选状态
 const filterDepartment = ref<number | undefined>(undefined)
@@ -344,6 +398,61 @@ function getDepartmentName(deptId: number): string {
   return dept?.name || '未知科室'
 }
 
+// 滚动聊天到底部
+async function scrollToBottom() {
+  await nextTick()
+  if (chatMessagesRef.value) {
+    chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
+  }
+}
+
+// 发送聊天消息
+async function sendChatMessage() {
+  const msg = chatInput.value.trim()
+  if (!msg || chatLoading.value || chatCompleted.value) return
+
+  // 添加用户消息
+  chatMessages.value.push({ role: 'user', content: msg })
+  chatInput.value = ''
+  chatLoading.value = true
+  scrollToBottom()
+
+  try {
+    // 构建历史消息（不包含当前消息）
+    const history = chatMessages.value.slice(0, -1)
+    const res = await store.aiTriageChat(msg, history)
+
+    // 添加AI回复
+    chatMessages.value.push({ role: 'assistant', content: res.reply })
+    scrollToBottom()
+
+    if (res.completed) {
+      chatCompleted.value = true
+      recommendation.value = res.recommendation || null
+      aiAvailableSchedules.value = res.availableSchedules || []
+    }
+  } catch (error) {
+    ElMessage.error('AI导诊服务暂时不可用，请稍后重试')
+    chatMessages.value.push({ role: 'assistant', content: '抱歉，我暂时无法响应，请稍后再试。' })
+    scrollToBottom()
+  } finally {
+    chatLoading.value = false
+  }
+}
+
+// 重置聊天
+function resetChat() {
+  chatMessages.value = [
+    { role: 'assistant', content: '您好！我是AI导诊助手，请问您今天哪里不舒服？请描述一下您的症状。' }
+  ]
+  chatInput.value = ''
+  chatLoading.value = false
+  chatCompleted.value = false
+  recommendation.value = null
+  selectedSchedule.value = null
+  aiAvailableSchedules.value = []
+}
+
 // 应用筛选条件
 async function applyFilter() {
   if (filterDate.value) {
@@ -404,21 +513,6 @@ function confirmSchedule() {
   showScheduleDialog.value = false
 }
 
-async function handleAiRecommend() {
-  if (!symptom.value.trim()) {
-    ElMessage.warning('请描述您的症状')
-    return
-  }
-  aiLoading.value = true
-  selectedSchedule.value = null
-  try {
-    const res = await store.aiRecommendWithSchedules(symptom.value)
-    recommendation.value = res.data.recommendation
-  } finally {
-    aiLoading.value = false
-  }
-}
-
 function selectSchedule(schedule: DoctorSchedule) {
   selectedSchedule.value = schedule
 }
@@ -440,9 +534,7 @@ async function handleAiBook() {
   try {
     await store.create(createDto)
     ElMessage.success('预约成功')
-    recommendation.value = null
-    selectedSchedule.value = null
-    symptom.value = ''
+    resetChat()
     loadList()
   } catch (error) {
     ElMessage.error('预约失败，请重试')
@@ -555,14 +647,13 @@ onMounted(async () => {
 .list-card :deep(.el-card__header){
   background: linear-gradient(180deg, rgba(120, 87, 255, 0.08), rgba(255,255,255,0));
 }
-.ai-result { margin-top: 8px; }
 .ai-card :deep(.el-card__body){
   display:flex;
   flex-direction: column;
 }
 .ai-card .ai-result{
   margin-top: 12px;
-  flex: 1;
+  flex-shrink: 0;
   overflow: auto;
   padding-right: 4px;
 }
@@ -576,6 +667,110 @@ onMounted(async () => {
 }
 .list-card :deep(.el-pagination){
   margin-top: auto;
+}
+
+/* 聊天界面样式 */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 200px;
+  max-height: 420px;
+}
+
+.chat-message {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.chat-message.user {
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  flex-shrink: 0;
+}
+
+.chat-bubble {
+  max-width: 80%;
+}
+
+.chat-content {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.chat-message.assistant .chat-content {
+  background: rgba(47, 128, 237, 0.08);
+  color: #303133;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-message.user .chat-content {
+  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+/* AI正在输入动画 */
+.chat-typing {
+  display: flex;
+  gap: 5px;
+  padding: 10px 14px;
+  background: rgba(47, 128, 237, 0.08);
+  border-radius: 14px;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-typing span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(47, 128, 237, 0.4);
+  animation: typing 1.4s infinite both;
+}
+
+.chat-typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.chat-typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 输入框区域 */
+.chat-input-area {
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+.chat-input-area :deep(.el-input-group__append) {
+  padding: 0;
+}
+
+.chat-input-area :deep(.el-input-group__append .el-button) {
+  margin: 0;
+  border: none;
+  border-radius: 0 4px 4px 0;
 }
 
 /* 筛选工具栏 */
