@@ -223,3 +223,16 @@ CREATE TABLE IF NOT EXISTS `doctor_schedule` (
 
 -- 添加AI思维链字段到医疗报告表
 ALTER TABLE `medical_report` ADD COLUMN `ai_thought_chain` TEXT DEFAULT NULL COMMENT 'AI思维链' AFTER `ai_recommendation`;
+
+-- AI聊天历史记录表
+CREATE TABLE IF NOT EXISTS `chat_history` (
+    `id`          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+    `patient_id`  VARCHAR(36)  NOT NULL COMMENT '患者账户ID',
+    `chat_type`   VARCHAR(20)  NOT NULL COMMENT '聊天类型:TRIAGE导诊/MEDICINE药品/BILLING费用',
+    `role`        VARCHAR(20)  NOT NULL COMMENT '消息角色:user/assistant',
+    `content`     TEXT         NOT NULL COMMENT '消息内容',
+    `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_patient_type` (`patient_id`, `chat_type`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI聊天历史记录表';

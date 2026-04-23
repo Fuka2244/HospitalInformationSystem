@@ -167,7 +167,10 @@
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getMedicineList, getMedicineDetail, aiMedicineChatAsync, getMedicineAiTaskResult } from '@/api/medicine'
+import { getChatHistory, saveChatMessages, clearChatHistory } from '@/api/chatHistory'
 import type { Medicine, MedicineListParams, MedicineRecommendation, MedicineChatResponse, ChatMessageDto } from '@/types'
+
+const CHAT_TYPE = 'MEDICINE'
 
 const loading = ref(false)
 const medicines = ref<Medicine[]>([])
@@ -177,8 +180,9 @@ const detailLoading = ref(false)
 const detail = ref<Medicine | null>(null)
 
 // 聊天相关状态
+const defaultWelcome = '您好！我是AI药学助手，请问您今天哪里不舒服？请描述一下您的症状。'
 const chatMessages = ref<ChatMessageDto[]>([
-  { role: 'assistant', content: '您好！我是AI药学助手，请问您今天哪里不舒服？请描述一下您的症状。' }
+  { role: 'assistant', content: defaultWelcome }
 ])
 const chatInput = ref('')
 const chatLoading = ref(false)
@@ -230,6 +234,15 @@ async function sendChatMessage() {
           chatMessages.value.push({ role: 'assistant', content: chatResponse.reply })
           scrollToBottom()
 
+          // 保存本次对话到后端
+          saveChatMessages({
+            chatType: CHAT_TYPE,
+            messages: [
+              { role: 'user', content: msg },
+              { role: 'assistant', content: chatResponse.reply }
+            ]
+          }).catch(() => {})
+
           if (chatResponse.completed) {
             chatCompleted.value = true
             aiResults.value = chatResponse.recommendations || []
@@ -270,12 +283,14 @@ onUnmounted(() => {
 // 重置聊天
 function resetChat() {
   chatMessages.value = [
-    { role: 'assistant', content: '您好！我是AI药学助手，请问您今天哪里不舒服？请描述一下您的症状。' }
+    { role: 'assistant', content: defaultWelcome }
   ]
   chatInput.value = ''
   chatLoading.value = false
   chatCompleted.value = false
   aiResults.value = []
+  // 清除后端聊天历史
+  clearChatHistory(CHAT_TYPE).catch(() => {})
 }
 
 async function loadMedicines() {
@@ -308,7 +323,18 @@ function handleSearch() {
   loadMedicines()
 }
 
-onMounted(loadMedicines)
+onMounted(async () => {
+  // 加载聊天历史
+  try {
+    const historyRes = await getChatHistory(CHAT_TYPE)
+    if (historyRes.data && historyRes.data.length > 0) {
+      chatMessages.value = historyRes.data
+      scrollToBottom()
+    }
+  } catch { /* 后端不可用，使用默认欢迎语 */ }
+
+  loadMedicines()
+})
 </script>
 
 <style scoped>

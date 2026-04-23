@@ -311,7 +311,10 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAppointmentStore } from '@/stores/appointment'
 import { getDepartmentList, getDoctorList } from '@/api/department'
+import { getChatHistory, saveChatMessages, clearChatHistory } from '@/api/chatHistory'
 import type { Appointment, AppointmentCreateDto, AppointmentRecommendation, ChatMessageDto, Department, Doctor, DoctorSchedule } from '@/types'
+
+const CHAT_TYPE = 'TRIAGE'
 
 const store = useAppointmentStore()
 const showCreate = ref(false)
@@ -327,13 +330,15 @@ const departments = ref<Department[]>([])
 const allDoctors = ref<Doctor[]>([])
 
 // 聊天相关状态
+const defaultWelcome = '您好！我是AI导诊助手，请问您今天哪里不舒服？请描述一下您的症状。'
 const chatMessages = ref<ChatMessageDto[]>([
-  { role: 'assistant', content: '您好！我是AI导诊助手，请问您今天哪里不舒服？请描述一下您的症状。' }
+  { role: 'assistant', content: defaultWelcome }
 ])
 const chatInput = ref('')
 const chatLoading = ref(false)
 const chatCompleted = ref(false)
 const chatMessagesRef = ref<HTMLElement | null>(null)
+const chatHistoryLoaded = ref(false)
 
 // 筛选状态
 const filterDepartment = ref<number | undefined>(undefined)
@@ -426,6 +431,15 @@ async function sendChatMessage() {
     chatMessages.value.push({ role: 'assistant', content: res.reply })
     scrollToBottom()
 
+    // 保存本次对话到后端（用户消息+AI回复）
+    saveChatMessages({
+      chatType: CHAT_TYPE,
+      messages: [
+        { role: 'user', content: msg },
+        { role: 'assistant', content: res.reply }
+      ]
+    }).catch(() => {})
+
     if (res.completed) {
       chatCompleted.value = true
       recommendation.value = res.recommendation || null
@@ -443,7 +457,7 @@ async function sendChatMessage() {
 // 重置聊天
 function resetChat() {
   chatMessages.value = [
-    { role: 'assistant', content: '您好！我是AI导诊助手，请问您今天哪里不舒服？请描述一下您的症状。' }
+    { role: 'assistant', content: defaultWelcome }
   ]
   chatInput.value = ''
   chatLoading.value = false
@@ -451,6 +465,8 @@ function resetChat() {
   recommendation.value = null
   selectedSchedule.value = null
   aiAvailableSchedules.value = []
+  // 清除后端聊天历史
+  clearChatHistory(CHAT_TYPE).catch(() => {})
 }
 
 // 应用筛选条件
@@ -625,6 +641,16 @@ onMounted(async () => {
     const doctorRes = await getDoctorList()
     allDoctors.value = doctorRes.data || []
   } catch { /* 后端不可用 */ }
+
+  // 加载聊天历史
+  try {
+    const historyRes = await getChatHistory(CHAT_TYPE)
+    if (historyRes.data && historyRes.data.length > 0) {
+      chatMessages.value = historyRes.data
+      chatHistoryLoaded.value = true
+      scrollToBottom()
+    }
+  } catch { /* 后端不可用，使用默认欢迎语 */ }
 
   loadList()
 })

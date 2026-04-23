@@ -189,8 +189,11 @@
 import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getBillingList, aiBillingChatAsync, getAiTaskResult } from '@/api/billing'
+import { getChatHistory, saveChatMessages, clearChatHistory } from '@/api/chatHistory'
 import BillingPieChart, { type PieItem } from './components/BillingPieChart.vue'
 import type { Billing, BillingQueryParams, BillingExplanation, BillingChatResponse, ChatMessageDto } from '@/types'
+
+const CHAT_TYPE = 'BILLING'
 
 const loading = ref(false)
 const billings = ref<Billing[]>([])
@@ -215,8 +218,9 @@ const typeColor: Record<string, string> = {
 const queryParams = reactive<BillingQueryParams>({ page: 1, size: 10 })
 
 // 聊天相关状态
+const defaultWelcome = '您好！我是AI费用助手，已获取您的费用数据，请直接提出您的问题，我会基于您的实际费用进行解答。'
 const chatMessages = ref<ChatMessageDto[]>([
-  { role: 'assistant', content: '您好！我是AI费用助手，已获取您的费用数据，请直接提出您的问题，我会基于您的实际费用进行解答。' }
+  { role: 'assistant', content: defaultWelcome }
 ])
 const chatInput = ref('')
 const chatLoading = ref(false)
@@ -296,6 +300,15 @@ async function sendChatMessage() {
           chatMessages.value.push({ role: 'assistant', content: chatResponse.reply })
           scrollToBottom()
 
+          // 保存本次对话到后端
+          saveChatMessages({
+            chatType: CHAT_TYPE,
+            messages: [
+              { role: 'user', content: msg },
+              { role: 'assistant', content: chatResponse.reply }
+            ]
+          }).catch(() => {})
+
           if (chatResponse.completed) {
             chatCompleted.value = true
             explanation.value = chatResponse.explanation || null
@@ -334,12 +347,14 @@ onUnmounted(() => {
 // 重置聊天
 function resetChat() {
   chatMessages.value = [
-    { role: 'assistant', content: '您好！我是AI费用助手，已获取您的费用数据，请直接提出您的问题，我会基于您的实际费用进行解答。' }
+    { role: 'assistant', content: defaultWelcome }
   ]
   chatInput.value = ''
   chatLoading.value = false
   chatCompleted.value = false
   explanation.value = null
+  // 清除后端聊天历史
+  clearChatHistory(CHAT_TYPE).catch(() => {})
 }
 
 async function loadBillings() {
@@ -375,7 +390,18 @@ function handlePieSelect(item: PieItem & { percent: number }) {
   pieDialogVisible.value = true
 }
 
-onMounted(loadBillings)
+onMounted(async () => {
+  // 加载聊天历史
+  try {
+    const historyRes = await getChatHistory(CHAT_TYPE)
+    if (historyRes.data && historyRes.data.length > 0) {
+      chatMessages.value = historyRes.data
+      scrollToBottom()
+    }
+  } catch { /* 后端不可用，使用默认欢迎语 */ }
+
+  loadBillings()
+})
 </script>
 
 <style scoped>
