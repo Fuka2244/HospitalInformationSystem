@@ -1,9 +1,10 @@
 package com.hospitalinfo.hospitalinformationsystem.controller;
 
+import com.hospitalinfo.hospitalinformationsystem.dto.AsyncTaskResult;
 import com.hospitalinfo.hospitalinformationsystem.dto.BillingQueryDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
-import com.hospitalinfo.hospitalinformationsystem.dto.TriageChatRequest;
+import com.hospitalinfo.hospitalinformationsystem.service.IAsyncTaskService;
 import com.hospitalinfo.hospitalinformationsystem.service.IBillingService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class BillingController {
 
     private final IBillingService billingService;
+    private final IAsyncTaskService asyncTaskService;
 
     /**
      * 查询当前用户的费用列表
@@ -74,7 +76,7 @@ public class BillingController {
     }
 
     /**
-     * AI多轮对话式费用解释
+     * AI多轮对话式费用解释（同步）
      * POST /billing/ai-chat
      * 请求体: { "message": "为什么这么贵？", "startDate": "2024-01-01", "endDate": "2024-12-31", "history": [...] }
      */
@@ -99,5 +101,43 @@ public class BillingController {
         }
 
         return billingService.aiBillingChat(patientId, message, history, startDate, endDate);
+    }
+
+    /**
+     * AI多轮对话式费用解释（异步，提交任务返回taskId）
+     * POST /billing/ai-chat-async
+     * 请求体: { "message": "为什么这么贵？", "startDate": "2024-01-01", "endDate": "2024-12-31", "history": [...] }
+     */
+    @PostMapping("/ai-chat-async")
+    public Result aiBillingChatAsync(@RequestBody Map<String, Object> body, HttpSession session) {
+        String patientId = (String) session.getAttribute("account");
+        String message = (String) body.get("message");
+        if (message == null || message.trim().isEmpty()) {
+            return Result.fail("请输入您的消息");
+        }
+        String startDate = (String) body.get("startDate");
+        String endDate = (String) body.get("endDate");
+
+        // 解析历史消息
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> historyRaw = (List<Map<String, String>>) body.get("history");
+        List<ChatMessageDto> history = null;
+        if (historyRaw != null) {
+            history = historyRaw.stream()
+                    .map(m -> new ChatMessageDto(m.get("role"), m.get("content")))
+                    .toList();
+        }
+
+        return billingService.aiBillingChatAsync(patientId, message, history, startDate, endDate);
+    }
+
+    /**
+     * 查询异步任务结果
+     * GET /billing/ai-task/{taskId}
+     */
+    @GetMapping("/ai-task/{taskId}")
+    public Result getAiTaskResult(@PathVariable String taskId) {
+        AsyncTaskResult taskResult = asyncTaskService.getTaskResult(taskId);
+        return Result.ok(taskResult);
     }
 }

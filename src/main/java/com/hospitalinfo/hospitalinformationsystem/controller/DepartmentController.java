@@ -1,12 +1,14 @@
 package com.hospitalinfo.hospitalinformationsystem.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.hospitalinfo.hospitalinformationsystem.config.CacheConfig;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
 import com.hospitalinfo.hospitalinformationsystem.entity.Department;
 import com.hospitalinfo.hospitalinformationsystem.entity.Doctor;
 import com.hospitalinfo.hospitalinformationsystem.mapper.DepartmentMapper;
 import com.hospitalinfo.hospitalinformationsystem.mapper.DoctorMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +29,7 @@ public class DepartmentController {
      * GET /department/list
      */
     @GetMapping("/list")
+    @Cacheable(value = CacheConfig.CACHE_DEPARTMENT, key = "'list'")
     public Result listDepartments() {
         List<Department> departments = departmentMapper.selectList(
                 new QueryWrapper<Department>().eq("status", 1).orderByAsc("id"));
@@ -38,6 +41,7 @@ public class DepartmentController {
      * GET /department/{id}
      */
     @GetMapping("/{id}")
+    @Cacheable(value = CacheConfig.CACHE_DEPARTMENT, key = "'detail:' + #id")
     public Result getDepartmentDetail(@PathVariable Long id) {
         Department department = departmentMapper.selectById(id);
         if (department == null) {
@@ -51,6 +55,7 @@ public class DepartmentController {
      * GET /department/{id}/doctors
      */
     @GetMapping("/{id}/doctors")
+    @Cacheable(value = CacheConfig.CACHE_DEPARTMENT, key = "'doctors:' + #id")
     public Result getDepartmentDoctors(@PathVariable Long id) {
         List<Doctor> doctors = doctorMapper.selectList(
                 new QueryWrapper<Doctor>().eq("department_id", id).eq("status", 1));
@@ -62,6 +67,7 @@ public class DepartmentController {
      * GET /department/doctors
      */
     @GetMapping("/doctors")
+    @Cacheable(value = CacheConfig.CACHE_DEPARTMENT, key = "'doctors:all'")
     public Result getAllDoctors() {
         List<Doctor> doctors = doctorMapper.selectList(
                 new QueryWrapper<Doctor>().eq("status", 1).orderByAsc("department_id"));

@@ -22,4 +22,7 @@ public interface IMedicineService {
 
     /** AI多轮对话式药物推荐 */
     Result aiMedicineChat(String message, List<ChatMessageDto> history);
+
+    /** AI多轮对话式药物推荐（异步，返回taskId） */
+    Result aiMedicineChatAsync(String message, List<ChatMessageDto> history);
 }

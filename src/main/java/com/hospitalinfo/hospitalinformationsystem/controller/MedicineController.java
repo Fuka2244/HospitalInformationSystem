@@ -1,8 +1,10 @@
 package com.hospitalinfo.hospitalinformationsystem.controller;
 
+import com.hospitalinfo.hospitalinformationsystem.dto.AsyncTaskResult;
 import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
 import com.hospitalinfo.hospitalinformationsystem.dto.TriageChatRequest;
+import com.hospitalinfo.hospitalinformationsystem.service.IAsyncTaskService;
 import com.hospitalinfo.hospitalinformationsystem.service.IMedicineService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,7 @@ import java.util.Map;
 public class MedicineController {
 
     private final IMedicineService medicineService;
+    private final IAsyncTaskService asyncTaskService;
 
     /**
      * 分页查询药品列表
@@ -55,7 +58,7 @@ public class MedicineController {
     }
 
     /**
-     * AI多轮对话式药物推荐
+     * AI多轮对话式药物推荐（同步）
      * POST /medicine/ai-chat
      * 请求体: { "message": "我头痛", "history": [{"role":"user","content":"..."},{"role":"assistant","content":"..."}] }
      */
@@ -65,5 +68,27 @@ public class MedicineController {
             return Result.fail("请输入您的消息");
         }
         return medicineService.aiMedicineChat(request.getMessage(), request.getHistory());
+    }
+
+    /**
+     * AI多轮对话式药物推荐（异步，提交任务返回taskId）
+     * POST /medicine/ai-chat-async
+     */
+    @PostMapping("/ai-chat-async")
+    public Result aiMedicineChatAsync(@RequestBody TriageChatRequest request) {
+        if (request.getMessage() == null || request.getMessage().trim().isEmpty()) {
+            return Result.fail("请输入您的消息");
+        }
+        return medicineService.aiMedicineChatAsync(request.getMessage(), request.getHistory());
+    }
+
+    /**
+     * 查询异步任务结果
+     * GET /medicine/ai-task/{taskId}
+     */
+    @GetMapping("/ai-task/{taskId}")
+    public Result getAiTaskResult(@PathVariable String taskId) {
+        AsyncTaskResult taskResult = asyncTaskService.getTaskResult(taskId);
+        return Result.ok(taskResult);
     }
 }

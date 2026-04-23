@@ -23,4 +23,7 @@ public interface IBillingService {
 
     /** AI多轮对话式费用解释 */
     Result aiBillingChat(String patientId, String message, List<ChatMessageDto> history, String startDate, String endDate);
+
+    /** AI多轮对话式费用解释（异步，返回taskId） */
+    Result aiBillingChatAsync(String patientId, String message, List<ChatMessageDto> history, String startDate, String endDate);
 }

@@ -186,11 +186,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getBillingList, aiBillingChat } from '@/api/billing'
+import { getBillingList, aiBillingChatAsync, getAiTaskResult } from '@/api/billing'
 import BillingPieChart, { type PieItem } from './components/BillingPieChart.vue'
-import type { Billing, BillingQueryParams, BillingExplanation, ChatMessageDto } from '@/types'
+import type { Billing, BillingQueryParams, BillingExplanation, BillingChatResponse, ChatMessageDto } from '@/types'
 
 const loading = ref(false)
 const billings = ref<Billing[]>([])
@@ -256,7 +256,9 @@ async function scrollToBottom() {
   }
 }
 
-// 发送聊天消息
+// 发送聊天消息（异步提交+轮询结果）
+let pollingTimer: ReturnType<typeof setInterval> | null = null
+
 async function sendChatMessage() {
   const msg = chatInput.value.trim()
   if (!msg || chatLoading.value || chatCompleted.value) return
@@ -273,23 +275,61 @@ async function sendChatMessage() {
       params.startDate = chatDateRange.value[0]
       params.endDate = chatDateRange.value[1]
     }
-    const res = await aiBillingChat(params)
 
-    chatMessages.value.push({ role: 'assistant', content: res.data.reply })
-    scrollToBottom()
+    // 提交异步任务
+    const submitRes = await aiBillingChatAsync(params)
+    const taskId = submitRes.data
 
-    if (res.data.completed) {
-      chatCompleted.value = true
-      explanation.value = res.data.explanation || null
-    }
+    // 轮询任务结果
+    pollingTimer = setInterval(async () => {
+      try {
+        const taskRes = await getAiTaskResult(taskId)
+        const task = taskRes.data
+
+        if (task.status === 'COMPLETED') {
+          // 任务完成，解析结果
+          clearInterval(pollingTimer!)
+          pollingTimer = null
+          chatLoading.value = false
+
+          const chatResponse: BillingChatResponse = JSON.parse(task.resultJson!)
+          chatMessages.value.push({ role: 'assistant', content: chatResponse.reply })
+          scrollToBottom()
+
+          if (chatResponse.completed) {
+            chatCompleted.value = true
+            explanation.value = chatResponse.explanation || null
+          }
+        } else if (task.status === 'FAILED') {
+          clearInterval(pollingTimer!)
+          pollingTimer = null
+          chatLoading.value = false
+          chatMessages.value.push({ role: 'assistant', content: '抱歉，AI服务处理失败，请稍后再试。' })
+          scrollToBottom()
+        }
+        // PENDING / PROCESSING 继续轮询
+      } catch {
+        clearInterval(pollingTimer!)
+        pollingTimer = null
+        chatLoading.value = false
+        chatMessages.value.push({ role: 'assistant', content: '抱歉，获取AI响应失败，请稍后再试。' })
+        scrollToBottom()
+      }
+    }, 1500) // 每1.5秒轮询一次
   } catch (error) {
-    ElMessage.error('AI费用服务暂时不可用，请稍后重试')
-    chatMessages.value.push({ role: 'assistant', content: '抱歉，我暂时无法响应，请稍后再试。' })
-    scrollToBottom()
-  } finally {
     chatLoading.value = false
+    chatMessages.value.push({ role: 'assistant', content: '抱歉，AI费用服务暂时不可用，请稍后重试。' })
+    scrollToBottom()
   }
 }
+
+// 组件卸载时清除轮询
+onUnmounted(() => {
+  if (pollingTimer) {
+    clearInterval(pollingTimer)
+    pollingTimer = null
+  }
+})
 
 // 重置聊天
 function resetChat() {

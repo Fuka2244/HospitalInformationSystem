@@ -390,3 +390,15 @@ export interface Doctor {
   phone: string
   status: number
 }
+
+// ==================== 异步任务模块 ====================
+
+/** 异步任务结果 */
+export interface AsyncTaskResult {
+  taskId: string
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'NOT_FOUND'
+  resultJson: string | null
+  errorMsg: string | null
+  createTime: number
+  finishTime: number | null
+}

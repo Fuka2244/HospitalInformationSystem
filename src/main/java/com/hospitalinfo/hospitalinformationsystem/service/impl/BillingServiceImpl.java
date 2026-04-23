@@ -2,22 +2,25 @@ package com.hospitalinfo.hospitalinformationsystem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hospitalinfo.hospitalinformationsystem.ai.AiBillingService;
-import com.hospitalinfo.hospitalinformationsystem.dto.BillingChatResponse;
-import com.hospitalinfo.hospitalinformationsystem.dto.BillingExplanation;
-import com.hospitalinfo.hospitalinformationsystem.dto.BillingQueryDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.Result;
+import com.hospitalinfo.hospitalinformationsystem.config.CacheConfig;
+import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.entity.Billing;
 import com.hospitalinfo.hospitalinformationsystem.entity.Patient;
 import com.hospitalinfo.hospitalinformationsystem.mapper.BillingMapper;
 import com.hospitalinfo.hospitalinformationsystem.mapper.PatientMapper;
+import com.hospitalinfo.hospitalinformationsystem.service.IAsyncTaskService;
 import com.hospitalinfo.hospitalinformationsystem.service.IBillingService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BillingServiceImpl implements IBillingService {
@@ -25,8 +28,11 @@ public class BillingServiceImpl implements IBillingService {
     private final BillingMapper billingMapper;
     private final PatientMapper patientMapper;
     private final AiBillingService aiBillingService;
+    private final IAsyncTaskService asyncTaskService;
+    private final ObjectMapper objectMapper;
 
     @Override
+    @Cacheable(value = CacheConfig.CACHE_BILLING, key = "'list:' + #patientId + ':' + #queryDto.page + ':' + #queryDto.size + ':' + (#queryDto.itemType ?: '') + ':' + (#queryDto.status ?: '') + ':' + (#queryDto.startDate ?: '') + ':' + (#queryDto.endDate ?: '')")
     public Result listBillings(String patientId, BillingQueryDto queryDto) {
         Page<Billing> pageParam = new Page<>(queryDto.getPage(), queryDto.getSize());
         QueryWrapper<Billing> wrapper = new QueryWrapper<Billing>()
@@ -48,9 +54,9 @@ public class BillingServiceImpl implements IBillingService {
 
         Page<Billing> result = billingMapper.selectPage(pageParam, wrapper);
 
-        // 填充患者名称
+        // 填充患者名称（带缓存）
         for (Billing b : result.getRecords()) {
-            Patient patient = patientMapper.selectById(b.getPatientId());
+            Patient patient = getPatientCached(b.getPatientId());
             if (patient != null) b.setPatientName(patient.getName());
         }
 
@@ -58,6 +64,7 @@ public class BillingServiceImpl implements IBillingService {
     }
 
     @Override
+    @Cacheable(value = CacheConfig.CACHE_BILLING, key = "'detail:' + #billingId")
     public Result getBillingDetail(Long billingId, String currentPatientId, Object role) {
         Billing billing = billingMapper.selectById(billingId);
         if (billing == null) {
@@ -68,7 +75,7 @@ public class BillingServiceImpl implements IBillingService {
                 (role == null || (!"admin".equals(role) && !"doctor".equals(role) && !"pharmacist".equals(role)))) {
             return Result.fail("无权查看该费用记录");
         }
-        Patient patient = patientMapper.selectById(billing.getPatientId());
+        Patient patient = getPatientCached(billing.getPatientId());
         if (patient != null) billing.setPatientName(patient.getName());
         return Result.ok(billing);
     }
@@ -96,6 +103,31 @@ public class BillingServiceImpl implements IBillingService {
     }
 
     /**
+     * 异步提交AI费用对话任务，返回taskId
+     */
+    @Override
+    public Result aiBillingChatAsync(String patientId, String message, List<ChatMessageDto> history, String startDate, String endDate) {
+        try {
+            AsyncTaskRequest request = new AsyncTaskRequest();
+            request.setTaskType("BILLING_CHAT");
+            request.setPatientId(patientId);
+            request.setMessage(message);
+            request.setStartDate(startDate);
+            request.setEndDate(endDate);
+            if (history != null && !history.isEmpty()) {
+                request.setHistoryJson(objectMapper.writeValueAsString(history));
+            }
+
+            String taskId = asyncTaskService.submitTask(request);
+            log.info("AI费用对话异步任务已提交: taskId={}, patientId={}", taskId, patientId);
+            return Result.ok(taskId);
+        } catch (Exception e) {
+            log.error("提交AI费用对话异步任务失败: {}", e.getMessage(), e);
+            return Result.fail("提交异步任务失败");
+        }
+    }
+
+    /**
      * 按日期范围查询费用记录
      */
     private List<Billing> getBillingsByDateRange(String patientId, String startDate, String endDate) {
@@ -110,5 +142,13 @@ public class BillingServiceImpl implements IBillingService {
         }
 
         return billingMapper.selectList(wrapper);
+    }
+
+    /**
+     * 缓存患者信息查询，避免N+1问题
+     */
+    @Cacheable(value = CacheConfig.CACHE_PATIENT, key = "'entity:' + #patientId")
+    private Patient getPatientCached(String patientId) {
+        return patientMapper.selectById(patientId);
     }
 }
