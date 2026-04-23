@@ -4,9 +4,12 @@ import type { Result } from '@/types'
 
 const BASE_URL = '/HIS'
 
+// 开发模式开关：设为 true 时后端不可用也不弹错误、不跳登录页，所有页面可正常浏览
+export const DEV_MODE = true
+
 const instance = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: DEV_MODE ? 5000 : 30000,
   withCredentials: true,
 })
 
@@ -21,12 +24,19 @@ instance.interceptors.response.use(
   (response: AxiosResponse<Result>) => {
     const { data } = response
     if (data.success === false) {
-      ElMessage.error(data.errorMsg || '请求失败')
+      if (!DEV_MODE) {
+        ElMessage.error(data.errorMsg || '请求失败')
+      }
       return Promise.reject(new Error(data.errorMsg || '请求失败'))
     }
     return response
   },
   (error) => {
+    if (DEV_MODE) {
+      // 开发模式：静默失败，不弹错误提示，不跳转登录页
+      console.warn('[DEV_MODE] API请求失败:', error.message)
+      return Promise.reject(error)
+    }
     if (error.response?.status === 401) {
       ElMessage.warning('请先登录')
       window.location.href = '/login'

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { DEV_MODE } from '@/api/request'
 
 const routes = [
   {
@@ -37,6 +38,12 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach(async (to, _from, next) => {
   document.title = `${to.meta.title || 'HIS'} - 医院信息系统`
+
+  // 开发模式：直接放行所有路由
+  if (DEV_MODE) {
+    next()
+    return
+  }
 
   if (to.meta.public) {
     next()

@@ -81,6 +81,8 @@ async function loadDepartments() {
     if (departments.value.length > 0) {
       selectDept(departments.value[0])
     }
+  } catch {
+    departments.value = []
   } finally {
     deptLoading.value = false
   }
@@ -92,6 +94,8 @@ async function selectDept(dept: Department) {
   try {
     const res = await getDepartmentDoctors(dept.id)
     doctors.value = res.data || []
+  } catch {
+    doctors.value = []
   } finally {
     doctorLoading.value = false
   }

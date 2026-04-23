@@ -246,6 +246,9 @@ async function loadMedicines() {
     const res = await getMedicineList(queryParams)
     medicines.value = res.data || []
     total.value = res.total || 0
+  } catch {
+    medicines.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }

@@ -18,6 +18,9 @@ export const useAppointmentStore = defineStore('appointment', () => {
       const res = await appointmentApi.getAppointmentList(params)
       appointments.value = res.data || []
       total.value = res.total || 0
+    } catch {
+      appointments.value = []
+      total.value = 0
     } finally {
       loading.value = false
     }

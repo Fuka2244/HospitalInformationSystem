@@ -318,6 +318,9 @@ async function loadReports() {
     const res = await getReportList(queryParams)
     reports.value = res.data || []
     total.value = res.total || 0
+  } catch {
+    reports.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }

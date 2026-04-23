@@ -317,6 +317,9 @@ async function loadBillings() {
 
     billings.value = listRes.data || []
     total.value = listRes.total || 0
+  } catch {
+    billings.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }

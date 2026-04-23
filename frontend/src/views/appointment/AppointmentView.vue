@@ -616,11 +616,15 @@ async function loadList() {
 }
 
 onMounted(async () => {
-  const deptRes = await getDepartmentList()
-  departments.value = deptRes.data || []
+  try {
+    const deptRes = await getDepartmentList()
+    departments.value = deptRes.data || []
+  } catch { /* 后端不可用 */ }
 
-  const doctorRes = await getDoctorList()
-  allDoctors.value = doctorRes.data || []
+  try {
+    const doctorRes = await getDoctorList()
+    allDoctors.value = doctorRes.data || []
+  } catch { /* 后端不可用 */ }
 
   loadList()
 })

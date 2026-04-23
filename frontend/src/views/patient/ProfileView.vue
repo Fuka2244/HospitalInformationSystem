@@ -13,7 +13,8 @@
           <template #header>
             <div class="card-head">
               <span>资料概览</span>
-              <el-tag effect="light" type="primary" size="small">已登录</el-tag>
+              <el-tag v-if="profile" effect="light" type="primary" size="small">已登录</el-tag>
+              <el-tag v-else effect="light" type="info" size="small">未登录</el-tag>
             </div>
           </template>
           <div v-loading="infoLoading">
@@ -200,6 +201,8 @@ async function loadProfile() {
     // 重新加载时重置身份证显示状态
     idCardRevealed.value = false
     fullIdCard.value = ''
+  } catch {
+    profile.value = null
   } finally {
     infoLoading.value = false
   }

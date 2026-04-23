@@ -143,11 +143,15 @@ function handleSearch() {
 }
 
 onMounted(async () => {
-  const deptRes = await getDepartmentList()
-  departments.value = deptRes.data || []
+  try {
+    const deptRes = await getDepartmentList()
+    departments.value = deptRes.data || []
+  } catch { /* 后端不可用 */ }
 
-  const doctorRes = await getDoctorList()
-  doctors.value = doctorRes.data || []
+  try {
+    const doctorRes = await getDoctorList()
+    doctors.value = doctorRes.data || []
+  } catch { /* 后端不可用 */ }
 
   loadRecords()
 })
