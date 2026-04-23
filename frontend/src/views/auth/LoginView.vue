@@ -1,72 +1,81 @@
-<template>
+﻿<template>
   <div class="login-container">
-    <el-card class="login-card" shadow="always">
-      <template #header>
-        <div class="card-header">
-          <h2>医院信息系统</h2>
-          <p>{{ isLogin ? '用户登录' : '用户注册' }}</p>
-        </div>
-      </template>
+    <header class="login-topbar">
+      <div class="topbar-brand">医院信息系统</div>
+      <div class="topbar-links">
+        <span class="topbar-badge">统一认证入口</span>
+      </div>
+    </header>
 
-      <!-- 登录表单 -->
-      <el-form v-if="isLogin" ref="loginFormRef" :model="loginForm" :rules="loginRules" label-width="80px">
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="loginForm.phone" placeholder="请输入手机号" maxlength="11" />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" show-password />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :loading="loading" style="width: 100%" @click="handleLogin">登 录</el-button>
-        </el-form-item>
-        <el-form-item>
-          <div class="link-row">
-            <el-link type="primary" @click="isLogin = false">没有账号？去注册</el-link>
-            <el-link type="warning" @click="showForget = true">忘记密码？</el-link>
-          </div>
-        </el-form-item>
-      </el-form>
+    <el-card class="login-card" shadow="never">
+      <div class="login-cap">
+        <h2>{{ isLogin ? '用户登录' : '用户注册' }}</h2>
+        <p>{{ isLogin ? '欢迎回来，登录后继续使用医疗服务' : '请完善信息完成账号注册' }}</p>
+      </div>
 
-      <!-- 注册表单 -->
-      <el-form v-else ref="registerFormRef" :model="registerForm" :rules="registerRules" label-width="100px">
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="registerForm.name" placeholder="请输入真实姓名" />
-        </el-form-item>
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="registerForm.username" placeholder="请输入用户名" />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="registerForm.password" type="password" placeholder="请输入密码" show-password />
-        </el-form-item>
-        <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码" show-password />
-        </el-form-item>
-        <el-form-item label="性别" prop="gender">
-          <el-radio-group v-model="registerForm.gender">
-            <el-radio value="男">男</el-radio>
-            <el-radio value="女">女</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="年龄" prop="age">
-          <el-input-number v-model="registerForm.age" :min="0" :max="150" />
-        </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="registerForm.phone" placeholder="请输入手机号" maxlength="11" />
-        </el-form-item>
-        <el-form-item label="地址" prop="address">
-          <el-input v-model="registerForm.address" placeholder="请输入地址" />
-        </el-form-item>
-        <el-form-item label="身份证号" prop="idCard">
-          <el-input v-model="registerForm.idCard" placeholder="请输入身份证号" maxlength="18" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :loading="loading" style="width: 100%" @click="handleRegister">注 册</el-button>
-        </el-form-item>
-        <el-form-item>
-          <el-link type="primary" @click="isLogin = true">已有账号？去登录</el-link>
-        </el-form-item>
-      </el-form>
+      <div class="card-content">
+        <!-- 登录表单 -->
+        <el-form v-if="isLogin" class="login-form" ref="loginFormRef" :model="loginForm" :rules="loginRules" label-width="0">
+          <el-form-item label="手机号" prop="phone">
+            <el-input v-model="loginForm.phone" placeholder="请输入手机号" maxlength="11" />
+          </el-form-item>
+          <el-form-item label="密码" prop="password">
+            <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" show-password />
+          </el-form-item>
+          <el-form-item>
+            <el-button class="submit-btn" type="primary" :loading="loading" @click="handleLogin">登 录</el-button>
+          </el-form-item>
+          <el-form-item>
+            <div class="link-row">
+              <el-link type="primary" @click="isLogin = false">没有账号？去注册</el-link>
+              <el-link type="warning" @click="showForget = true">忘记密码？</el-link>
+            </div>
+          </el-form-item>
+        </el-form>
+
+        <!-- 注册表单 -->
+        <el-form v-else class="register-form" ref="registerFormRef" :model="registerForm" :rules="registerRules" label-width="88px">
+          <el-form-item label="姓名" prop="name">
+            <el-input v-model="registerForm.name" placeholder="请输入真实姓名" />
+          </el-form-item>
+          <el-form-item label="用户名" prop="username">
+            <el-input v-model="registerForm.username" placeholder="请输入用户名" />
+          </el-form-item>
+          <el-form-item label="密码" prop="password">
+            <el-input v-model="registerForm.password" type="password" placeholder="请输入密码" show-password />
+          </el-form-item>
+          <el-form-item label="确认密码" prop="confirmPassword">
+            <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码" show-password />
+          </el-form-item>
+          <el-form-item label="性别" prop="gender">
+            <el-radio-group v-model="registerForm.gender">
+              <el-radio value="男">男</el-radio>
+              <el-radio value="女">女</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="年龄" prop="age">
+            <el-input-number v-model="registerForm.age" :min="0" :max="150" />
+          </el-form-item>
+          <el-form-item label="手机号" prop="phone">
+            <el-input v-model="registerForm.phone" placeholder="请输入手机号" maxlength="11" />
+          </el-form-item>
+          <el-form-item label="地址" prop="address">
+            <el-input v-model="registerForm.address" placeholder="请输入地址" />
+          </el-form-item>
+          <el-form-item label="身份证号" prop="idCard">
+            <el-input v-model="registerForm.idCard" placeholder="请输入身份证号" maxlength="18" />
+          </el-form-item>
+          <el-form-item>
+            <el-button class="submit-btn" type="primary" :loading="loading" @click="handleRegister">注 册</el-button>
+          </el-form-item>
+          <el-form-item>
+            <el-link type="primary" @click="isLogin = true">已有账号？去登录</el-link>
+          </el-form-item>
+        </el-form>
+      </div>
     </el-card>
+
+    <footer class="login-footer">© 2026 HIS · 医院信息系统</footer>
 
     <!-- 忘记密码对话框 -->
     <el-dialog v-model="showForget" title="忘记密码" width="460px">
@@ -262,58 +271,234 @@ async function handleForget() {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  padding: 84px 16px 56px;
   background:
-    radial-gradient(900px 450px at 20% 0%, rgba(47, 128, 237, 0.45), transparent 60%),
-    radial-gradient(900px 450px at 100% 20%, rgba(120, 87, 255, 0.40), transparent 60%),
-    linear-gradient(135deg, #0b1220 0%, #111b34 50%, #0f172a 100%);
+    linear-gradient(165deg, rgba(248, 252, 255, 0.78), rgba(238, 244, 255, 0.72)),
+    radial-gradient(900px 520px at 16% -10%, rgba(47, 128, 237, 0.18), transparent 66%),
+    radial-gradient(900px 500px at 94% 8%, rgba(106, 167, 255, 0.14), transparent 66%),
+    url("https://images.unsplash.com/photo-1741114056870-4f313bcf2786?auto=format&fit=crop&fm=jpg&q=80&w=2200") center/cover no-repeat;
   position: relative;
   overflow: hidden;
 }
+
 .login-container::before,
-.login-container::after{
-  content:"";
-  position:absolute;
-  width: 520px;
-  height: 520px;
+.login-container::after {
+  content: "";
+  position: absolute;
+  width: 560px;
+  height: 560px;
   border-radius: 50%;
-  filter: blur(0px);
-  opacity: 0.55;
-  pointer-events:none;
-  transform: translate3d(0,0,0);
+  opacity: 0.26;
+  pointer-events: none;
+  filter: blur(12px);
 }
-.login-container::before{
-  left: -180px;
-  top: -200px;
-  background: radial-gradient(circle at 30% 30%, rgba(79, 172, 254, 1), rgba(0, 242, 254, 0) 62%);
+
+.login-container::before {
+  left: -210px;
+  top: -240px;
+  background: radial-gradient(circle at 35% 35%, rgba(47, 128, 237, 0.7), rgba(47, 128, 237, 0) 66%);
 }
-.login-container::after{
-  right: -220px;
-  bottom: -220px;
-  background: radial-gradient(circle at 30% 30%, rgba(250, 112, 154, 1), rgba(254, 225, 64, 0) 62%);
+
+.login-container::after {
+  right: -250px;
+  bottom: -280px;
+  background: radial-gradient(circle at 30% 30%, rgba(106, 167, 255, 0.7), rgba(106, 167, 255, 0) 66%);
 }
+
+.login-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 62px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+}
+
+.topbar-brand {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f3b67;
+}
+
+.topbar-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(47, 128, 237, 0.10);
+  color: #2f80ed;
+  border: 1px solid rgba(47, 128, 237, 0.20);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .login-card {
-  width: 480px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.22);
-  background: rgba(255,255,255,0.86);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.35);
+  width: min(430px, 92vw);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.66) 100%
+  );
+  backdrop-filter: saturate(175%) blur(20px);
+  box-shadow:
+    0 34px 78px rgba(15, 23, 42, 0.18),
+    0 12px 26px rgba(47, 128, 237, 0.12);
+  position: relative;
+  padding-top: 62px;
+  overflow: visible;
 }
-.card-header {
-  text-align: center;
+
+.login-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 18px;
+  pointer-events: none;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.58) 0%,
+    rgba(255, 255, 255, 0.08) 30%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
 }
-.card-header h2 {
-  margin: 0 0 4px;
-  color: #303133;
+
+.login-cap {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 0;
+  transform: translateY(-40%);
+  min-height: 88px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #3d8ff4, #2f80ed 58%, #2a6ed1);
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(47, 128, 237, 0.28);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
-.card-header p {
+
+.login-cap h2 {
   margin: 0;
-  color: #909399;
-  font-size: 14px;
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: 0.3px;
 }
+
+.login-cap p {
+  margin: 8px 0 0;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.card-content {
+  padding: 16px 22px 22px;
+  position: relative;
+  z-index: 1;
+}
+
+.login-form :deep(.el-form-item),
+.register-form :deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+.login-form :deep(.el-form-item__label) {
+  display: none;
+}
+
+.login-form :deep(.el-form-item__content) {
+  margin-left: 0 !important;
+}
+
+.login-form :deep(.el-input__wrapper),
+.register-form :deep(.el-input__wrapper) {
+  border-radius: 11px;
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.30) inset;
+  background: rgba(255, 255, 255, 0.84);
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.login-form :deep(.el-input__wrapper.is-focus),
+.register-form :deep(.el-input__wrapper.is-focus) {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 0 0 1.5px rgba(47, 128, 237, 0.42) inset;
+}
+
+.login-form :deep(.el-input__wrapper) {
+  height: 48px;
+}
+
+.register-form :deep(.el-input-number) {
+  width: 100%;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 11px;
+  border: none;
+  font-weight: 700;
+  background: linear-gradient(135deg, #3d8ff4, #2f80ed 58%, #2a6ed1);
+  box-shadow: 0 10px 22px rgba(47, 128, 237, 0.28);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+.submit-btn:hover {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(47, 128, 237, 0.34);
+}
+
 .link-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   width: 100%;
+}
+
+.login-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  text-align: center;
+  color: rgba(31, 59, 103, 0.64);
+  font-size: 12px;
+  z-index: 2;
+}
+
+@media (max-width: 768px) {
+  .login-topbar {
+    padding: 0 14px;
+  }
+
+  .topbar-links {
+    display: none;
+  }
+
+  .login-cap h2 {
+    font-size: 24px;
+  }
+
+  .login-cap p {
+    font-size: 12px;
+  }
 }
 </style>
