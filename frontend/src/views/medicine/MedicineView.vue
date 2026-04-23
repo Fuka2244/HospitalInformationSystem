@@ -62,17 +62,50 @@
         </el-card>
       </el-col>
 
-      <!-- AI药品推荐 -->
+      <!-- AI药品推荐对话 -->
       <el-col :xs="24" :lg="8" class="fill-col">
         <el-card class="fill-card ai-card" shadow="hover">
           <template #header>
-            <span>AI 药品推荐</span>
+            <div class="card-head">
+              <span>AI 药品推荐</span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <el-tag v-if="chatCompleted" effect="light" type="success" size="small">推荐完成</el-tag>
+                <el-tag v-else effect="light" type="warning" size="small">仅供参考</el-tag>
+                <el-button v-if="chatMessages.length > 1" link type="info" size="small" @click="resetChat">重新开始</el-button>
+              </div>
+            </div>
           </template>
-          <el-input v-model="aiSymptom" type="textarea" :rows="3" placeholder="请描述您的症状，如：头痛发热" />
-          <el-button type="primary" :loading="aiLoading" style="width: 100%; margin-top: 12px" @click="handleAiRecommend">
-            AI 推荐药品
-          </el-button>
-          <div v-if="aiResults.length > 0" class="ai-results">
+
+          <!-- 聊天消息列表 -->
+          <div class="chat-messages" ref="chatMessagesRef">
+            <div v-for="(msg, idx) in chatMessages" :key="idx" class="chat-message" :class="msg.role">
+              <div class="chat-avatar">
+                <el-avatar v-if="msg.role === 'assistant'" :size="32" style="background: linear-gradient(135deg, #2f80ed, #7857ff);">
+                  AI
+                </el-avatar>
+                <el-avatar v-else :size="32" style="background: #67c23a;">
+                  我
+                </el-avatar>
+              </div>
+              <div class="chat-bubble">
+                <div class="chat-content">{{ msg.content }}</div>
+              </div>
+            </div>
+            <!-- AI正在输入提示 -->
+            <div v-if="chatLoading" class="chat-message assistant">
+              <div class="chat-avatar">
+                <el-avatar :size="32" style="background: linear-gradient(135deg, #2f80ed, #7857ff);">AI</el-avatar>
+              </div>
+              <div class="chat-bubble">
+                <div class="chat-typing">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 推荐结果区域 -->
+          <div v-if="aiResults.length > 0 && chatCompleted" class="ai-result">
             <el-divider>推荐结果</el-divider>
             <el-alert type="warning" :closable="false" style="margin-bottom: 12px">
               AI推荐仅供参考，请遵医嘱用药
@@ -85,6 +118,22 @@
               <p><strong>用法用量：</strong>{{ item.dosage }}</p>
               <p><strong>注意事项：</strong>{{ item.precautions }}</p>
             </el-card>
+          </div>
+
+          <!-- 输入框 -->
+          <div class="chat-input-area">
+            <el-input
+              v-model="chatInput"
+              placeholder="请描述您的症状或回答问题..."
+              :disabled="chatLoading || chatCompleted"
+              @keyup.enter="sendChatMessage"
+            >
+              <template #append>
+                <el-button :loading="chatLoading" :disabled="!chatInput.trim() || chatCompleted" @click="sendChatMessage">
+                  发送
+                </el-button>
+              </template>
+            </el-input>
           </div>
         </el-card>
       </el-col>
@@ -115,10 +164,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getMedicineList, getMedicineDetail, aiRecommendMedicine } from '@/api/medicine'
-import type { Medicine, MedicineListParams, MedicineRecommendation } from '@/types'
+import { getMedicineList, getMedicineDetail, aiMedicineChat } from '@/api/medicine'
+import type { Medicine, MedicineListParams, MedicineRecommendation, ChatMessageDto } from '@/types'
 
 const loading = ref(false)
 const medicines = ref<Medicine[]>([])
@@ -126,11 +175,70 @@ const total = ref(0)
 const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref<Medicine | null>(null)
-const aiSymptom = ref('')
-const aiLoading = ref(false)
+
+// 聊天相关状态
+const chatMessages = ref<ChatMessageDto[]>([
+  { role: 'assistant', content: '您好！我是AI药学助手，请问您今天哪里不舒服？请描述一下您的症状。' }
+])
+const chatInput = ref('')
+const chatLoading = ref(false)
+const chatCompleted = ref(false)
+const chatMessagesRef = ref<HTMLElement | null>(null)
 const aiResults = ref<MedicineRecommendation[]>([])
 
 const queryParams = reactive<MedicineListParams>({ page: 1, size: 10 })
+
+// 滚动聊天到底部
+async function scrollToBottom() {
+  await nextTick()
+  if (chatMessagesRef.value) {
+    chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
+  }
+}
+
+// 发送聊天消息
+async function sendChatMessage() {
+  const msg = chatInput.value.trim()
+  if (!msg || chatLoading.value || chatCompleted.value) return
+
+  chatMessages.value.push({ role: 'user', content: msg })
+  chatInput.value = ''
+  chatLoading.value = true
+  scrollToBottom()
+
+  try {
+    const history = chatMessages.value.slice(0, -1)
+    const res = await aiMedicineChat({ message: msg, history })
+
+    chatMessages.value.push({ role: 'assistant', content: res.data.reply })
+    scrollToBottom()
+
+    if (res.data.completed) {
+      chatCompleted.value = true
+      aiResults.value = res.data.recommendations || []
+      if (aiResults.value.length === 0) {
+        ElMessage.info('暂未找到合适的推荐药品')
+      }
+    }
+  } catch (error) {
+    ElMessage.error('AI药学服务暂时不可用，请稍后重试')
+    chatMessages.value.push({ role: 'assistant', content: '抱歉，我暂时无法响应，请稍后再试。' })
+    scrollToBottom()
+  } finally {
+    chatLoading.value = false
+  }
+}
+
+// 重置聊天
+function resetChat() {
+  chatMessages.value = [
+    { role: 'assistant', content: '您好！我是AI药学助手，请问您今天哪里不舒服？请描述一下您的症状。' }
+  ]
+  chatInput.value = ''
+  chatLoading.value = false
+  chatCompleted.value = false
+  aiResults.value = []
+}
 
 async function loadMedicines() {
   loading.value = true
@@ -151,23 +259,6 @@ async function showDetail(id: number) {
     detail.value = res.data
   } finally {
     detailLoading.value = false
-  }
-}
-
-async function handleAiRecommend() {
-  if (!aiSymptom.value.trim()) {
-    ElMessage.warning('请描述您的症状')
-    return
-  }
-  aiLoading.value = true
-  try {
-    const res = await aiRecommendMedicine({ symptom: aiSymptom.value })
-    aiResults.value = res.data || []
-    if (aiResults.value.length === 0) {
-      ElMessage.info('暂未找到合适的推荐药品')
-    }
-  } finally {
-    aiLoading.value = false
   }
 }
 
@@ -200,17 +291,15 @@ onMounted(loadMedicines)
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: none;
 }
-.ai-results{
-  margin-top: 4px;
-  overflow: auto;
-  padding-right: 4px;
+
+.card-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
 }
-.ai-results p { margin: 4px 0; font-size: 13px; color: #606266; }
-.ai-item-card{
-  border-radius: 16px;
-  background: rgba(255,255,255,0.72);
-}
-:deep(.ai-item-card .el-card__header){
+
+.ai-card :deep(.el-card__header){
   background: linear-gradient(180deg, rgba(47, 128, 237, 0.10), rgba(255,255,255,0));
 }
 
@@ -229,7 +318,123 @@ onMounted(loadMedicines)
   display:flex;
   flex-direction: column;
 }
-.ai-card .ai-results{
-  flex: 1;
+.ai-card .ai-result{
+  margin-top: 12px;
+  flex-shrink: 0;
+  overflow: auto;
+  padding-right: 4px;
 }
+
+/* 聊天界面样式 */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 200px;
+  max-height: 420px;
+}
+
+.chat-message {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.chat-message.user {
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  flex-shrink: 0;
+}
+
+.chat-bubble {
+  max-width: 80%;
+}
+
+.chat-content {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.chat-message.assistant .chat-content {
+  background: rgba(47, 128, 237, 0.08);
+  color: #303133;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-message.user .chat-content {
+  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+/* AI正在输入动画 */
+.chat-typing {
+  display: flex;
+  gap: 5px;
+  padding: 10px 14px;
+  background: rgba(47, 128, 237, 0.08);
+  border-radius: 14px;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-typing span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(47, 128, 237, 0.4);
+  animation: typing 1.4s infinite both;
+}
+
+.chat-typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.chat-typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 输入框区域 */
+.chat-input-area {
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+.chat-input-area :deep(.el-input-group__append) {
+  padding: 0;
+}
+
+.chat-input-area :deep(.el-input-group__append .el-button) {
+  margin: 0;
+  border: none;
+  border-radius: 0 4px 4px 0;
+}
+
+.ai-item-card{
+  border-radius: 16px;
+  background: rgba(255,255,255,0.72);
+}
+:deep(.ai-item-card .el-card__header){
+  background: linear-gradient(180deg, rgba(47, 128, 237, 0.10), rgba(255,255,255,0));
+}
+.ai-item-card p { margin: 4px 0; font-size: 13px; color: #606266; }
 </style>

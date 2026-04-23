@@ -4,6 +4,8 @@ import type {
   MedicineListParams,
   AiMedicineRecommendDto,
   MedicineRecommendation,
+  MedicineChatResponse,
+  ChatMessageDto,
 } from '@/types'
 
 /** 药品列表 */
@@ -19,4 +21,9 @@ export function getMedicineDetail(id: number) {
 /** AI药品推荐 */
 export function aiRecommendMedicine(data: AiMedicineRecommendDto) {
   return post<MedicineRecommendation[]>('/medicine/ai-recommend', data)
+}
+
+/** AI多轮对话式药品推荐 */
+export function aiMedicineChat(data: { message: string; history: ChatMessageDto[] }) {
+  return post<MedicineChatResponse>('/medicine/ai-chat', data)
 }

@@ -268,6 +268,20 @@ export interface MedicineRecommendation {
   precautions: string
 }
 
+/** AI药品推荐对话响应 */
+export interface MedicineChatResponse {
+  reply: string
+  completed: boolean
+  recommendations?: MedicineRecommendation[]
+}
+
+/** AI费用解释对话响应 */
+export interface BillingChatResponse {
+  reply: string
+  completed: boolean
+  explanation?: BillingExplanation
+}
+
 // ==================== 费用模块 ====================
 
 /** 费用列表查询参数 */

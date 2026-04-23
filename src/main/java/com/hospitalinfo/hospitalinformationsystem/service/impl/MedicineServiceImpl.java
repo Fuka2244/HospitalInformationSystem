@@ -3,6 +3,8 @@ package com.hospitalinfo.hospitalinformationsystem.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hospitalinfo.hospitalinformationsystem.ai.AiMedicineService;
+import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
+import com.hospitalinfo.hospitalinformationsystem.dto.MedicineChatResponse;
 import com.hospitalinfo.hospitalinformationsystem.dto.MedicineRecommendation;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
 import com.hospitalinfo.hospitalinformationsystem.entity.Medicine;
@@ -52,5 +54,11 @@ public class MedicineServiceImpl implements IMedicineService {
     public Result aiRecommendMedicine(String symptom) {
         List<MedicineRecommendation> recommendations = aiMedicineService.recommendBySymptom(symptom);
         return Result.ok(recommendations);
+    }
+
+    @Override
+    public Result aiMedicineChat(String message, List<ChatMessageDto> history) {
+        MedicineChatResponse chatResponse = aiMedicineService.medicineChat(message, history);
+        return Result.ok(chatResponse);
     }
 }

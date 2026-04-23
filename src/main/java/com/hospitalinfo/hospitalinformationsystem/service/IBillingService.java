@@ -2,7 +2,10 @@ package com.hospitalinfo.hospitalinformationsystem.service;
 
 import com.hospitalinfo.hospitalinformationsystem.dto.BillingExplanation;
 import com.hospitalinfo.hospitalinformationsystem.dto.BillingQueryDto;
+import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
+
+import java.util.List;
 
 /**
  * 医疗费用查询服务接口
@@ -17,4 +20,7 @@ public interface IBillingService {
 
     /** AI费用解释 */
     Result aiExplainBilling(String patientId, String question, String startDate, String endDate);
+
+    /** AI多轮对话式费用解释 */
+    Result aiBillingChat(String patientId, String message, List<ChatMessageDto> history, String startDate, String endDate);
 }

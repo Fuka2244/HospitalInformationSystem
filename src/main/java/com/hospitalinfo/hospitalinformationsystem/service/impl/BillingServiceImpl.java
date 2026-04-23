@@ -3,8 +3,10 @@ package com.hospitalinfo.hospitalinformationsystem.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hospitalinfo.hospitalinformationsystem.ai.AiBillingService;
+import com.hospitalinfo.hospitalinformationsystem.dto.BillingChatResponse;
 import com.hospitalinfo.hospitalinformationsystem.dto.BillingExplanation;
 import com.hospitalinfo.hospitalinformationsystem.dto.BillingQueryDto;
+import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
 import com.hospitalinfo.hospitalinformationsystem.entity.Billing;
 import com.hospitalinfo.hospitalinformationsystem.entity.Patient;
@@ -73,6 +75,30 @@ public class BillingServiceImpl implements IBillingService {
 
     @Override
     public Result aiExplainBilling(String patientId, String question, String startDate, String endDate) {
+        List<Billing> billings = getBillingsByDateRange(patientId, startDate, endDate);
+        if (billings.isEmpty()) {
+            return Result.fail("该时间段内无费用记录");
+        }
+
+        BillingExplanation explanation = aiBillingService.explainBilling(billings, question);
+        return Result.ok(explanation);
+    }
+
+    @Override
+    public Result aiBillingChat(String patientId, String message, List<ChatMessageDto> history, String startDate, String endDate) {
+        List<Billing> billings = getBillingsByDateRange(patientId, startDate, endDate);
+        if (billings.isEmpty()) {
+            return Result.fail("该时间段内无费用记录，请先选择有费用的时间范围");
+        }
+
+        BillingChatResponse chatResponse = aiBillingService.billingChat(message, history, billings);
+        return Result.ok(chatResponse);
+    }
+
+    /**
+     * 按日期范围查询费用记录
+     */
+    private List<Billing> getBillingsByDateRange(String patientId, String startDate, String endDate) {
         QueryWrapper<Billing> wrapper = new QueryWrapper<Billing>()
                 .eq("patient_id", patientId);
 
@@ -83,12 +109,6 @@ public class BillingServiceImpl implements IBillingService {
             wrapper.le("create_time", endDate + " 23:59:59");
         }
 
-        List<Billing> billings = billingMapper.selectList(wrapper);
-        if (billings.isEmpty()) {
-            return Result.fail("该时间段内无费用记录");
-        }
-
-        BillingExplanation explanation = aiBillingService.explainBilling(billings, question);
-        return Result.ok(explanation);
+        return billingMapper.selectList(wrapper);
     }
 }

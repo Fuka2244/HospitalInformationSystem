@@ -1,5 +1,6 @@
 package com.hospitalinfo.hospitalinformationsystem.service;
 
+import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.MedicineRecommendation;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
 
@@ -18,4 +19,7 @@ public interface IMedicineService {
 
     /** AI药物推荐 */
     Result aiRecommendMedicine(String symptom);
+
+    /** AI多轮对话式药物推荐 */
+    Result aiMedicineChat(String message, List<ChatMessageDto> history);
 }

@@ -4,6 +4,8 @@ import type {
   BillingQueryParams,
   AiExplainDto,
   BillingExplanation,
+  BillingChatResponse,
+  ChatMessageDto,
 } from '@/types'
 
 /** 当前用户费用列表 */
@@ -24,4 +26,9 @@ export function getBillingDetail(id: number) {
 /** AI费用解释 */
 export function aiExplainBilling(data: AiExplainDto) {
   return post<BillingExplanation>('/billing/ai-explain', data)
+}
+
+/** AI多轮对话式费用解释 */
+export function aiBillingChat(data: { message: string; startDate?: string; endDate?: string; history: ChatMessageDto[] }) {
+  return post<BillingChatResponse>('/billing/ai-chat', data)
 }
