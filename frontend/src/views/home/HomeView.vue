@@ -1,1477 +1,816 @@
 <template>
-  <div class="portal-home">
-    <!-- ===== Hero Header ===== -->
-    <section class="hero-header">
-      <div class="hero-overlay"></div>
-      <div class="hero-particles">
-        <span v-for="i in 6" :key="i" class="particle" :style="particleStyle(i)"></span>
+  <div class="landed-page" :class="{ 'is-loaded': loaded }">
+    <section id="banner" :ref="bindSectionRef('banner')" class="hero-panel">
+      <img :src="heroImage" alt="项目名称" class="panel-image parallax-layer" :style="parallaxStyle('banner', 1.08)">
+      <div class="panel-overlay" />
+      <div class="content hero-content">
+        <header>
+          <div class="eyebrow" v-fade-in="{ distance: 18, delay: 80 }">Hospital Information System</div>
+          <h2 v-fade-in="{ distance: 22, delay: 200 }">医院信息系统</h2>
+          <p v-fade-in="{ distance: 18, delay: 340 }">面向患者就医全流程的综合信息平台</p>
+        </header>
       </div>
-      <div class="hero-content">
-        <div class="hero-badge">智慧医疗平台</div>
-        <h1 class="hero-title">专业医疗团队 · 智慧健康服务</h1>
-        <p class="hero-subtitle">
-          以患者为中心，提供便捷的在线挂号、AI智能问诊、报告查询、费用管理等一站式智慧医疗服务
+      <button class="goto-next" type="button" @click="scrollTo('one')">Next</button>
+    </section>
+
+    <section id="one" :ref="bindSectionRef('one')" class="spotlight style1 bottom" style="background-color: #d4f4dd;">
+      <img :src="backgroundImage" alt="项目背景" class="panel-image parallax-layer" :style="parallaxStyle('one', 1.1)">
+      <div class="panel-overlay soft" />
+      <div class="content reveal">
+        <div class="container">
+          <div class="row triple">
+            <div class="column reveal stagger-1 slide-in-right" v-fade-in="{ distance: 12, delay: 80 }">
+              <header>
+                <h2>项目背景</h2>
+                <p>聚焦医院业务数字化、患者服务线上化和信息查询便捷化。</p>
+              </header>
+            </div>
+            <div class="column reveal stagger-2 slide-in-left" v-fade-in="{ distance: 12, delay: 160 }">
+              <p>
+                传统就医流程中，预约、问诊、报告、缴费和信息查询通常分散在多个系统或线下窗口，
+                用户需要反复切换入口，体验割裂，医院的管理效率也难以提升。
+              </p>
+            </div>
+            <div class="column reveal stagger-3 slide-in-right" v-fade-in="{ distance: 12, delay: 240 }">
+              <p>
+                本项目以患者视角重构就医链路，把常见功能收敛到统一平台中，
+                既服务患者，也为医院的信息管理和后续扩展提供稳定基础。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="goto-next" type="button" @click="scrollTo('two')">Next</button>
+    </section>
+
+    <section id="two" :ref="bindSectionRef('two')" class="spotlight style2 right" style="background-color: #d4f4dd;">
+      <img :src="techIntroImage" alt="项目技术介绍" class="panel-image parallax-layer" :style="parallaxStyle('two', 1.1)">
+      <div class="panel-overlay" />
+      <div class="content single reveal">
+        <header>
+          <h2>项目技术与简介</h2>
+          <p>基于前后端分离架构，覆盖患者端核心业务场景。</p>
+        </header>
+        <p>
+          前端使用 Vue 3、TypeScript、Vite、Element Plus 构建交互界面，
+          后端围绕医院信息业务设计接口与数据流程，实现预约挂号、病历就诊、报告查询、
+          费用查询、药品查询和科室信息等模块。
         </p>
-        <div class="hero-actions">
-          <el-button type="primary" size="large" round class="hero-btn-primary" @click="go('/appointment')">
-            <el-icon><Calendar /></el-icon>
-            立即预约挂号
-          </el-button>
-          <el-button size="large" round class="hero-btn-ghost" @click="go('/department')">
-            <el-icon><OfficeBuilding /></el-icon>
-            查看科室医生
-          </el-button>
-        </div>
+        <ul class="actions">
+          <li>
+            <el-button round @click="go('/project-tech')">查看项目技术页面</el-button>
+          </li>
+        </ul>
       </div>
-      <div class="hero-scroll-hint">
-        <span class="scroll-arrow"></span>
-      </div>
+      <button class="goto-next" type="button" @click="scrollTo('three')">Next</button>
     </section>
 
-    <!-- ===== Main Glass Card Container ===== -->
-    <div class="main-glass-card">
+    <section id="three" :ref="bindSectionRef('three')" class="spotlight style3 left" style="background-color: #d4f4dd;">
+      <img :src="businessImage" alt="未来商业推广" class="panel-image parallax-layer" :style="parallaxStyle('three', 1.1)">
+      <div class="panel-overlay" />
+      <div class="content single reveal">
+        <header>
+          <h2>未来商业推广</h2>
+          <p>从系统原型逐步延伸到更完整的医疗数字化服务能力。</p>
+        </header>
+        <p>
+          后续可以面向社区医院、体检中心和区域医疗服务机构推广，
+          以模块化方式输出预约、报告、缴费和基础患者管理能力，
+          结合数据分析、消息通知和运营服务，形成长期可持续的产品方案。
+        </p>
+        <ul class="actions">
+          <li>
+            <el-button round @click="go('/about')">查看系统概况</el-button>
+          </li>
+        </ul>
+      </div>
+      <button class="goto-next" type="button" @click="scrollTo('four')">Next</button>
+    </section>
 
-      <!-- ===== Stats Counter Section ===== -->
-      <section class="stats-section">
-        <div class="stats-grid">
-          <div v-for="stat in stats" :key="stat.label" class="stat-item">
-            <div class="stat-icon" :class="stat.color">
-              <el-icon :size="28"><component :is="stat.icon" /></el-icon>
-            </div>
-            <div class="stat-info">
-              <h3 class="stat-title">{{ stat.label }}</h3>
-              <p class="stat-desc">{{ stat.desc }}</p>
-            </div>
-            <div class="stat-number">
-              <span class="counter-value" :data-target="stat.value">{{ stat.display }}</span>
-              <span class="counter-suffix">{{ stat.suffix }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== 3D Flip Card + Info Grid ===== -->
-      <section class="flip-info-section">
-        <div class="flip-info-grid">
-          <!-- Left: 3D Flip Card -->
-          <div class="flip-card-wrapper">
-            <div class="flip-card" @mouseenter="flipped = true" @mouseleave="flipped = false" :class="{ flipped }">
-              <div class="flip-card-front">
-                <div class="flip-front-icon">
-                  <el-icon :size="48"><FirstAidKit /></el-icon>
-                </div>
-                <h3>智慧医疗系统</h3>
-                <p>悬停翻转查看详情</p>
-                <div class="flip-hint">
-                  <el-icon><RefreshRight /></el-icon>
-                </div>
-              </div>
-              <div class="flip-card-back">
-                <h3>全方位健康管理</h3>
-                <ul class="flip-back-list">
-                  <li><el-icon><Check /></el-icon> 在线预约挂号</li>
-                  <li><el-icon><Check /></el-icon> AI智能推荐</li>
-                  <li><el-icon><Check /></el-icon> 报告实时查询</li>
-                  <li><el-icon><Check /></el-icon> 费用透明管理</li>
-                  <li><el-icon><Check /></el-icon> 药品信息查询</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: 2x2 Info Grid -->
-          <div class="info-grid">
-            <div v-for="info in infoCards" :key="info.title" class="info-card" @click="go(info.path)">
-              <div class="info-card-icon" :class="info.color">
-                <el-icon :size="24"><component :is="info.icon" /></el-icon>
-              </div>
-              <h4 class="info-card-title">{{ info.title }}</h4>
-              <p class="info-card-desc">{{ info.desc }}</p>
-              <span class="info-card-link">
-                了解更多 <el-icon><ArrowRight /></el-icon>
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== Showcase Section ===== -->
-      <section class="showcase-section">
-        <div class="section-header">
-          <h2 class="section-title">功能服务</h2>
-          <p class="section-desc">覆盖就医全流程，让您的健康之旅更加顺畅</p>
-        </div>
-        <div class="showcase-layout">
-          <!-- Left: Sticky Category Nav -->
-          <aside class="showcase-nav">
-            <nav>
-              <a
-                v-for="(cat, idx) in showcaseCategories"
-                :key="cat.key"
-                :class="{ active: activeCategory === cat.key }"
-                @click="activeCategory = cat.key"
-              >
-                <el-icon><component :is="cat.icon" /></el-icon>
-                {{ cat.label }}
-              </a>
-            </nav>
-          </aside>
-          <!-- Right: Card Grid -->
-          <div class="showcase-grid">
-            <div
-              v-for="item in filteredShowcaseItems"
-              :key="item.path"
-              class="showcase-card"
-              @click="go(item.path)"
+    <section id="four" class="wrapper style1 special fade-up">
+      <div class="container narrow reveal">
+        <header class="major">
+          <h2>核心服务模块</h2>
+          <p>保留首页原有的功能总览区，用于快速进入系统主要模块。</p>
+        </header>
+        <div class="box alt">
+          <div class="row feature-grid">
+            <section
+              v-for="(feature, index) in features"
+              :key="feature.title"
+              class="feature-item reveal"
+              :class="`stagger-${(index % 3) + 1}`"
+              v-fade-in="{ distance: 14, delay: (index * 80) }"
+              @click="go(feature.path)"
             >
-              <div class="showcase-card-img" :class="item.color">
-                <el-icon :size="36"><component :is="item.icon" /></el-icon>
-              </div>
-              <div class="showcase-card-body">
-                <h4>{{ item.title }}</h4>
-                <p>{{ item.desc }}</p>
-              </div>
-              <div class="showcase-card-footer">
-                <span class="showcase-card-tag" :class="item.tagColor">{{ item.tag }}</span>
-                <el-icon class="showcase-card-arrow"><ArrowRight /></el-icon>
-              </div>
-            </div>
+              <span class="icon major">
+                <el-icon><component :is="feature.icon" /></el-icon>
+              </span>
+              <h3>{{ feature.title }}</h3>
+              <p>{{ feature.desc }}</p>
+            </section>
           </div>
         </div>
-      </section>
-
-      <!-- ===== Page Links + Developer + Feature Cards ===== -->
-      <section class="features-section">
-        <div class="features-grid">
-          <!-- Page Links Card -->
-          <div class="feature-card feature-card--links">
-            <div class="feature-card-header">
-              <el-icon :size="24"><Link /></el-icon>
-              <h3>快捷导航</h3>
-            </div>
-            <div class="feature-links">
-              <a v-for="link in quickLinks" :key="link.path" @click="go(link.path)">
-                <el-icon><component :is="link.icon" /></el-icon>
-                {{ link.title }}
-                <el-icon class="link-arrow"><ArrowRight /></el-icon>
-              </a>
-            </div>
-          </div>
-
-          <!-- Developer Info Card -->
-          <div class="feature-card feature-card--dev">
-            <div class="feature-card-header">
-              <el-icon :size="24"><User /></el-icon>
-              <h3>开发团队</h3>
-            </div>
-            <div class="dev-info">
-              <div class="dev-avatar">
-                <el-icon :size="40"><Monitor /></el-icon>
-              </div>
-              <div class="dev-detail">
-                <h4>HIS 开发组</h4>
-                <p>基于 Spring Boot + Vue 3 构建的智慧医院信息管理系统</p>
-              </div>
-              <div class="dev-stats">
-                <div><strong>Vue 3</strong><span>前端框架</span></div>
-                <div><strong>Spring</strong><span>后端服务</span></div>
-                <div><strong>AI</strong><span>智能服务</span></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Feature Highlights Card -->
-          <div class="feature-card feature-card--highlights">
-            <div class="feature-card-header">
-              <el-icon :size="24"><Star /></el-icon>
-              <h3>核心特性</h3>
-            </div>
-            <div class="highlights-list">
-              <div v-for="h in highlights" :key="h.title" class="highlight-item" :class="h.color">
-                <el-icon :size="20"><component :is="h.icon" /></el-icon>
-                <div>
-                  <strong>{{ h.title }}</strong>
-                  <span>{{ h.desc }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== Three Column Gradient Feature Cards ===== -->
-      <section class="gradient-features">
-        <div class="gradient-features-grid">
-          <div v-for="(gf, idx) in gradientFeatures" :key="idx" class="gradient-feature-card" :style="{ background: gf.gradient }">
-            <div class="gradient-feature-icon">
-              <el-icon :size="32"><component :is="gf.icon" /></el-icon>
-            </div>
-            <h3>{{ gf.title }}</h3>
-            <p>{{ gf.desc }}</p>
-            <a class="gradient-feature-link" @click="go(gf.path)">
-              立即体验 <el-icon><ArrowRight /></el-icon>
-            </a>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <!-- ===== CTA Dark Gradient Section ===== -->
-    <section class="cta-section">
-      <div class="cta-wave">
-        <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
-          <path d="M0,64L48,69.3C96,75,192,85,288,80C384,75,480,53,576,48C672,43,768,53,864,64C960,75,1056,85,1152,80C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z" fill="rgba(255,255,255,0.06)"/>
-        </svg>
-      </div>
-      <div class="cta-content">
-        <h2>开启您的智慧医疗之旅</h2>
-        <p>一站式管理您的健康档案、预约挂号、检查报告，让医疗服务触手可及</p>
-        <el-button size="large" round class="cta-btn" @click="go('/appointment')">
-          <el-icon><Calendar /></el-icon>
-          立即开始使用
-        </el-button>
       </div>
     </section>
 
-    <!-- ===== System Introduction Section ===== -->
-    <section class="intro-section">
-      <div class="intro-wrapper">
-        <!-- Left: Horizontal Card (overlaps ~1/5 onto image) -->
-        <div class="intro-card">
-          <div class="intro-card-top">
-            <h2 class="intro-card-heading">系统介绍</h2>
-            <p class="intro-card-body">
-              本系统是一个基于 <strong>Spring Boot + Vue 3</strong> 前后端分离架构构建的智慧医院信息管理平台，
-              涵盖预约挂号、病历管理、医疗报告、费用查询、药品信息、科室导航等核心功能模块，
-              并集成 AI 智能推荐、AI 报告解读、AI 费用解释等前沿智能服务。
-            </p>
-          </div>
-          <el-button round class="intro-card-btn" @click="go('/about')">
-            <el-icon><ArrowRight /></el-icon>
-            查看更多
-          </el-button>
-        </div>
-        <!-- Right: Image -->
-        <div class="intro-image">
-          <img
-            src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80"
-            alt="智慧医疗"
-          />
+    <section id="five" class="wrapper style2 special fade">
+      <div class="container narrow reveal">
+        <header>
+          <h2>开始使用系统</h2>
+          <p>快来尝试一下。</p>
+        </header>
+        <div class="cta-buttons">
+          <el-button type="primary" size="large" class="cta-btn" @click="go('/login')">前往登录</el-button>
+          <el-button size="large" class="cta-btn light" @click="go('/login?mode=register')">前往注册</el-button>
         </div>
       </div>
     </section>
+
+    <footer id="footer" class="reveal">
+      <ul class="icons">
+        <li><span class="icon-circle"><el-icon><Calendar /></el-icon></span></li>
+        <li><span class="icon-circle"><el-icon><Document /></el-icon></span></li>
+        <li><span class="icon-circle"><el-icon><Notebook /></el-icon></span></li>
+        <li><span class="icon-circle"><el-icon><Wallet /></el-icon></span></li>
+        <li><span class="icon-circle"><el-icon><FirstAidKit /></el-icon></span></li>
+        <li><span class="icon-circle"><el-icon><OfficeBuilding /></el-icon></span></li>
+      </ul>
+      <ul class="copyright">
+        <li>© {{ currentYear }} 医院信息系统</li>
+        <li>Project landing page for HIS</li>
+      </ul>
+    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import type { ComponentPublicInstance } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  ArrowRight,
   Calendar,
-  Check,
   Document,
   FirstAidKit,
-  Link,
-  Monitor,
   Notebook,
   OfficeBuilding,
-  RefreshRight,
-  Star,
-  TrendCharts,
-  User,
   Wallet,
 } from '@element-plus/icons-vue'
+import heroImage from '../../../sucai/1.jpg'
+import backgroundImage from '../../../sucai/2.jpg'
+import techIntroImage from '../../../sucai/3.jpg'
+import businessImage from '../../../sucai/4.jpg'
 
 const router = useRouter()
+const currentYear = new Date().getFullYear()
+
+const features = [
+  { title: '预约挂号', desc: '按科室、医生与时间段快速完成预约。', path: '/appointment', icon: Calendar },
+  { title: '病历与就诊', desc: '查看个人就诊记录和历史病历。', path: '/records', icon: Document },
+  { title: '医疗报告', desc: '检验、检查结果统一查看。', path: '/report', icon: Notebook },
+  { title: '费用查询', desc: '费用明细更直观，减少重复确认。', path: '/billing', icon: Wallet },
+  { title: '药品查询', desc: '快速了解药品信息和基础说明。', path: '/medicine', icon: FirstAidKit },
+  { title: '科室信息', desc: '按需求定位合适的门诊与科室。', path: '/department', icon: OfficeBuilding },
+]
+
+const sectionElements = new Map<string, HTMLElement>()
+const parallaxOffsets = reactive<Record<string, number>>({
+  banner: 0,
+  one: 0,
+  two: 0,
+  three: 0,
+})
+
+let revealObserver: IntersectionObserver | null = null
+const loaded = ref(false)
+
 function go(path: string) {
   router.push(path)
 }
 
-// ===== Hero Particles =====
-function particleStyle(i: number) {
-  const size = 4 + Math.random() * 6
-  return {
-    width: `${size}px`,
-    height: `${size}px`,
-    left: `${10 + i * 15}%`,
-    top: `${20 + (i % 3) * 20}%`,
-    animationDelay: `${i * 0.8}s`,
-    animationDuration: `${3 + i * 0.5}s`,
+function scrollTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function bindSectionRef(id: keyof typeof parallaxOffsets) {
+  return (target: Element | ComponentPublicInstance | null) => {
+    if (target instanceof HTMLElement) {
+      sectionElements.set(id, target)
+    } else {
+      sectionElements.delete(id)
+    }
   }
 }
 
-// ===== Stats =====
-const stats = ref([
-  { label: '功能模块', desc: '覆盖就诊全流程服务', value: 6, display: 0, suffix: '+', icon: 'Grid', color: 'stat-blue' },
-  { label: 'AI 智能服务', desc: 'AI推荐·AI问诊·AI解读', value: 3, display: 0, suffix: '', icon: 'MagicStick', color: 'stat-violet' },
-  { label: '全天候在线', desc: '7×24小时智慧服务', value: 24, display: 0, suffix: 'h', icon: 'Timer', color: 'stat-cyan' },
-])
+function updateParallax() {
+  const viewportCenter = window.innerHeight / 2
 
-let animFrame: number | null = null
-function animateCounters() {
-  const duration = 2000
-  const start = performance.now()
-  function step(now: number) {
-    const elapsed = now - start
-    const progress = Math.min(elapsed / duration, 1)
-    const ease = 1 - Math.pow(1 - progress, 3)
-    stats.value.forEach(s => {
-      s.display = Math.round(s.value * ease)
-    })
-    if (progress < 1) {
-      animFrame = requestAnimationFrame(step)
-    }
-  }
-  animFrame = requestAnimationFrame(step)
+  sectionElements.forEach((element, key) => {
+    const rect = element.getBoundingClientRect()
+    const sectionCenter = rect.top + rect.height / 2
+    const distance = viewportCenter - sectionCenter
+    const offset = Math.max(-48, Math.min(48, distance * 0.08))
+    parallaxOffsets[key] = offset
+  })
+}
+
+function parallaxStyle(id: keyof typeof parallaxOffsets, scale = 1.08) {
+  return computed(() => ({
+    transform: `translate3d(0, ${parallaxOffsets[id]}px, 0) scale(${scale})`,
+  })).value
 }
 
 onMounted(() => {
-  setTimeout(animateCounters, 600)
-})
-onUnmounted(() => {
-  if (animFrame) cancelAnimationFrame(animFrame)
-})
+  // initial loading entrance
+  setTimeout(() => { loaded.value = true }, 60)
 
-// ===== 3D Flip =====
-const flipped = ref(false)
+  const revealTargets = document.querySelectorAll<HTMLElement>('.reveal')
+  revealObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible')
+          revealObserver?.unobserve(entry.target)
+        }
+      })
+    },
+    { threshold: 0.18, rootMargin: '0px 0px -10% 0px' },
+  )
 
-// ===== Info Grid =====
-const infoCards = [
-  { title: '预约挂号', desc: '智能推荐科室医生，灵活选择排班时段', icon: Calendar, color: 'info-blue', path: '/appointment' },
-  { title: '病历就诊', desc: '历史就诊记录与处方一键回溯查询', icon: Document, color: 'info-violet', path: '/records' },
-  { title: '医疗报告', desc: '检查检验结果实时查看，健康数据了然于心', icon: Notebook, color: 'info-cyan', path: '/report' },
-  { title: '费用查询', desc: '缴费记录与费用明细清晰透明', icon: Wallet, color: 'info-indigo', path: '/billing' },
-]
+  revealTargets.forEach((element) => revealObserver?.observe(element))
 
-// ===== Showcase =====
-const activeCategory = ref('all')
-const showcaseCategories = [
-  { key: 'all', label: '全部功能', icon: 'Grid' },
-  { key: 'core', label: '核心服务', icon: 'FirstAidKit' },
-  { key: 'ai', label: 'AI 功能', icon: 'MagicStick' },
-  { key: 'info', label: '信息查询', icon: 'Search' },
-]
-
-const showcaseItems = [
-  { path: '/appointment', title: '预约挂号', desc: '智能推荐科室医生，灵活选择排班时段', icon: Calendar, color: 'bg-blue', tag: '核心', tagColor: 'tag-blue', category: 'core' },
-  { path: '/records', title: '病历与就诊', desc: '历史就诊记录与处方一键回溯查询', icon: Document, color: 'bg-violet', tag: '核心', tagColor: 'tag-violet', category: 'core' },
-  { path: '/report', title: '医疗报告', desc: 'AI解读检查检验结果，健康数据了然于心', icon: Notebook, color: 'bg-cyan', tag: 'AI', tagColor: 'tag-cyan', category: 'ai' },
-  { path: '/billing', title: '费用查询', desc: 'AI费用解释，缴费记录与费用明细清晰透明', icon: Wallet, color: 'bg-indigo', tag: 'AI', tagColor: 'tag-indigo', category: 'ai' },
-  { path: '/medicine', title: '药品查询', desc: 'AI药品推荐，药品信息与用法用量查询', icon: FirstAidKit, color: 'bg-green', tag: 'AI', tagColor: 'tag-green', category: 'ai' },
-  { path: '/department', title: '科室信息', desc: '科室介绍与医生团队一览无余', icon: OfficeBuilding, color: 'bg-orange', tag: '信息', tagColor: 'tag-orange', category: 'info' },
-]
-
-const filteredShowcaseItems = computed(() => {
-  if (activeCategory.value === 'all') return showcaseItems
-  return showcaseItems.filter(i => i.category === activeCategory.value)
+  updateParallax()
+  window.addEventListener('scroll', updateParallax, { passive: true })
+  window.addEventListener('resize', updateParallax)
 })
 
-// ===== Quick Links =====
-const quickLinks = [
-  { path: '/appointment', title: '预约挂号', icon: Calendar },
-  { path: '/records', title: '病历与就诊', icon: Document },
-  { path: '/report', title: '医疗报告', icon: Notebook },
-  { path: '/billing', title: '费用查询', icon: Wallet },
-  { path: '/medicine', title: '药品查询', icon: FirstAidKit },
-  { path: '/department', title: '科室信息', icon: OfficeBuilding },
-]
-
-// ===== Highlights =====
-const highlights = [
-  { title: 'AI 智能推荐', desc: '根据症状智能推荐科室与医生', icon: 'MagicStick', color: 'hl-blue' },
-  { title: 'SSE 流式报告', desc: 'AI实时生成检查报告解读', icon: 'Document', color: 'hl-violet' },
-  { title: '数据安全', desc: '全链路加密，隐私保护合规', icon: 'Lock', color: 'hl-cyan' },
-  { title: '响应式设计', desc: '适配手机、平板、桌面多端', icon: 'Monitor', color: 'hl-green' },
-]
-
-// ===== Gradient Features =====
-const gradientFeatures = [
-  { title: '便捷预约', desc: '在线选择科室医生，智能排班推荐，告别排队等待', icon: Calendar, gradient: 'linear-gradient(195deg, #409eff 0%, #2f80ed 100%)', path: '/appointment' },
-  { title: 'AI 智能问诊', desc: 'AI解读报告、推荐药品、解释费用，全方位智能服务', icon: 'MagicStick', gradient: 'linear-gradient(195deg, #8b5cf6 0%, #6d28d9 100%)', path: '/report' },
-  { title: '透明管理', desc: '费用明细清晰可查，病历报告随时回溯，就医更安心', icon: TrendCharts, gradient: 'linear-gradient(195deg, #00b4d8 0%, #0077b6 100%)', path: '/billing' },
-]
-
-
+onBeforeUnmount(() => {
+  revealObserver?.disconnect()
+  window.removeEventListener('scroll', updateParallax)
+  window.removeEventListener('resize', updateParallax)
+})
 </script>
 
 <style scoped>
-/* ============================================================
-   CSS Variables
-   ============================================================ */
-:root {
-  --home-radius: 40px;
-  --home-radius-sm: 20px;
-  --home-radius-xs: 12px;
-  --home-shadow: 0 20px 60px rgba(15, 23, 42, 0.08), 0 4px 20px rgba(15, 23, 42, 0.04);
-  --home-shadow-hover: 0 25px 50px rgba(15, 23, 42, 0.15), 0 8px 24px rgba(15, 23, 42, 0.08);
-  --home-glass-bg: rgba(255, 255, 255, 0.72);
-  --home-glass-blur: saturate(200%) blur(30px);
-  --home-blue: #409eff;
-  --home-violet: #8b5cf6;
-  --home-cyan: #00b4d8;
-  --home-indigo: #667eea;
-  --home-green: #43c6ac;
-  --home-orange: #f6a623;
-}
-
-/* ============================================================
-   Base
-   ============================================================ */
-.portal-home {
-  background: #f0f4f8;
+.landed-page {
   min-height: 100%;
-  overflow-x: hidden;
+  background: #1c1d26;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: "Roboto", "Helvetica Neue", "PingFang SC", sans-serif;
+  line-height: 1.75;
+  --accent-green-dark: #0f6b3f;
+  --accent-green-light: #a8e6c3;
 }
 
-.section-header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-.section-title {
-  font-size: 28px;
-  font-weight: 800;
-  color: #1a2a4a;
-  letter-spacing: 1px;
-  margin-bottom: 8px;
-}
-.section-desc {
-  font-size: 15px;
-  color: #8c9ab5;
-  line-height: 1.6;
+.landed-page *,
+.landed-page *::before,
+.landed-page *::after {
+  box-sizing: border-box;
 }
 
-/* ============================================================
-   Hero Header
-   ============================================================ */
-.hero-header {
+#banner,
+.spotlight {
   position: relative;
-  width: 100%;
-  min-height: 75vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1920&q=80') center/cover no-repeat;
+  min-height: calc(100vh - 60px);
   overflow: hidden;
-  margin-top: -60px;
-  padding-top: 60px;
-}
-.hero-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    195deg,
-    rgba(64, 158, 255, 0.92) 0%,
-    rgba(47, 128, 237, 0.85) 40%,
-    rgba(139, 92, 246, 0.75) 100%
-  );
-  z-index: 1;
-}
-.hero-particles {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-}
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  animation: particleFloat 4s ease-in-out infinite alternate;
-}
-@keyframes particleFloat {
-  0% { transform: translateY(0) scale(1); opacity: 0.3; }
-  100% { transform: translateY(-30px) scale(1.2); opacity: 0.6; }
-}
-.hero-content {
-  position: relative;
-  z-index: 3;
-  text-align: center;
-  padding: 80px 24px 60px;
-  max-width: 800px;
-}
-.hero-badge {
-  display: inline-block;
-  padding: 6px 20px;
-  border-radius: 50px;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  margin-bottom: 24px;
-}
-.hero-title {
-  font-size: 52px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: 2px;
-  margin-bottom: 20px;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  line-height: 1.2;
-}
-.hero-subtitle {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.8;
-  margin-bottom: 36px;
-  letter-spacing: 0.5px;
-}
-.hero-actions {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.hero-btn-primary {
-  background: #fff !important;
-  color: var(--home-blue) !important;
-  border-color: #fff !important;
-  font-weight: 700;
-  padding: 14px 36px !important;
-  height: auto !important;
-  font-size: 16px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease !important;
-}
-.hero-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2) !important;
-}
-.hero-btn-ghost {
-  background: rgba(255, 255, 255, 0.15) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #fff !important;
-  border-color: rgba(255, 255, 255, 0.4) !important;
-  font-weight: 600;
-  padding: 14px 36px !important;
-  height: auto !important;
-  font-size: 16px !important;
-  transition: all 0.3s ease !important;
-}
-.hero-btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.28) !important;
-  border-color: rgba(255, 255, 255, 0.6) !important;
-  color: #fff !important;
-  transform: translateY(-2px);
-}
-.hero-scroll-hint {
-  position: absolute;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
-}
-.scroll-arrow {
-  display: block;
-  width: 24px;
-  height: 24px;
-  border-right: 2px solid rgba(255, 255, 255, 0.6);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.6);
-  transform: rotate(45deg);
-  animation: scrollBounce 2s ease-in-out infinite;
-}
-@keyframes scrollBounce {
-  0%, 100% { transform: rotate(45deg) translateY(0); opacity: 0.6; }
-  50% { transform: rotate(45deg) translateY(8px); opacity: 1; }
 }
 
-/* ============================================================
-   Main Glass Card
-   ============================================================ */
-.main-glass-card {
-  position: relative;
-  z-index: 10;
-  max-width: 1200px;
-  margin: 0 auto 0;
-  padding: 48px 40px;
-  background: var(--home-glass-bg);
-  backdrop-filter: var(--home-glass-blur);
-  -webkit-backdrop-filter: var(--home-glass-blur);
-  border-radius: var(--home-radius);
-  box-shadow:
-    var(--home-shadow),
-    0 0 80px rgba(64, 158, 255, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-}
-
-/* ============================================================
-   Stats Counter Section
-   ============================================================ */
-.stats-section {
-  margin-bottom: 56px;
-}
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
-}
-.stat-item {
+.hero-panel {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 28px 24px;
-  border-radius: var(--home-radius-sm);
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
-  transition: all 0.3s ease;
-}
-.stat-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-}
-.stat-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-}
-.stat-blue   { background: linear-gradient(135deg, #409eff, #2f80ed); }
-.stat-violet { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-.stat-cyan   { background: linear-gradient(135deg, #00b4d8, #0077b6); }
-.stat-info {
-  flex: 1;
-  min-width: 0;
-}
-.stat-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a2a4a;
-  margin-bottom: 4px;
-}
-.stat-desc {
-  font-size: 13px;
-  color: #8c9ab5;
-  line-height: 1.5;
-}
-.stat-number {
-  font-size: 36px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #409eff, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  flex-shrink: 0;
-}
-.counter-suffix {
-  font-size: 18px;
-  font-weight: 600;
 }
 
-/* ============================================================
-   3D Flip Card + Info Grid
-   ============================================================ */
-.flip-info-section {
-  margin-bottom: 56px;
-}
-.flip-info-grid {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 32px;
-  align-items: start;
-}
-.flip-card-wrapper {
-  perspective: 1000px;
-}
-.flip-card {
+.panel-image {
+  position: absolute;
+  inset: -3.5rem 0;
   width: 100%;
-  min-height: 320px;
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
+  height: calc(100% + 7rem);
+  object-fit: cover;
+  transform-origin: center center;
+  transition: transform 0.15s linear;
+  will-change: transform;
 }
-.flip-card.flipped {
-  transform: rotateY(180deg);
-}
-.flip-card-front,
-.flip-card-back {
+
+.panel-overlay {
   position: absolute;
   inset: 0;
-  backface-visibility: hidden;
-  border-radius: var(--home-radius-sm);
+  background:
+    linear-gradient(rgba(18, 22, 34, 0.26), rgba(18, 22, 34, 0.72)),
+    radial-gradient(circle at 18% 24%, rgba(228, 76, 101, 0.14), transparent 22%),
+    radial-gradient(circle at 82% 32%, rgba(39, 174, 174, 0.16), transparent 24%);
+}
+
+.panel-overlay.soft {
+  background:
+    linear-gradient(rgba(18, 22, 34, 0.34), rgba(18, 22, 34, 0.6)),
+    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.08), transparent 18%);
+}
+
+#banner .content,
+.spotlight .content,
+.wrapper .container,
+#footer {
+  position: relative;
+  z-index: 1;
+  width: min(72rem, calc(100% - 3rem));
+  margin: 0 auto;
+}
+
+#banner .content {
+  display: flex;
+  align-items: center;
+  min-height: calc(100vh - 60px);
+}
+
+/* (no custom fill for spotlight content — keep original dark page aesthetics) */
+
+.hero-content header {
+  max-width: 42rem;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 1rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+#banner h2 {
+  margin: 0 0 1rem;
+  color: #fff;
+  font-size: clamp(3rem, 6vw, 4.8rem);
+  font-weight: 300;
+  line-height: 1.05;
+  text-shadow: 0 10px 34px rgba(0, 0, 0, 0.24);
+}
+
+#banner p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.2rem;
+}
+
+.goto-next {
+  position: absolute;
+  left: 50%;
+  bottom: 2rem;
+  width: 5rem;
+  height: 5rem;
+  margin-left: -2.5rem;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.goto-next::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: -1rem 0 0 -0.625rem;
+  border-right: 2px solid rgba(255, 255, 255, 0.74);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.74);
+  transform: rotate(45deg);
+}
+
+.spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(10, 14, 24, 0.1), rgba(10, 14, 24, 0.28));
+}
+
+.spotlight .content {
+  min-height: calc(100vh - 60px);
+}
+
+.spotlight.style1 .content {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  min-height: calc(100vh - 60px);
+  padding: 0;
+}
+
+.spotlight.style1 .panel-image {
+  inset: 0 0 auto;
+  height: 45%;
+}
+
+.spotlight.style1 .panel-overlay {
+  inset: 0 0 auto;
+  height: 45%;
+  background: linear-gradient(rgba(20, 25, 38, 0.1), rgba(20, 25, 38, 0.38));
+}
+
+.spotlight.style1 .container {
+  width: 100%;
+  max-width: none;
+  padding: 4.5rem 0 5.75rem;
+  background: rgba(255, 255, 255, 0.96);
+  color: rgba(39, 40, 51, 0.82);
+  box-shadow: 0 18px 44px rgba(17, 24, 39, 0.12);
+  border-top: 0.45rem solid var(--accent-green-light);
+}
+
+.spotlight.style1 .row.triple {
+  width: min(72rem, calc(100% - 3rem));
+  margin: 0 auto;
+}
+
+.spotlight.style2 .content,
+.spotlight.style3 .content {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 32px;
+  width: min(40rem, 34%);
+  min-height: calc(100vh - 60px);
+  padding: 5rem 4rem;
+  background: rgba(255, 255, 255, 0.96);
+  color: rgba(39, 40, 51, 0.82);
+  box-shadow: 0 18px 44px rgba(17, 24, 39, 0.12);
+  backdrop-filter: blur(2px);
 }
-.flip-card-front {
-  background: linear-gradient(195deg, #409eff 0%, #2f80ed 50%, #8b5cf6 100%);
+
+.spotlight.style2 .content {
+  margin-left: auto;
+  margin-right: 0;
+  border-left: 0.45rem solid var(--accent-green-light);
+}
+
+.spotlight.style3 .content {
+  margin-left: 0;
+  margin-right: auto;
+  border-right: 0.45rem solid var(--accent-green-light);
+}
+
+.spotlight.style2 .panel-image {
+  inset: 0 auto 0 0;
+  width: 66%;
+  height: 100%;
+}
+
+.spotlight.style3 .panel-image {
+  inset: 0 0 0 auto;
+  width: 66%;
+  height: 100%;
+}
+
+.spotlight.style2 .panel-overlay {
+  background:
+    linear-gradient(90deg, rgba(18, 22, 34, 0.24) 0%, rgba(18, 22, 34, 0.2) 55%, rgba(18, 22, 34, 0.78) 100%);
+}
+
+.spotlight.style3 .panel-overlay {
+  background:
+    linear-gradient(90deg, rgba(18, 22, 34, 0.82) 0%, rgba(18, 22, 34, 0.22) 42%, rgba(18, 22, 34, 0.18) 100%);
+}
+
+.content header h2,
+.major h2,
+.wrapper header h2 {
+  margin: 0 0 1rem;
   color: #fff;
-  box-shadow: 0 10px 30px rgba(64, 158, 255, 0.3);
+  font-size: 2rem;
+  line-height: 1.35;
+  font-weight: 300;
 }
-.flip-front-icon {
-  margin-bottom: 16px;
-  opacity: 0.9;
+
+.content header p,
+.major p,
+.wrapper header p {
+  margin: 0 0 1rem;
 }
-.flip-card-front h3 {
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 8px;
+
+.container {
+  padding: 4rem 0;
 }
-.flip-card-front p {
-  font-size: 14px;
-  opacity: 0.8;
+
+.narrow {
+  max-width: 70rem;
 }
-.flip-hint {
-  margin-top: 16px;
-  animation: flipHintPulse 2s ease-in-out infinite;
+
+.row.triple {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3rem;
 }
-@keyframes flipHintPulse {
-  0%, 100% { opacity: 0.5; transform: rotate(0deg); }
-  50% { opacity: 1; transform: rotate(180deg); }
+
+.column p,
+.single p {
+  margin: 0;
 }
-.flip-card-back {
-  background: #fff;
-  transform: rotateY(180deg);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  text-align: left;
-  align-items: flex-start;
+
+.column {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
 }
-.flip-card-back h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1a2a4a;
-  margin-bottom: 16px;
+
+.spotlight.style1 .column:nth-child(1) {
+  padding-right: 1.5rem;
 }
-.flip-back-list {
+
+.spotlight.style1 .column:nth-child(2),
+.spotlight.style1 .column:nth-child(3) {
+  color: rgba(39, 40, 51, 0.72);
+  font-size: 0.98rem;
+}
+
+.spotlight.style1 .column header p {
+  color: rgba(39, 40, 51, 0.72);
+}
+
+.spotlight.style1 .column h2 {
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  line-height: 1.32;
+}
+
+.spotlight.style2 .single,
+.spotlight.style3 .single {
+  gap: 1.75rem;
+}
+
+.spotlight.style2 .single h2,
+.spotlight.style3 .single h2 {
+  font-size: clamp(2.1rem, 3vw, 3.3rem);
+  line-height: 1.32;
+}
+
+.spotlight.style2 .single > p,
+.spotlight.style3 .single > p {
+  color: rgba(39, 40, 51, 0.72);
+  font-size: 0.98rem;
+}
+
+/* Make spotlight headings readable on light cards */
+.spotlight.style1 h2,
+.spotlight.style2 h2,
+.spotlight.style3 h2 {
+  color: rgba(17, 24, 39, 0.92);
+}
+
+.wrapper.style1 {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.96)),
+    #ffffff;
+  color: rgba(39, 40, 51, 0.75);
+}
+
+.wrapper.style1 h2,
+.wrapper.style1 h3,
+.wrapper.style1 p {
+  color: inherit;
+}
+
+.wrapper.style1 .major {
+  text-align: center;
+}
+
+.box.alt {
+  margin-top: 3rem;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem 1.5rem;
+}
+
+.feature-item {
+  text-align: center;
+  padding: 1.4rem 1rem 0;
+  cursor: pointer;
+  border-radius: 1.2rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 34px rgba(31, 41, 55, 0.08);
+}
+
+.icon.major {
+  display: inline-grid;
+  place-items: center;
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: 1.25rem;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    rgba(168, 230, 195, 0.55),
+    rgba(15, 107, 63, 0.12)
+  );
+  color: var(--accent-green-dark);
+  font-size: 1.8rem;
+}
+
+.feature-item h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+
+.feature-item p {
+  margin: 0;
+}
+
+.wrapper.style2 {
+  background:
+    linear-gradient(135deg, rgba(15, 107, 63, 0.96), rgba(11, 72, 42, 0.96)),
+    var(--accent-green-dark);
+  color: rgba(255, 255, 255, 0.88);
+  text-align: center;
+}
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.cta-btn {
+  min-width: 12rem;
+}
+
+.cta-btn.light {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #fff;
+}
+
+#footer {
+  padding: 4rem 0 5rem;
+  text-align: center;
+}
+
+.icons,
+.copyright,
+.actions {
   list-style: none;
   padding: 0;
   margin: 0;
-  width: 100%;
-}
-.flip-back-list li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  font-size: 15px;
-  color: #4a5568;
-  border-bottom: 1px solid #f0f0f0;
-}
-.flip-back-list li:last-child {
-  border-bottom: none;
-}
-.flip-back-list .el-icon {
-  color: var(--home-green);
 }
 
-/* Info Grid */
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-.info-card {
-  padding: 24px;
-  border-radius: var(--home-radius-sm);
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
-  cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: left;
-}
-.info-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1);
-}
-.info-card-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.icons {
   display: flex;
-  align-items: center;
   justify-content: center;
-  color: #fff;
-  margin-bottom: 14px;
-}
-.info-blue   { background: linear-gradient(135deg, #409eff, #53a8ff); }
-.info-violet { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
-.info-cyan   { background: linear-gradient(135deg, #00b4d8, #0099ff); }
-.info-indigo { background: linear-gradient(135deg, #667eea, #764ba2); }
-.info-card-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a2a4a;
-  margin-bottom: 6px;
-}
-.info-card-desc {
-  font-size: 13px;
-  color: #8c9ab5;
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-.info-card-link {
-  font-size: 13px;
-  color: var(--home-blue);
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: gap 0.3s ease;
-}
-.info-card:hover .info-card-link {
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 0.875rem;
 }
 
-/* ============================================================
-   Showcase Section
-   ============================================================ */
-.showcase-section {
-  margin-bottom: 56px;
-}
-.showcase-layout {
+.icon-circle {
   display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 32px;
-  align-items: start;
-}
-.showcase-nav {
-  position: sticky;
-  top: 80px;
-}
-.showcase-nav nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  border-radius: var(--home-radius-sm);
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-}
-.showcase-nav a {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  text-decoration: none;
-}
-.showcase-nav a:hover {
-  background: rgba(64, 158, 255, 0.08);
-  color: var(--home-blue);
-}
-.showcase-nav a.active {
-  background: linear-gradient(135deg, #409eff, #2f80ed);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-}
-.showcase-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-.showcase-card {
-  padding: 24px;
-  border-radius: var(--home-radius-sm);
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-}
-.showcase-card:hover {
-  transform: perspective(800px) rotateX(2deg) rotateY(-2deg) translateY(-8px);
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
-}
-.showcase-card-img {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  margin-bottom: 16px;
-}
-.bg-blue   { background: linear-gradient(135deg, #409eff, #53a8ff); }
-.bg-violet { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
-.bg-cyan   { background: linear-gradient(135deg, #00b4d8, #0099ff); }
-.bg-indigo { background: linear-gradient(135deg, #667eea, #764ba2); }
-.bg-green  { background: linear-gradient(135deg, #43c6ac, #68d391); }
-.bg-orange { background: linear-gradient(135deg, #f6a623, #f7b955); }
-.showcase-card-body h4 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a2a4a;
-  margin-bottom: 6px;
-}
-.showcase-card-body p {
-  font-size: 13px;
-  color: #8c9ab5;
-  line-height: 1.6;
-  margin-bottom: 16px;
-}
-.showcase-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-}
-.showcase-card-tag {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 50px;
-  letter-spacing: 0.5px;
-}
-.tag-blue   { background: rgba(64, 158, 255, 0.1); color: #409eff; }
-.tag-violet { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
-.tag-cyan   { background: rgba(0, 180, 216, 0.1); color: #00b4d8; }
-.tag-indigo { background: rgba(102, 126, 234, 0.1); color: #667eea; }
-.tag-green  { background: rgba(67, 198, 172, 0.1); color: #43c6ac; }
-.tag-orange { background: rgba(246, 166, 35, 0.1); color: #f6a623; }
-.showcase-card-arrow {
-  color: #c0c8d8;
-  transition: all 0.3s ease;
-}
-.showcase-card:hover .showcase-card-arrow {
-  color: var(--home-blue);
-  transform: translateX(4px);
-}
-
-/* ============================================================
-   Features Section
-   ============================================================ */
-.features-section {
-  margin-bottom: 56px;
-}
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-.feature-card {
-  padding: 28px;
-  border-radius: var(--home-radius-sm);
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
-  transition: all 0.3s ease;
-}
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-}
-.feature-card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  color: var(--home-blue);
-}
-.feature-card-header h3 {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a2a4a;
-  margin: 0;
-}
-/* Links Card */
-.feature-links a {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  font-size: 14px;
-  color: #4a5568;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  border-bottom: 1px solid #f0f0f0;
-}
-.feature-links a:last-child {
-  border-bottom: none;
-}
-.feature-links a:hover {
-  color: var(--home-blue);
-  padding-left: 4px;
-}
-.link-arrow {
-  margin-left: auto;
-  opacity: 0;
-  transition: all 0.25s ease;
-}
-.feature-links a:hover .link-arrow {
-  opacity: 1;
-  transform: translateX(4px);
-}
-/* Dev Card */
-.dev-info {
-  text-align: center;
-}
-.dev-avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #409eff, #8b5cf6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  margin: 0 auto 16px;
-}
-.dev-detail h4 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a2a4a;
-  margin-bottom: 6px;
-}
-.dev-detail p {
-  font-size: 13px;
-  color: #8c9ab5;
-  line-height: 1.6;
-  margin-bottom: 20px;
-}
-.dev-stats {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-}
-.dev-stats div {
-  text-align: center;
-}
-.dev-stats strong {
-  display: block;
-  font-size: 15px;
-  color: #1a2a4a;
-}
-.dev-stats span {
-  font-size: 12px;
-  color: #8c9ab5;
-}
-/* Highlights Card */
-.highlights-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.highlight-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
-  transition: all 0.25s ease;
-}
-.highlight-item:hover {
-  background: rgba(255, 255, 255, 0.8);
-  transform: translateX(4px);
-}
-.highlight-item .el-icon {
-  flex-shrink: 0;
-}
-.highlight-item strong {
-  display: block;
-  font-size: 14px;
-  color: #1a2a4a;
-}
-.highlight-item span {
-  font-size: 12px;
-  color: #8c9ab5;
-}
-.hl-blue   .el-icon { color: var(--home-blue); }
-.hl-violet .el-icon { color: var(--home-violet); }
-.hl-cyan   .el-icon { color: var(--home-cyan); }
-.hl-green  .el-icon { color: var(--home-green); }
-
-/* ============================================================
-   Gradient Feature Cards
-   ============================================================ */
-.gradient-features {
-  margin-bottom: 16px;
-}
-.gradient-features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-.gradient-feature-card {
-  padding: 36px 28px;
-  border-radius: var(--home-radius-sm);
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-}
-.gradient-feature-card::before {
-  content: '';
-  position: absolute;
-  top: -30%;
-  right: -20%;
-  width: 180px;
-  height: 180px;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  transition: all 0.4s ease;
-}
-.gradient-feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-}
-.gradient-feature-card:hover::before {
-  transform: scale(1.5);
-}
-.gradient-feature-icon {
-  margin-bottom: 16px;
-  opacity: 0.9;
-}
-.gradient-feature-card h3 {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-.gradient-feature-card p {
-  font-size: 14px;
-  opacity: 0.85;
-  line-height: 1.7;
-  margin-bottom: 20px;
-}
-.gradient-feature-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  cursor: pointer;
-  transition: gap 0.3s ease;
-}
-.gradient-feature-link:hover {
-  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.04);
 }
 
-/* ============================================================
-   CTA Section
-   ============================================================ */
-.cta-section {
-  position: relative;
-  background: linear-gradient(195deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  padding: 80px 24px;
-  text-align: center;
-  overflow: hidden;
-}
-.cta-wave {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 1;
-}
-.cta-wave svg {
-  display: block;
-  width: 100%;
-  height: 60px;
-}
-.cta-content {
-  position: relative;
-  z-index: 2;
-  max-width: 600px;
-  margin: 0 auto;
-}
-.cta-content h2 {
-  font-size: 32px;
-  font-weight: 800;
-  color: #fff;
-  margin-bottom: 16px;
-  letter-spacing: 1px;
-}
-.cta-content p {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.8;
-  margin-bottom: 32px;
-}
-.cta-btn {
-  background: linear-gradient(135deg, #409eff, #8b5cf6) !important;
-  color: #fff !important;
-  border: none !important;
-  font-weight: 700;
-  padding: 14px 40px !important;
-  height: auto !important;
-  font-size: 16px !important;
-  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.4);
-  transition: all 0.3s ease !important;
-}
-.cta-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(64, 158, 255, 0.5) !important;
-}
-
-/* ============================================================
-   System Introduction Section
-   ============================================================ */
-.intro-section {
-  padding: 80px 24px;
-  background: #f0f4f8;
-}
-.intro-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  position: relative;
-  min-height: 400px;
-}
-/* Left: Horizontal card, right edge overlaps ~1/5 onto image */
-.intro-card {
+.copyright {
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 48px 56px;
-  background: #fff;
-  position: relative;
-  z-index: 2;
-  border-radius: 20px 0 0 20px;
-  box-shadow: 8px 20px 60px rgba(15, 23, 42, 0.1), 4px 4px 20px rgba(15, 23, 42, 0.05);
-  margin-right: -20%;
-}
-.intro-card-top {
-  margin-bottom: 28px;
-}
-.intro-card-heading {
-  font-size: 28px;
-  font-weight: 800;
-  color: #1a2a4a;
-  text-align: left;
-  margin-bottom: 20px;
-  letter-spacing: 1px;
-  position: relative;
-  padding-bottom: 16px;
-}
-.intro-card-heading::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 48px;
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(135deg, #409eff, #2f80ed);
-}
-.intro-card-body {
-  font-size: 15px;
-  color: #64748b;
-  line-height: 1.9;
-  text-align: left;
-  margin: 0;
-  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-.intro-card-body strong {
-  color: #409eff;
-}
-.intro-card-btn {
-  align-self: flex-start;
-  background: linear-gradient(135deg, #409eff, #2f80ed) !important;
-  color: #fff !important;
-  border: none !important;
-  font-weight: 600;
-  padding: 12px 28px !important;
-  height: auto !important;
-  font-size: 15px !important;
-  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
-  transition: all 0.3s ease !important;
-}
-.intro-card-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.4) !important;
-}
-/* Right Image */
-.intro-image {
-  overflow: hidden;
-  position: relative;
-  border-radius: 20px;
-}
-.intro-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.6s ease;
-}
-.intro-image:hover img {
-  transform: scale(1.03);
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  font-size: 0.92rem;
 }
 
-/* ============================================================
-   Responsive Design
-   ============================================================ */
-@media (max-width: 1200px) {
-  .main-glass-card {
-    margin-left: 16px;
-    margin-right: 16px;
-    padding: 36px 28px;
-  }
+.actions {
+  margin-top: 1.75rem;
 }
 
-@media (max-width: 992px) {
-  .hero-header {
-    min-height: 60vh;
+.actions.special {
+  display: flex;
+  justify-content: center;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 42px, 0);
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.stagger-1 {
+  transition-delay: 0.06s;
+}
+
+.stagger-2 {
+  transition-delay: 0.14s;
+}
+
+.stagger-3 {
+  transition-delay: 0.22s;
+}
+
+:deep(.el-button) {
+  min-height: 2.75rem;
+  padding-inline: 1.5rem;
+  border-radius: 999px;
+}
+
+@media (max-width: 980px) {
+  .row.triple,
+  .feature-grid {
+    grid-template-columns: 1fr;
   }
-  .hero-title {
-    font-size: 38px;
-  }
-  .hero-subtitle {
-    font-size: 16px;
-  }
-  .main-glass-card {
-    margin: -60px 12px 0;
-    padding: 32px 20px;
-    border-radius: 28px;
-  }
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-  .stat-item {
-    padding: 20px 16px;
-    flex-direction: column;
+
+  #banner .content {
     text-align: center;
+    justify-content: center;
   }
-  .stat-number {
-    font-size: 28px;
-  }
-  .flip-info-grid {
-    grid-template-columns: 1fr;
-  }
-  .flip-card {
-    min-height: 260px;
-  }
-  .showcase-layout {
-    grid-template-columns: 1fr;
-  }
-  .showcase-nav {
-    position: static;
-  }
-  .showcase-nav nav {
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 8px;
-  }
-  .showcase-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .features-grid {
-    grid-template-columns: 1fr;
-  }
-  .gradient-features-grid {
-    grid-template-columns: 1fr;
-  }
-  .intro-wrapper {
-    grid-template-columns: 1fr;
-  }
-  .intro-card {
-    margin-right: 0;
-    border-radius: 20px 20px 0 0;
-    padding: 40px 32px;
-  }
-  .intro-image {
-    min-height: 300px;
-    border-radius: 0 0 20px 20px;
-  }
-}
 
-@media (max-width: 768px) {
-  .hero-header {
-    min-height: 50vh;
-    margin-top: -50px;
-    padding-top: 50px;
+  .spotlight.style2 .content,
+  .spotlight.style3 .content {
+    width: min(100%, calc(100% - 2rem));
+    min-height: auto;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    border-left: 0;
+    border-right: 0;
   }
-  .hero-title {
-    font-size: 30px;
-  }
-  .hero-content {
-    padding: 50px 16px 40px;
-  }
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-  .showcase-grid {
-    grid-template-columns: 1fr;
-  }
-  .main-glass-card {
-    margin: -40px 8px 0;
-    padding: 24px 16px;
-    border-radius: 24px;
-  }
-  .section-title {
-    font-size: 22px;
-  }
-  .gradient-features-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
-@media (max-width: 576px) {
-  .hero-header {
-    min-height: 45vh;
+  .spotlight {
+    min-height: auto;
+    padding-top: 16rem;
   }
-  .hero-title {
-    font-size: 26px;
+
+  .panel-image {
+    inset: 0;
+    height: 18rem;
+    transform: none !important;
   }
-  .hero-subtitle {
-    font-size: 14px;
+
+  .spotlight.style1 .content {
+    min-height: auto;
   }
-  .hero-actions {
-    flex-direction: column;
-    align-items: center;
+
+  .spotlight.style1 .container {
+    padding: 2.75rem 0 4rem;
   }
-  .hero-actions .el-button {
+
+  .spotlight.style2 .panel-image,
+  .spotlight.style3 .panel-image {
     width: 100%;
-    max-width: 280px;
   }
-  .main-glass-card {
-    border-radius: 20px;
-    padding: 20px 12px;
+}
+
+@media (max-width: 640px) {
+  #banner,
+  .spotlight {
+    min-height: auto;
   }
-  .stat-item {
-    padding: 16px;
+
+  #banner .content,
+  .spotlight .content,
+  .wrapper .container,
+  #footer {
+    width: min(72rem, calc(100% - 1.5rem));
   }
-  .stat-number {
-    font-size: 24px;
+
+  #banner h2,
+  .content header h2,
+  .major h2,
+  .wrapper header h2 {
+    font-size: 1.8rem;
   }
-  .cta-content h2 {
-    font-size: 24px;
+
+  #banner p {
+    font-size: 1rem;
   }
-  .cta-content p {
-    font-size: 14px;
+
+  .spotlight.style2 .content,
+  .spotlight.style3 .content {
+    padding: 2rem 1.25rem;
   }
-  .intro-wrapper {
-    grid-template-columns: 1fr;
-  }
-  .intro-card {
-    margin-right: 0;
-    border-radius: 16px 16px 0 0;
-    padding: 32px 20px;
-  }
-  .intro-card-heading {
-    font-size: 22px;
-  }
-  .intro-image {
-    min-height: 240px;
-    border-radius: 0 0 16px 16px;
+
+  .column {
+    padding: 0;
   }
 }
 </style>
