@@ -15,7 +15,7 @@ const routes = [
     redirect: '/home',
     children: [
       { path: 'home', name: 'Home', component: () => import('@/views/home/HomeView.vue'), meta: { title: '首页', public: true } },
-            { path: 'project-tech', name: 'ProjectTech', component: () => import('@/views/home/ProjectTechView.vue'), meta: { title: '项目技术', public: true } },
+      { path: 'project-tech', name: 'ProjectTech', component: () => import('@/views/home/ProjectTechView.vue'), meta: { title: '项目技术', public: true } },
       { path: 'profile', name: 'Profile', component: () => import('@/views/patient/ProfileView.vue'), meta: { title: '个人信息' } },
       { path: 'records', name: 'Records', component: () => import('@/views/patient/RecordsView.vue'), meta: { title: '病历与就诊' } },
       { path: 'appointment', name: 'Appointment', component: () => import('@/views/appointment/AppointmentView.vue'), meta: { title: '预约挂号' } },

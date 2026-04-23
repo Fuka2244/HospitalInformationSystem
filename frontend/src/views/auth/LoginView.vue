@@ -107,14 +107,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { forgetPassword, sendVerificationCode } from '@/api/patient'
 import type { LoginDto, RegisterDto, ForgetPasswordDto } from '@/types'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
@@ -124,6 +125,14 @@ const codeLoading = ref(false)
 const codeCooldown = ref(0)
 let cooldownTimer: ReturnType<typeof setInterval> | null = null
 
+watch(
+  () => route.query.mode,
+  (mode) => {
+    isLogin.value = mode !== 'register'
+  },
+  { immediate: true },
+)
+  
 // ===== 手机号校验 =====
 const phoneValidator = (_rule: any, value: string, callback: any) => {
   if (!/^1[3-9]\d{9}$/.test(value)) {
