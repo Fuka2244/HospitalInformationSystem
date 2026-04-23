@@ -1,32 +1,40 @@
 :root{
-  --his-bg: #f5f7ff;
-  --his-bg-2: #f3f6fb;
-  --his-card: rgba(255, 255, 255, 0.78);
-  --his-card-strong: rgba(255, 255, 255, 0.92);
-  --his-border: rgba(15, 23, 42, 0.08);
-  --his-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  --his-shadow-sm: 0 8px 18px rgba(15, 23, 42, 0.08);
+  --his-bg: #f6fff9;
+  --his-bg-2: #ffffff;
+  --his-surface: rgba(255, 255, 255, 0.92);
+  --his-card: rgba(255, 255, 255, 0.98);
+  --his-card-strong: rgba(255, 255, 255, 1);
+  --his-border: rgba(18, 56, 38, 0.10);
+  --his-shadow: 0 18px 42px rgba(71,200,138,0.12);
+  --his-shadow-sm: 0 10px 24px rgba(71,200,138,0.10);
   --his-radius: 16px;
+  --his-text: #123826;
+  --his-text-2: rgba(18, 56, 38, 0.72);
+  --his-primary: #47c88a;
+  --his-primary-rgb: 71,200,138;
+  --his-primary-soft: #eaf8ef;
+  --his-accent: #36b87a;
+  --his-accent-soft: #eafbf6;
 
-  --el-color-primary: #2f80ed;
-  --el-color-primary-light-3: #6aa7ff;
-  --el-color-primary-light-5: #8fbeff;
+  --el-color-primary: #47c88a;
+  --el-color-primary-light-3: #7fd7a8;
+  --el-color-primary-light-5: #bfeedf;
   --el-border-radius-base: 12px;
-  --el-border-color: rgba(15, 23, 42, 0.12);
-  --el-fill-color-blank: rgba(255, 255, 255, 0.92);
-  --el-box-shadow-light: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --el-border-color: rgba(18, 56, 38, 0.12);
+  --el-fill-color-blank: rgba(255, 255, 255, 0.98);
+  --el-box-shadow-light: 0 14px 34px rgba(71,200,138,0.10);
   --el-font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
   --his-header-height: 64px;
 }
 
 html, body{
-  background: radial-gradient(1200px 600px at 10% -10%, rgba(47, 128, 237, 0.18), transparent 60%),
-    radial-gradient(1200px 600px at 90% 0%, rgba(120, 87, 255, 0.16), transparent 60%),
+  background: radial-gradient(1200px 600px at 10% -10%, rgba(71,200,138,0.14), transparent 60%),
+    radial-gradient(1200px 600px at 90% 0%, rgba(71,200,138,0.10), transparent 60%),
     linear-gradient(180deg, var(--his-bg) 0%, var(--his-bg-2) 100%);
 }
 
 body{
-  color: #0f172a;
+  color: var(--his-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -34,9 +42,9 @@ body{
 /* nicer scrollbars (WebKit) */
 *::-webkit-scrollbar{ width: 10px; height: 10px; }
 *::-webkit-scrollbar-thumb{
-  background: rgba(15, 23, 42, 0.18);
+  background: rgba(63, 140, 255, 0.22);
   border-radius: 999px;
-  border: 2px solid rgba(255,255,255,0.65);
+  border: 2px solid rgba(255,255,255,0.8);
 }
 *::-webkit-scrollbar-track{ background: transparent; }
 
@@ -77,7 +85,7 @@ body{
 }
 .page-subtitle{
   margin-top: 6px;
-  color: rgba(15, 23, 42, 0.60);
+  color: var(--his-text-2);
   font-size: 13px;
 }
 
@@ -94,28 +102,128 @@ body{
 .el-card.is-hover-shadow:hover{
   box-shadow: var(--his-shadow);
   transform: translateY(-1px);
-  border-color: rgba(47, 128, 237, 0.18);
+  border-color: rgba(63, 140, 255, 0.22);
 }
 .el-card__header{
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  border-bottom: 1px solid rgba(37, 99, 120, 0.08);
 }
 .el-dialog{
   border-radius: 18px !important;
   overflow: hidden;
 }
 .el-dialog__header{
-  background: linear-gradient(180deg, rgba(47, 128, 237, 0.10), rgba(255,255,255,0));
+  background: linear-gradient(180deg, rgba(63, 140, 255, 0.10), rgba(255,255,255,0));
 }
 .el-table{
   border-radius: 14px;
   overflow: hidden;
 }
 .el-table th.el-table__cell{
-  background: rgba(15, 23, 42, 0.02);
+  background: rgba(var(--his-primary-rgb), 0.05);
 }
 .el-button{
   border-radius: 12px;
 }
 .el-input__wrapper, .el-textarea__inner, .el-select__wrapper{
   border-radius: 12px;
+}
+
+.el-menu{
+  --el-menu-hover-bg-color: rgba(var(--his-primary-rgb), 0.08);
+  --el-menu-active-color: var(--his-primary);
+}
+
+/* Fade-in on scroll helpers */
+.fade-in{
+  opacity: 0;
+  transform: translateY(var(--fade-distance, 12px));
+  transition: opacity 560ms cubic-bezier(.2,.9,.3,1) var(--fade-delay, 0ms),
+              transform 560ms cubic-bezier(.2,.9,.3,1) var(--fade-delay, 0ms);
+  will-change: opacity, transform;
+}
+.fade-in--visible{
+  opacity: 1;
+  transform: translateY(0);
+}
+.fade-in-up{ /* convenience alias */ }
+
+/* Reveal utility used by legacy templates (adds fade+translate) */
+.reveal{
+  opacity: 0;
+  transform: translateY(var(--reveal-distance, 12px));
+  transition: opacity 560ms cubic-bezier(.2,.9,.3,1) var(--reveal-delay, 0ms),
+              transform 560ms cubic-bezier(.2,.9,.3,1) var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.reveal.is-visible{
+  opacity: 1;
+  transform: translateY(0);
+}
+.stagger-1{ --reveal-delay: 60ms; }
+.stagger-2{ --reveal-delay: 140ms; }
+.stagger-3{ --reveal-delay: 220ms; }
+
+/* Slide-in directions for spotlight modules */
+.slide-in-left{ transform: translateX(-24px) translateY(var(--reveal-distance,12px)); }
+.slide-in-right{ transform: translateX(24px) translateY(var(--reveal-distance,12px)); }
+.slide-in-left.is-visible, .slide-in-right.is-visible{
+  transform: translateX(0) translateY(0);
+}
+
+/* Icons bounce when visible */
+@keyframes icon-pop {
+  0% { transform: scale(0.92); opacity: 0.0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.icons li{ opacity: 0; transform-origin: center center; }
+.icons li.is-visible{ animation: icon-pop 420ms cubic-bezier(.2,.9,.3,1) both; }
+
+/* Button micro-interactions */
+.el-button{ transition: transform 180ms cubic-bezier(.2,.9,.3,1), box-shadow 180ms ease, background-color 180ms ease; }
+.el-button:hover{ transform: translateY(-3px) scale(1.02); }
+
+/* Image hover zoom */
+.panel-image:hover{ transform: scale(1.03); transition: transform 400ms cubic-bezier(.2,.9,.3,1); }
+
+/* Full-page initial load state helper (toggled by JS) */
+.landed-page{ opacity: 0; transform: translateY(8px); transition: opacity 680ms ease, transform 680ms cubic-bezier(.2,.9,.3,1); }
+.landed-page.is-loaded{ opacity: 1; transform: translateY(0); }
+
+/* Parallax helper: apply to sections with background-image */
+.parallax{
+  background-size: cover;
+  background-position: 50% 0;
+  background-repeat: no-repeat;
+  /* give a reasonable default height for parallax sections */
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* overlay content inside parallax to remain above background */
+.parallax__content{
+  position: relative;
+  z-index: 2;
+  color: var(--his-card-strong);
+  text-shadow: 0 6px 18px rgba(0,0,0,0.28);
+}
+
+/* subtle dark overlay to improve text contrast */
+.parallax::before{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.06));
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Unified color tokens (additional convenience tokens) */
+:root{
+  --accent-contrast: #ffffff;
+  --muted: rgba(22,50,71,0.48);
 }

@@ -57,33 +57,12 @@
       </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="about-section">
-      <div class="about-container">
-        <div class="section-header">
-          <h2 class="section-title">核心功能</h2>
-          <div class="title-bar"></div>
-        </div>
-        <div class="feature-grid">
-          <div class="feature-item" v-for="feat in features" :key="feat.title">
-            <div class="feature-icon" :class="feat.color">
-              <el-icon :size="24"><component :is="feat.icon" /></el-icon>
-            </div>
-            <div class="feature-info">
-              <h4>{{ feat.title }}</h4>
-              <p>{{ feat.desc }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- AI Services Section -->
     <section class="about-section about-section--dark">
       <div class="about-container">
         <div class="section-header">
-          <h2 class="section-title" style="color: #fff;">AI 智能服务</h2>
-          <div class="title-bar" style="background: rgba(255,255,255,0.3);"></div>
+          <h2 class="section-title">AI 智能服务</h2>
+          <div class="title-bar"></div>
           <p class="section-subtitle">融合前沿人工智能技术，打造智能化医疗服务体验</p>
         </div>
         <div class="ai-grid">
@@ -160,15 +139,6 @@ const architectures = [
   },
 ]
 
-const features = [
-  { title: '预约挂号', desc: '智能推荐科室医生，灵活选择排班时段，支持 AI 症状推荐', icon: Calendar, color: 'feat-blue' },
-  { title: '病历与就诊', desc: '历史就诊记录与处方一键回溯查询，完整病历档案管理', icon: Document, color: 'feat-violet' },
-  { title: '医疗报告', desc: '检查检验结果实时查看，AI 智能解读报告内容', icon: Notebook, color: 'feat-cyan' },
-  { title: '费用查询', desc: '缴费记录与费用明细清晰透明，AI 费用解释', icon: Wallet, color: 'feat-indigo' },
-  { title: '药品查询', desc: '药品信息与用法用量查询，AI 智能药品推荐', icon: FirstAidKit, color: 'feat-green' },
-  { title: '科室信息', desc: '科室介绍与医生团队一览无余，科室导航指引', icon: OfficeBuilding, color: 'feat-orange' },
-]
-
 const aiServices = [
   { title: 'AI 智能推荐', desc: '根据患者症状描述，智能推荐合适的科室与医生，减少盲目挂号，提升就医效率。', icon: MagicStick },
   { title: 'AI 报告解读', desc: '基于大语言模型的检查报告智能解读，将专业术语转化为通俗易懂的健康建议，SSE 流式实时输出。', icon: Document },
@@ -189,6 +159,17 @@ const advantages = [
 .about-page {
   background: #f8fafc;
   min-height: 100vh;
+  --green-950: #06301e;
+  --green-900: #0b3d26;
+  --green-800: #0f6b3f;
+  --green-700: #158a52;
+  --green-600: #1aa15e;
+  --green-300: #a8e6c3;
+  --green-200: #c7f3d8;
+  --green-100: #e9fbf2;
+  --text-900: #0f172a;
+  --text-700: #334155;
+  --muted-600: #64748b;
 }
 .about-container {
   max-width: 1100px;
@@ -202,7 +183,7 @@ const advantages = [
 .section-title {
   font-size: 30px;
   font-weight: 800;
-  color: #1a2a4a;
+  color: var(--text-900);
   letter-spacing: 1px;
   margin-bottom: 12px;
 }
@@ -210,7 +191,7 @@ const advantages = [
   width: 48px;
   height: 4px;
   border-radius: 2px;
-  background: linear-gradient(135deg, #409eff, #2f80ed);
+  background: linear-gradient(135deg, var(--green-600), var(--green-300));
   margin: 0 auto 16px;
 }
 .section-subtitle {
@@ -232,7 +213,12 @@ const advantages = [
 .about-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(64, 158, 255, 0.9), rgba(47, 128, 237, 0.85), rgba(139, 92, 246, 0.8));
+  background: linear-gradient(
+    135deg,
+    rgba(15, 107, 63, 0.92),
+    rgba(21, 138, 82, 0.86),
+    rgba(168, 230, 195, 0.26)
+  );
 }
 .about-hero-content {
   position: relative;
@@ -259,7 +245,7 @@ const advantages = [
   background: #fff;
 }
 .about-section--dark {
-  background: linear-gradient(195deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: linear-gradient(195deg, var(--green-950) 0%, var(--green-900) 52%, #061c12 100%);
 }
 
 /* ===== Overview ===== */
@@ -271,13 +257,13 @@ const advantages = [
 }
 .overview-text p {
   font-size: 16px;
-  color: #475569;
+  color: var(--text-700);
   line-height: 1.9;
   margin-bottom: 20px;
   text-align: justify;
 }
 .overview-text p strong {
-  color: #409eff;
+  color: var(--green-800);
 }
 .overview-image {
   border-radius: 20px;
@@ -318,18 +304,18 @@ const advantages = [
   color: #fff;
   margin-bottom: 20px;
 }
-.arch-blue { background: linear-gradient(135deg, #409eff, #2f80ed); }
-.arch-green { background: linear-gradient(135deg, #43c6ac, #38a169); }
-.arch-violet { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.arch-blue { background: linear-gradient(135deg, var(--green-800), var(--green-600)); }
+.arch-green { background: linear-gradient(135deg, var(--green-700), var(--green-300)); }
+.arch-violet { background: linear-gradient(135deg, var(--green-900), var(--green-700)); }
 .arch-card h3 {
   font-size: 20px;
   font-weight: 700;
-  color: #1a2a4a;
+  color: var(--text-900);
   margin-bottom: 12px;
 }
 .arch-card p {
   font-size: 14px;
-  color: #64748b;
+  color: var(--muted-600);
   line-height: 1.8;
   margin-bottom: 16px;
 }
@@ -342,56 +328,9 @@ const advantages = [
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 50px;
-  background: rgba(64, 158, 255, 0.08);
-  color: #409eff;
+  background: rgba(168, 230, 195, 0.42);
+  color: var(--green-900);
   font-weight: 500;
-}
-
-/* ===== Features ===== */
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-.feature-item {
-  display: flex;
-  gap: 16px;
-  padding: 24px;
-  border-radius: 16px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
-}
-.feature-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-}
-.feature-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-}
-.feat-blue { background: linear-gradient(135deg, #409eff, #53a8ff); }
-.feat-violet { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
-.feat-cyan { background: linear-gradient(135deg, #00b4d8, #0099ff); }
-.feat-indigo { background: linear-gradient(135deg, #667eea, #764ba2); }
-.feat-green { background: linear-gradient(135deg, #43c6ac, #68d391); }
-.feat-orange { background: linear-gradient(135deg, #f6a623, #f7b955); }
-.feature-info h4 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a2a4a;
-  margin-bottom: 6px;
-}
-.feature-info p {
-  font-size: 13px;
-  color: #64748b;
-  line-height: 1.7;
 }
 
 /* ===== AI Services ===== */
@@ -416,6 +355,14 @@ const advantages = [
 .ai-icon {
   margin-bottom: 16px;
   opacity: 0.9;
+}
+
+/* Dark section header colors (avoid inline styles) */
+.about-section--dark .section-title {
+  color: rgba(255, 255, 255, 0.95);
+}
+.about-section--dark .title-bar {
+  background: linear-gradient(135deg, rgba(199, 243, 216, 0.85), rgba(168, 230, 195, 0.25));
 }
 .ai-card h3 {
   font-size: 18px;
@@ -450,7 +397,7 @@ const advantages = [
 .adv-number {
   font-size: 36px;
   font-weight: 800;
-  background: linear-gradient(135deg, #409eff, #8b5cf6);
+  background: linear-gradient(135deg, var(--green-700), var(--green-300));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -460,12 +407,12 @@ const advantages = [
 .adv-info h4 {
   font-size: 18px;
   font-weight: 700;
-  color: #1a2a4a;
+  color: var(--text-900);
   margin-bottom: 8px;
 }
 .adv-info p {
   font-size: 14px;
-  color: #64748b;
+  color: var(--muted-600);
   line-height: 1.7;
 }
 
@@ -479,9 +426,6 @@ const advantages = [
   }
   .arch-grid {
     grid-template-columns: 1fr;
-  }
-  .feature-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
   .ai-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -506,9 +450,6 @@ const advantages = [
   }
   .section-title {
     font-size: 24px;
-  }
-  .feature-grid {
-    grid-template-columns: 1fr;
   }
   .ai-grid {
     grid-template-columns: 1fr;
