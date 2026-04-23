@@ -88,7 +88,7 @@ public class BillingServiceImpl implements IBillingService {
     public Result aiBillingChat(String patientId, String message, List<ChatMessageDto> history, String startDate, String endDate) {
         List<Billing> billings = getBillingsByDateRange(patientId, startDate, endDate);
         if (billings.isEmpty()) {
-            return Result.fail("该时间段内无费用记录，请先选择有费用的时间范围");
+            return Result.fail("暂无费用记录，无法进行解释");
         }
 
         BillingChatResponse chatResponse = aiBillingService.billingChat(message, history, billings);

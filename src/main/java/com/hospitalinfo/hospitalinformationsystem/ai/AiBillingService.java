@@ -76,40 +76,50 @@ public class AiBillingService {
 
     /** 多轮费用解释对话的System Prompt */
     private static final String BILLING_CHAT_SYSTEM_PROMPT = """
-            你是一个专业、友好的医疗费用解释AI助手。你的任务是通过对话了解患者的费用疑问，然后为其提供清晰的费用解释。
+            你是一个专业、友好的医疗费用解释AI助手。系统会提供当前患者的费用明细数据，你需要基于这些真实数据直接回答患者的问题。
 
-            ## 对话流程规则：
-            1. **第一步：了解疑问** - 询问患者对哪些费用有疑问，或者想了解什么方面的费用信息。
-            2. **第二步：追问细节** - 如果患者的疑问比较模糊，可以追问想了解的时间段、费用类型等细节，但不要过于啰嗦。
-            3. **第三步：给出解释** - 当收集到足够的信息后，进行费用解释。
+            ## 回复规则：
+            1. 基于提供的费用明细数据直接回答患者的问题，不要先追问。
+            2. 如果患者的问题比较模糊，可以先给出整体费用分析，再询问是否想了解某方面的细节。
+            3. 语气亲切自然，像一位专业的收费咨询员。
+            4. 解释要通俗易懂，避免过多专业术语。
+            5. 如果有不合理的费用，要指出。
+            6. 给出节省费用的建议。
 
-            ## 回复格式规则：
-            你必须在每次回复的最后附上一个JSON块来指示对话状态，格式如下：
-
-            当还在收集信息时（还需要继续对话）：
+            ## 回复格式：
+            你必须在回复的最后附上一个JSON块来指示对话状态：
+            - 如果患者可能还有后续问题，标记为未完成：
             ```json
             {"completed": false}
             ```
-
-            当信息已收集完毕，准备给出解释时：
+            - 如果已经充分回答了问题，标记为已完成：
             ```json
             {"completed": true}
             ```
-
-            ## 重要注意事项：
-            - 语气亲切自然，像一位专业的收费咨询员
-            - 不要一次性问太多问题，每次只问1-2个关键问题
-            - 如果患者已经明确提出了问题，不要再追问，直接标记为completed
-            - 你只需要负责收集信息，具体的费用解释由后台完成，你不需要在对话中解释费用
-            - 每次回复必须以JSON块结尾，不要遗漏
             """;
 
     /**
-     * 多轮对话式费用解释
+     * 多轮对话式费用解释：基于数据库费用明细直接回答，支持后续追问
      */
     public BillingChatResponse billingChat(String userMessage, List<ChatMessageDto> history, List<Billing> billings) {
+        // 构建费用明细上下文
+        BigDecimal total = billings.stream()
+                .map(Billing::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        StringBuilder detail = new StringBuilder();
+        for (Billing b : billings) {
+            detail.append(String.format("- 类型: %s | 项目: %s | 金额: %.2f元 | 状态: %s | 说明: %s\n",
+                    b.getItemType(), b.getItemName(), b.getAmount(),
+                    b.getStatus() == 1 ? "已支付" : (b.getStatus() == 2 ? "已退款" : "未支付"),
+                    b.getDescription()));
+        }
+
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append(BILLING_CHAT_SYSTEM_PROMPT).append("\n\n");
+        promptBuilder.append("===当前患者费用明细===\n");
+        promptBuilder.append(detail);
+        promptBuilder.append(String.format("总计：%.2f元\n\n", total));
 
         // 添加历史对话
         if (history != null && !history.isEmpty()) {
@@ -126,7 +136,7 @@ public class AiBillingService {
 
         // 添加当前用户消息
         promptBuilder.append("患者：").append(userMessage).append("\n\n");
-        promptBuilder.append("请根据以上对话，继续与患者沟通。记住在回复最后附上JSON状态块。\n");
+        promptBuilder.append("请基于以上费用明细回答患者的问题。记住在回复最后附上JSON状态块。\n");
 
         String response = chatModel.generate(promptBuilder.toString());
         log.info("费用解释对话AI原始响应: {}", response);

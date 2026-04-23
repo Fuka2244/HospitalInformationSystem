@@ -216,7 +216,7 @@ const queryParams = reactive<BillingQueryParams>({ page: 1, size: 10 })
 
 // 聊天相关状态
 const chatMessages = ref<ChatMessageDto[]>([
-  { role: 'assistant', content: '您好！我是AI费用助手，请问您对哪方面的费用有疑问？可以直接描述您的问题。' }
+  { role: 'assistant', content: '您好！我是AI费用助手，已获取您的费用数据，请直接提出您的问题，我会基于您的实际费用进行解答。' }
 ])
 const chatInput = ref('')
 const chatLoading = ref(false)
@@ -294,7 +294,7 @@ async function sendChatMessage() {
 // 重置聊天
 function resetChat() {
   chatMessages.value = [
-    { role: 'assistant', content: '您好！我是AI费用助手，请问您对哪方面的费用有疑问？可以直接描述您的问题。' }
+    { role: 'assistant', content: '您好！我是AI费用助手，已获取您的费用数据，请直接提出您的问题，我会基于您的实际费用进行解答。' }
   ]
   chatInput.value = ''
   chatLoading.value = false
