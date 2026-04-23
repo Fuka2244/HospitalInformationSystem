@@ -84,6 +84,7 @@ import { Calendar, Document, FirstAidKit, HomeFilled, InfoFilled, Notebook, Offi
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+import { onMounted, onBeforeUnmount } from 'vue'
 
 const avatarUrl = computed(() => {
   if (userStore.userInfo?.avatar) {
@@ -96,6 +97,26 @@ const avatarUrl = computed(() => {
 watch(() => route.path, () => {
   const main = document.querySelector('.main')
   if (main) main.scrollTop = 0
+})
+
+// header sticky visual transition when scrolling
+function handleHeaderScroll() {
+  const header = document.querySelector('.header')
+  const main = document.querySelector('.main') as HTMLElement | null
+  const scrollTop = main ? main.scrollTop : window.scrollY
+  if (header) header.classList.toggle('scrolled', scrollTop > 80)
+}
+
+onMounted(() => {
+  const main = document.querySelector('.main') as HTMLElement | null
+  main?.addEventListener('scroll', handleHeaderScroll, { passive: true })
+  window.addEventListener('scroll', handleHeaderScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  const main = document.querySelector('.main') as HTMLElement | null
+  main?.removeEventListener('scroll', handleHeaderScroll as EventListener)
+  window.removeEventListener('scroll', handleHeaderScroll as EventListener)
 })
 
 async function handleCommand(cmd: string) {
@@ -117,9 +138,10 @@ async function handleCommand(cmd: string) {
 .header {
   height: 60px;
   padding: 0;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  background: #fff;
-  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.06);
+  border-bottom: 1px solid var(--his-border);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: blur(14px);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -153,8 +175,8 @@ async function handleCommand(cmd: string) {
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, #409eff 0%, #2f80ed 100%);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  background: linear-gradient(135deg, var(--his-primary) 0%, #86e2b8 100%);
+  box-shadow: 0 10px 24px rgba(71,200,138,0.25);
 }
 
 .brand-mark :deep(svg) { width: 18px; height: 18px; }
@@ -165,7 +187,7 @@ async function handleCommand(cmd: string) {
   font-weight: 700;
   letter-spacing: 0.5px;
   font-size: 15px;
-  color: #1a2a4a;
+  color: var(--his-text);
 }
 
 .top-menu {
@@ -182,24 +204,24 @@ async function handleCommand(cmd: string) {
 
 :deep(.top-menu.el-menu--horizontal > .el-menu-item) {
   border-bottom: none;
-  border-radius: 8px;
+  border-radius: 999px;
   margin: 0 4px;
   height: 38px;
   line-height: 38px;
-  color: #5a6a85;
+  color: var(--his-text-2);
   font-size: 14px;
   padding: 0 16px;
   transition: all 0.2s ease;
 }
 
 :deep(.top-menu.el-menu--horizontal > .el-menu-item:hover) {
-  background: rgba(64, 158, 255, 0.06);
-  color: #409eff;
+  background: var(--his-primary-soft);
+  color: var(--his-primary);
 }
 
 :deep(.top-menu.el-menu--horizontal > .el-menu-item.is-active) {
-  background: rgba(64, 158, 255, 0.10);
-  color: #409eff;
+  background: var(--his-primary-soft);
+  color: var(--his-primary);
   font-weight: 600;
 }
 
@@ -217,19 +239,26 @@ async function handleCommand(cmd: string) {
 }
 
 .username {
-  color: #5a6a85;
+  color: var(--his-text-2);
   font-size: 14px;
 }
 
 .avatar {
-  border: 2px solid rgba(64, 158, 255, 0.2);
-  background: rgba(64, 158, 255, 0.08);
+  border: 2px solid rgba(var(--his-primary-rgb), 0.18);
+  background: rgba(var(--his-primary-rgb), 0.06);
   cursor: pointer;
   transition: border-color 0.2s ease;
 }
 
 .avatar:hover {
-  border-color: rgba(64, 158, 255, 0.4);
+  border-color: rgba(var(--his-primary-rgb), 0.36);
+}
+
+/* header when scrolled past hero */
+.header.scrolled{
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 8px 24px rgba(18, 56, 38, 0.06);
+  border-bottom-color: rgba(18,56,38,0.06);
 }
 
 .main {
