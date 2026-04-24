@@ -14,6 +14,8 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,8 +37,14 @@ public class AsyncTaskConsumer implements StreamListener<String, MapRecord<Strin
     @Override
     public void onMessage(MapRecord<String, String, String> message) {
         Map<String, String> value = message.getValue();
-        String taskId = value.get("taskId");
-        String taskType = value.get("taskType");
+
+        // Redis GenericJackson2JsonRedisSerializer会对所有字符串值做双重序列化（加引号+转义）
+        // 统一解包所有值
+        Map<String, String> unwrapped = new HashMap<>();
+        value.forEach((k, v) -> unwrapped.put(k, unwrapRedisValue(v)));
+
+        String taskId = unwrapped.get("taskId");
+        String taskType = unwrapped.get("taskType");
 
         log.info("收到异步任务: taskId={}, type={}", taskId, taskType);
 
@@ -45,10 +53,10 @@ public class AsyncTaskConsumer implements StreamListener<String, MapRecord<Strin
 
         try {
             switch (taskType) {
-                case "BILLING_CHAT" -> handleBillingChat(value);
-                case "BILLING_EXPLAIN" -> handleBillingExplain(value);
-                case "MEDICINE_CHAT" -> handleMedicineChat(value);
-                case "MEDICINE_RECOMMEND" -> handleMedicineRecommend(value);
+                case "BILLING_CHAT" -> handleBillingChat(unwrapped);
+                case "BILLING_EXPLAIN" -> handleBillingExplain(unwrapped);
+                case "MEDICINE_CHAT" -> handleMedicineChat(unwrapped);
+                case "MEDICINE_RECOMMEND" -> handleMedicineRecommend(unwrapped);
                 default -> {
                     log.warn("未知任务类型: {}", taskType);
                     asyncTaskService.saveTaskResult(AsyncTaskResult.failed(taskId, "未知任务类型: " + taskType));
@@ -156,5 +164,27 @@ public class AsyncTaskConsumer implements StreamListener<String, MapRecord<Strin
         }
 
         return billingMapper.selectList(wrapper);
+    }
+
+    /**
+     * 解包Redis GenericJackson2JsonRedisSerializer双重序列化的值
+     * 序列化器会把字符串值包上引号并转义内部引号，如 "hello" → "\"hello\""
+     * JSON字符串如 [{"role":"user"}] → "[{\"role\":\"user\"}]"
+     * 此方法去掉外层引号，反转义内部引号，还原原始值
+     */
+    private String unwrapRedisValue(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        // 如果值被引号包裹（双重序列化的标志），去掉外层引号并反转义
+        if (value.startsWith("\"") && value.endsWith("\"")) {
+            try {
+                // 用Jackson解析JSON字符串，自动处理转义
+                return objectMapper.readValue(value, String.class);
+            } catch (Exception e) {
+                log.warn("解包Redis值失败，返回原始值: {}", e.getMessage());
+            }
+        }
+        return value;
     }
 }
