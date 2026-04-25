@@ -2,9 +2,6 @@
   <div class="login-container">
     <header class="login-topbar">
       <div class="topbar-brand">医院信息系统</div>
-      <div class="topbar-links">
-        <span class="topbar-badge">统一认证入口</span>
-      </div>
     </header>
 
     <el-card class="login-card" shadow="never">
@@ -282,10 +279,10 @@ async function handleForget() {
   min-height: 100vh;
   padding: 84px 16px 56px;
   background:
-    linear-gradient(165deg, rgba(248, 252, 255, 0.78), rgba(238, 244, 255, 0.72)),
-    radial-gradient(900px 520px at 16% -10%, rgba(47, 128, 237, 0.18), transparent 66%),
-    radial-gradient(900px 500px at 94% 8%, rgba(106, 167, 255, 0.14), transparent 66%),
-    url("https://images.unsplash.com/photo-1741114056870-4f313bcf2786?auto=format&fit=crop&fm=jpg&q=80&w=2200") center/cover no-repeat;
+    radial-gradient(1100px 560px at 12% -8%, rgba(var(--his-primary-rgb), 0.16), transparent 62%),
+    radial-gradient(980px 500px at 92% 6%, rgba(var(--his-primary-rgb), 0.10), transparent 68%),
+    radial-gradient(640px 320px at 52% 100%, rgba(var(--his-primary-rgb), 0.08), transparent 72%),
+    linear-gradient(180deg, var(--his-bg) 0%, var(--his-bg-2) 100%);
   position: relative;
   overflow: hidden;
 }
@@ -297,21 +294,21 @@ async function handleForget() {
   width: 560px;
   height: 560px;
   border-radius: 50%;
-  opacity: 0.26;
+  opacity: 0.2;
   pointer-events: none;
-  filter: blur(12px);
+  filter: blur(20px);
 }
 
 .login-container::before {
-  left: -210px;
-  top: -240px;
-  background: radial-gradient(circle at 35% 35%, rgba(47, 128, 237, 0.7), rgba(47, 128, 237, 0) 66%);
+  left: -190px;
+  top: -220px;
+  background: radial-gradient(circle at 35% 35%, rgba(var(--his-primary-rgb), 0.58), rgba(var(--his-primary-rgb), 0) 66%);
 }
 
 .login-container::after {
-  right: -250px;
-  bottom: -280px;
-  background: radial-gradient(circle at 30% 30%, rgba(106, 167, 255, 0.7), rgba(106, 167, 255, 0) 66%);
+  right: -220px;
+  bottom: -240px;
+  background: radial-gradient(circle at 30% 30%, rgba(var(--his-primary-rgb), 0.44), rgba(var(--his-primary-rgb), 0) 66%);
 }
 
 .login-topbar {
@@ -325,13 +322,13 @@ async function handleForget() {
   align-items: center;
   justify-content: space-between;
   z-index: 2;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0));
 }
 
 .topbar-brand {
   font-size: 16px;
   font-weight: 700;
-  color: #1f3b67;
+  color: var(--his-text);
 }
 
 .topbar-links {
@@ -346,28 +343,28 @@ async function handleForget() {
   height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  background: rgba(47, 128, 237, 0.10);
-  color: #2f80ed;
-  border: 1px solid rgba(47, 128, 237, 0.20);
+  background: var(--his-primary-soft);
+  color: var(--his-primary);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.22);
   font-size: 12px;
   font-weight: 600;
 }
 
 .login-card {
-  width: min(430px, 92vw);
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  width: min(408px, 92vw);
+  border-radius: 20px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
   background: linear-gradient(
     155deg,
-    rgba(255, 255, 255, 0.78) 0%,
-    rgba(255, 255, 255, 0.66) 100%
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.8) 100%
   );
   backdrop-filter: saturate(175%) blur(20px);
   box-shadow:
-    0 34px 78px rgba(15, 23, 42, 0.18),
-    0 12px 26px rgba(47, 128, 237, 0.12);
+    0 26px 60px rgba(18, 56, 38, 0.1),
+    0 12px 24px rgba(var(--his-primary-rgb), 0.14);
   position: relative;
-  padding-top: 62px;
+  padding-top: 58px;
   overflow: visible;
 }
 
@@ -375,7 +372,7 @@ async function handleForget() {
   content: "";
   position: absolute;
   inset: -1px;
-  border-radius: 18px;
+  border-radius: 20px;
   pointer-events: none;
   background: linear-gradient(
     145deg,
@@ -390,12 +387,12 @@ async function handleForget() {
   left: 16px;
   right: 16px;
   top: 0;
-  transform: translateY(-40%);
-  min-height: 88px;
+  transform: translateY(-36%);
+  min-height: 82px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #3d8ff4, #2f80ed 58%, #2a6ed1);
+  background: linear-gradient(135deg, var(--his-primary), var(--his-accent));
   color: #fff;
-  box-shadow: 0 14px 30px rgba(47, 128, 237, 0.28);
+  box-shadow: 0 14px 30px rgba(var(--his-primary-rgb), 0.30);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -406,26 +403,28 @@ async function handleForget() {
 
 .login-cap h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.1;
   letter-spacing: 0.3px;
 }
 
 .login-cap p {
   margin: 8px 0 0;
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.9;
 }
 
 .card-content {
-  padding: 16px 22px 22px;
+  padding: 14px 20px 18px;
   position: relative;
   z-index: 1;
+  max-height: calc(100vh - 240px);
+  overflow: auto;
 }
 
 .login-form :deep(.el-form-item),
 .register-form :deep(.el-form-item) {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .login-form :deep(.el-form-item__label) {
@@ -438,8 +437,8 @@ async function handleForget() {
 
 .login-form :deep(.el-input__wrapper),
 .register-form :deep(.el-input__wrapper) {
-  border-radius: 11px;
-  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.30) inset;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(18, 56, 38, 0.14) inset;
   background: rgba(255, 255, 255, 0.84);
   transition: box-shadow 0.2s ease, background-color 0.2s ease;
 }
@@ -447,11 +446,11 @@ async function handleForget() {
 .login-form :deep(.el-input__wrapper.is-focus),
 .register-form :deep(.el-input__wrapper.is-focus) {
   background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 0 0 1.5px rgba(47, 128, 237, 0.42) inset;
+  box-shadow: 0 0 0 1.5px rgba(var(--his-primary-rgb), 0.45) inset;
 }
 
 .login-form :deep(.el-input__wrapper) {
-  height: 48px;
+  height: 46px;
 }
 
 .register-form :deep(.el-input-number) {
@@ -460,19 +459,19 @@ async function handleForget() {
 
 .submit-btn {
   width: 100%;
-  height: 48px;
-  border-radius: 11px;
+  height: 46px;
+  border-radius: 12px;
   border: none;
   font-weight: 700;
-  background: linear-gradient(135deg, #3d8ff4, #2f80ed 58%, #2a6ed1);
-  box-shadow: 0 10px 22px rgba(47, 128, 237, 0.28);
+  background: linear-gradient(135deg, var(--his-primary), var(--his-accent));
+  box-shadow: 0 10px 22px rgba(var(--his-primary-rgb), 0.30);
   transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
 }
 
 .submit-btn:hover {
-  filter: brightness(1.04);
+  filter: brightness(1.03);
   transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(47, 128, 237, 0.34);
+  box-shadow: 0 12px 24px rgba(var(--his-primary-rgb), 0.34);
 }
 
 .link-row {
@@ -488,7 +487,7 @@ async function handleForget() {
   right: 0;
   bottom: 12px;
   text-align: center;
-  color: rgba(31, 59, 103, 0.64);
+  color: var(--his-text-2);
   font-size: 12px;
   z-index: 2;
 }

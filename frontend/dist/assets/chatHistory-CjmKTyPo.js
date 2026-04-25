@@ -1,0 +1,1 @@
+import{Q as a,R as s,W as e}from"./index-D-hVXVnP.js";function o(t){return a("/chat-history/list",{chatType:t})}function c(t){return s("/chat-history/save-batch",t)}function n(t){return e("/chat-history/clear?chatType="+encodeURIComponent(t))}export{n as c,o as g,c as s};
