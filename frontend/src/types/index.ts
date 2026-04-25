@@ -181,11 +181,22 @@ export interface AiRecommendDto {
 export interface AppointmentRecommendation {
   department: string
   departmentId?: number
-  doctor: string
+  doctor?: string
   doctorId?: number
   recommendedTime?: string
   recommendedDate?: string
   reason: string
+  availableDoctors?: DoctorWithSchedule[]
+  needChooseDoctor?: boolean
+}
+
+/** 医生及其可用排班（导诊推荐返回） */
+export interface DoctorWithSchedule {
+  doctorId: number
+  doctorName: string
+  title: string
+  specialty: string
+  schedules: DoctorSchedule[]
 }
 
 /** 导诊对话消息 */
@@ -205,7 +216,6 @@ export interface TriageChatResponse {
   reply: string
   completed: boolean
   recommendation?: AppointmentRecommendation
-  availableSchedules?: DoctorSchedule[]
 }
 
 /** 排班查询参数 */

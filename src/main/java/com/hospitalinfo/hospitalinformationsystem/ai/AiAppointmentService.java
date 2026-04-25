@@ -1,9 +1,10 @@
 package com.hospitalinfo.hospitalinformationsystem.ai;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hospitalinfo.hospitalinformationsystem.config.CacheConfig;
 import com.hospitalinfo.hospitalinformationsystem.dto.AppointmentRecommendation;
 import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
+import com.hospitalinfo.hospitalinformationsystem.dto.DoctorWithScheduleDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.TriageChatResponse;
 import com.hospitalinfo.hospitalinformationsystem.entity.Department;
 import com.hospitalinfo.hospitalinformationsystem.entity.Doctor;
@@ -15,16 +16,17 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
  * AI智能预约服务
- * 基于LangChain4j + Qwen，根据症状推荐科室、医生、时间段，并支持直接预约
+ * 基于LangChain4j + Qwen，根据症状推荐科室，查询该科室可用医生和排班，供患者选择
  */
 @Slf4j
 @Component
@@ -37,35 +39,30 @@ public class AiAppointmentService {
     private final DoctorScheduleMapper doctorScheduleMapper;
     private final ObjectMapper objectMapper;
 
-    private static final String SYSTEM_PROMPT = """
-            你是一个专业的医疗导诊AI助手。根据用户描述的症状，从可用的排班中推荐最合适的科室、医生和就诊时间段。
+    /** AI只推荐科室的Prompt（不指定医生，避免AI幻觉） */
+    private static final String DEPARTMENT_RECOMMEND_PROMPT = """
+            你是一个专业的医疗导诊AI助手。根据用户描述的症状，推荐最合适的科室。
 
             你必须严格按照以下JSON格式返回结果，不要包含任何其他文字说明：
             {
                 "department": "推荐科室名称",
-                "doctor": "推荐医生姓名",
-                "recommendedDate": "推荐日期(格式:2024-01-15，必须从可用排班中选择)",
-                "recommendedTime": "推荐时间段(格式:09:00-10:00，必须从可用排班中选择)",
-                "reason": "推荐理由"
+                "reason": "推荐理由（包含症状分析和科室选择原因）"
             }
 
             重要注意事项：
             1. 科室必须从提供的科室列表中选择
-            2. 医生必须从提供的医生列表中选择，优先选择擅长领域与症状匹配的医生
-            3. 【必须】recommendedDate 必须从【可用排班】中的日期选择
-            4. 【必须】recommendedTime 必须从【可用排班】中的时间段选择
-            5. 推荐时优先选择余号较多的时间段
-            6. 推荐理由应包含症状分析、医生擅长领域匹配、以及选择的排班信息
+            2. 只需要推荐科室，不需要推荐具体医生（系统会自动查询该科室的可用医生）
+            3. 如果症状可能涉及多个科室，推荐最对口的那个
             """;
 
-    /** 多轮导诊对话的System Prompt */
+    /** 多轮导诊对话的System Prompt（对话式，AI直接推荐科室） */
     private static final String TRIAGE_CHAT_SYSTEM_PROMPT = """
-            你是一个专业、友好的医疗导诊AI助手。你的任务是通过对话逐步了解患者的症状和就诊时间偏好，然后为其推荐最合适的科室、医生和就诊时间。
+            你是一个专业、友好的医疗导诊AI助手。你的任务是通过对话逐步了解患者的症状和就诊时间偏好，然后为其推荐最合适的科室。
 
             ## 对话流程规则：
             1. **第一步：询问症状** - 如果患者还没有描述症状，请温和地询问其症状。如果患者已经描述了症状，可以适当追问细节（如持续时间、严重程度、伴随症状等），但不要过于啰嗦。
             2. **第二步：询问时间偏好** - 在了解症状后，询问患者希望什么时间段就诊（如上午/下午、具体日期等）。
-            3. **第三步：给出推荐** - 当症状和时间偏好都收集完毕后，进行导诊推荐。
+            3. **第三步：给出推荐** - 当症状和时间偏好都收集完毕后，用亲切自然的语气向患者推荐科室，并说明推荐理由。
 
             ## 回复格式规则：
             你必须在每次回复的最后附上一个JSON块来指示对话状态，格式如下：
@@ -75,235 +72,200 @@ public class AiAppointmentService {
             {"completed": false}
             ```
 
-            当信息已收集完毕，准备给出推荐时：
+            当信息已收集完毕，已经向患者推荐了科室时：
             ```json
-            {"completed": true}
+            {"completed": true, "department": "推荐科室名称", "reason": "推荐理由"}
             ```
 
             ## 重要注意事项：
             - 语气亲切自然，像一位专业的导诊护士
             - 不要一次性问太多问题，每次只问1-2个关键问题
             - 如果患者描述的症状比较模糊，适当追问以明确
-            - 如果患者提供了足够的信息，不要再追问，直接标记为completed
-            - 你只需要负责收集信息，具体的科室和医生推荐由后台完成，你不需要在对话中推荐科室
-            - 每次回复必须以JSON块结尾，不要遗漏
+            - 如果患者提供了足够的信息，不要再追问，直接在对话中推荐科室并标记为completed
+            - 推荐科室时要用对话的语气说出来，比如"根据您的症状，我建议您挂内科"，而不是只输出JSON
+            - 科室必须从提供的科室列表中选择
+            - 只推荐科室，不推荐具体医生
+            - 每次回复必须以JSON状态块结尾，不要遗漏
             """;
 
+    // ==================== 缓存方法 ====================
+
     /**
-     * 根据症状推荐预约
+     * 缓存：查询所有启用科室
      */
-    public AppointmentRecommendation recommendBySymptom(String symptom) {
-        // 构建上下文：科室列表 + 医生列表 + 可用排班
-        String context = buildDepartmentAndDoctorContext();
-
-        String userPrompt = String.format("""
-                当前可用科室和医生信息：
-                %s
-
-                患者症状描述：%s
-
-                请推荐合适的科室、医生和就诊时间段（未来7天内的工作日）。
-                """, context, symptom);
-
-        String response = chatModel.generate(SYSTEM_PROMPT + "\n\n" + userPrompt);
-        log.info("AI预约推荐原始响应: {}", response);
-
-        return parseRecommendation(response);
+    @Cacheable(value = CacheConfig.CACHE_DEPARTMENT, key = "'all'")
+    public List<Department> getAllDepartmentsFromCache() {
+        log.info("科室缓存未命中，查询数据库");
+        return departmentMapper.selectList(
+                new QueryWrapper<Department>().eq("status", 1));
     }
 
     /**
-     * 根据AI推荐查询可用排班
+     * 缓存：查询指定科室下的所有启用医生
      */
-    public AppointmentRecommendation recommendWithSchedules(String symptom) {
-        // 先查询未来7天内所有可用的排班
+    @Cacheable(value = CacheConfig.CACHE_DOCTOR, key = "'dept:' + #departmentId")
+    public List<Doctor> getDoctorsByDepartmentFromCache(Long departmentId) {
+        log.info("医生缓存未命中，查询数据库: departmentId={}", departmentId);
+        return doctorMapper.selectList(
+                new QueryWrapper<Doctor>().eq("department_id", departmentId).eq("status", 1));
+    }
+
+    /**
+     * 缓存：查询某科室下所有医生的可用排班
+     * 缓存Key: schedule:dept:{departmentId}
+     * 注意：内部直接用mapper查医生，避免同Bean内调用@Cacheable失效
+     */
+    @Cacheable(value = CacheConfig.CACHE_SCHEDULE, key = "'dept:' + #departmentId")
+    public List<DoctorSchedule> getDepartmentSchedulesFromCache(Long departmentId) {
+        log.info("排班缓存未命中，查询数据库: departmentId={}", departmentId);
+        // 直接查mapper，不走缓存方法（同Bean内@Cacheable代理不生效）
+        List<Doctor> doctors = doctorMapper.selectList(
+                new QueryWrapper<Doctor>().eq("department_id", departmentId).eq("status", 1));
+        if (doctors.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> doctorIds = doctors.stream().map(Doctor::getId).toList();
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = LocalDate.now().plusDays(7);
 
-        List<DoctorSchedule> availableSchedules = doctorScheduleMapper.selectList(
+        List<DoctorSchedule> schedules = doctorScheduleMapper.selectList(
                 new QueryWrapper<DoctorSchedule>()
+                        .in("doctor_id", doctorIds)
                         .ge("schedule_date", startDate)
                         .le("schedule_date", endDate)
                         .eq("status", 1)
                         .orderByAsc("schedule_date", "time_slot"));
 
-        // 过滤出未约满的排班
-        List<DoctorSchedule> availableSlots = availableSchedules.stream()
+        // 过滤未约满的排班
+        return schedules.stream()
                 .filter(s -> s.getBookedCount() < s.getMaxPatients())
-                .toList();
+                .collect(Collectors.toList());
+    }
 
-        if (availableSlots.isEmpty()) {
-            AppointmentRecommendation fallback = new AppointmentRecommendation();
-            fallback.setDepartment("全科");
-            fallback.setDoctor("请前往导诊台咨询");
-            fallback.setReason("未来7天内暂无可用排班，建议稍后重试或前往导诊台咨询");
-            return fallback;
-        }
+    // ==================== 核心推荐方法 ====================
 
-        // 构建上下文：科室列表 + 医生列表 + 可用排班
-        String context = buildDepartmentDoctorAndScheduleContext(availableSlots);
+    /**
+     * 根据症状推荐预约（旧接口，兼容保留）
+     */
+    public AppointmentRecommendation recommendBySymptom(String symptom) {
+        return recommendWithSchedules(symptom);
+    }
 
-        String userPrompt = String.format("""
-                当前可用科室、医生和排班信息：
+    /**
+     * 核心推荐流程（三步走 + Redis缓存）：
+     * 第一步：AI只推荐科室（不指定医生，避免幻觉）
+     * 第二步：从缓存查该科室下所有医生及其排班
+     * 第三步：构建可选医生列表返回，让患者选择
+     */
+    public AppointmentRecommendation recommendWithSchedules(String symptom) {
+        // ===== 第一步：AI推荐科室（不指定医生）=====
+        List<Department> allDepts = getAllDepartmentsFromCache();
+        String deptContext = buildDepartmentContext(allDepts);
+
+        String deptPrompt = String.format("""
+                当前医院可用的科室列表：
                 %s
 
                 患者症状描述：%s
 
-                请根据可用排班，推荐合适的科室、医生和就诊时间段。
-                注意：必须从上述可用排班中选择推荐的时间和日期。
-                """, context, symptom);
+                请推荐最合适的科室。
+                """, deptContext, symptom);
 
-        String response = chatModel.generate(SYSTEM_PROMPT + "\n\n" + userPrompt);
-        log.info("AI预约推荐原始响应: {}", response);
+        String deptResponse = chatModel.generate(DEPARTMENT_RECOMMEND_PROMPT + "\n\n" + deptPrompt);
+        log.info("AI科室推荐原始响应: {}", deptResponse);
 
-        AppointmentRecommendation recommendation = parseRecommendation(response);
-
-        // 根据AI推荐的结果查询对应的ID
-        Department department = departmentMapper.selectOne(
-                new QueryWrapper<Department>().eq("name", recommendation.getDepartment()).eq("status", 1));
-
-        Doctor doctor = doctorMapper.selectOne(
-                new QueryWrapper<Doctor>().eq("name", recommendation.getDoctor())
-                        .eq("status", 1)
-                        .eq("department_id", department != null ? department.getId() : null));
-
-        if (department != null) {
-            recommendation.setDepartmentId(department.getId());
-        }
-        if (doctor != null) {
-            recommendation.setDoctorId(doctor.getId());
+        // 解析推荐科室
+        String recommendedDept = null;
+        String recommendReason = "";
+        try {
+            var jsonNode = objectMapper.readTree(extractJson(deptResponse));
+            if (jsonNode.has("department")) recommendedDept = jsonNode.get("department").asText();
+            if (jsonNode.has("reason")) recommendReason = jsonNode.get("reason").asText();
+        } catch (Exception e) {
+            log.error("解析科室推荐结果失败: {}", e.getMessage());
+            return buildFallbackRecommendation("AI推荐解析异常，建议前往导诊台");
         }
 
-        // 查询该医生在推荐日期的所有可用排班
-        if (doctor != null && recommendation.getRecommendedDate() != null) {
-            LocalDate appointmentDate = LocalDate.parse(recommendation.getRecommendedDate());
-            List<DoctorSchedule> doctorSchedules = availableSlots.stream()
-                    .filter(s -> s.getDoctorId().equals(doctor.getId()) &&
-                            s.getScheduleDate().equals(appointmentDate))
+        // 匹配科室
+        Department department = matchDepartment(allDepts, recommendedDept);
+
+        if (department == null) {
+            return buildFallbackRecommendation("未找到推荐科室「" + recommendedDept + "」，请前往导诊台咨询");
+        }
+
+        // ===== 第二步：从缓存查该科室下的医生和排班 =====
+        List<Doctor> doctors = getDoctorsByDepartmentFromCache(department.getId());
+        List<DoctorSchedule> allSchedules = getDepartmentSchedulesFromCache(department.getId());
+
+        // ===== 第三步：构建可选医生列表 =====
+        List<DoctorWithScheduleDto> availableDoctors = new ArrayList<>();
+        for (Doctor doc : doctors) {
+            List<DoctorSchedule> docSchedules = allSchedules.stream()
+                    .filter(s -> s.getDoctorId().equals(doc.getId()))
                     .toList();
 
-            if (doctorSchedules.isEmpty()) {
-                // AI推荐的日期无排班，查询该医生所有可用排班
-                doctorSchedules = availableSlots.stream()
-                        .filter(s -> s.getDoctorId().equals(doctor.getId()))
-                        .toList();
-
-                if (!doctorSchedules.isEmpty()) {
-                    // 使用该医生的第一个可用排班
-                    DoctorSchedule firstAvailable = doctorSchedules.get(0);
-                    recommendation.setRecommendedDate(firstAvailable.getScheduleDate().toString());
-                    recommendation.setRecommendedTime(firstAvailable.getTimeSlot());
-                    recommendation.setReason(recommendation.getReason() +
-                            String.format("\nAI推荐日期无排班，已为您调整为最近可用日期：%s %s",
-                                    firstAvailable.getScheduleDate(), firstAvailable.getTimeSlot()));
+            if (!docSchedules.isEmpty()) {
+                // 填充排班中的医生名和科室名
+                for (DoctorSchedule schedule : docSchedules) {
+                    schedule.setDoctorName(doc.getName());
+                    schedule.setDepartmentName(department.getName());
                 }
-            } else {
-                // AI推荐的时间段是否可用
-                String recommendedTime = recommendation.getRecommendedTime();
-                boolean exactTimeAvailable = doctorSchedules.stream()
-                        .anyMatch(s -> s.getTimeSlot().equals(recommendedTime));
 
-                if (exactTimeAvailable) {
-                    recommendation.setReason(recommendation.getReason() +
-                            String.format("\n已为您查询到%d个可用时间段，请选择合适的时段进行预约。", doctorSchedules.size()));
-                } else {
-                    // AI推荐的时间段不可用，使用第一个可用时间段
-                    DoctorSchedule firstAvailable = doctorSchedules.get(0);
-                    recommendation.setRecommendedTime(firstAvailable.getTimeSlot());
-                    recommendation.setReason(recommendation.getReason() +
-                            String.format("\nAI推荐时间段已约满，已为您调整为：%s %s。该医生共有%d个可用时间段。",
-                                    firstAvailable.getScheduleDate(), firstAvailable.getTimeSlot(), doctorSchedules.size()));
-                }
+                DoctorWithScheduleDto dto = new DoctorWithScheduleDto();
+                dto.setDoctorId(doc.getId());
+                dto.setDoctorName(doc.getName());
+                dto.setTitle(doc.getTitle());
+                dto.setSpecialty(doc.getSpecialty());
+                dto.setSchedules(docSchedules);
+                availableDoctors.add(dto);
             }
+        }
+
+        // ===== 构建返回结果 =====
+        AppointmentRecommendation recommendation = new AppointmentRecommendation();
+        recommendation.setDepartment(department.getName());
+        recommendation.setDepartmentId(department.getId());
+        recommendation.setReason(recommendReason);
+        recommendation.setAvailableDoctors(availableDoctors);
+
+        if (availableDoctors.isEmpty()) {
+            // 该科室无可用排班
+            recommendation.setNeedChooseDoctor(false);
+            recommendation.setReason(recommendReason + "\n该科室未来7天暂无可用排班，建议稍后重试或前往导诊台咨询");
+            return recommendation;
+        }
+
+        if (availableDoctors.size() == 1) {
+            // 只有一位医生有排班，直接推荐
+            DoctorWithScheduleDto onlyDoctor = availableDoctors.get(0);
+            DoctorSchedule firstSlot = onlyDoctor.getSchedules().get(0);
+            recommendation.setDoctor(onlyDoctor.getDoctorName());
+            recommendation.setDoctorId(onlyDoctor.getDoctorId());
+            recommendation.setRecommendedDate(firstSlot.getScheduleDate().toString());
+            recommendation.setRecommendedTime(firstSlot.getTimeSlot());
+            recommendation.setNeedChooseDoctor(false);
+            recommendation.setReason(recommendReason + String.format(
+                    "\n该科室仅一位医生有排班：%s（%s），已为您选择最早时段：%s %s",
+                    onlyDoctor.getDoctorName(), onlyDoctor.getTitle(),
+                    firstSlot.getScheduleDate(), firstSlot.getTimeSlot()));
         } else {
-            recommendation.setReason(recommendation.getReason() +
-                    "\n未找到推荐的医生或日期，请手动选择其他医生。");
+            // 多位医生可选，让患者选择
+            recommendation.setNeedChooseDoctor(true);
+            StringBuilder reasonBuilder = new StringBuilder(recommendReason);
+            reasonBuilder.append("\n该科室以下医生有可用排班，请选择：");
+            for (DoctorWithScheduleDto doc : availableDoctors) {
+                reasonBuilder.append(String.format("\n- %s（%s，擅长：%s），%d个可用时段",
+                        doc.getDoctorName(), doc.getTitle(), doc.getSpecialty(),
+                        doc.getSchedules().size()));
+            }
+            recommendation.setReason(reasonBuilder.toString());
         }
 
         return recommendation;
     }
 
-    /**
-     * 构建科室+医生+可用排班上下文
-     */
-    private String buildDepartmentDoctorAndScheduleContext(List<DoctorSchedule> availableSchedules) {
-        List<Department> departments = departmentMapper.selectList(
-                new QueryWrapper<Department>().eq("status", 1));
-        List<Doctor> doctors = doctorMapper.selectList(
-                new QueryWrapper<Doctor>().eq("status", 1));
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("【科室列表】\n");
-        for (Department dept : departments) {
-            sb.append("- ").append(dept.getName()).append(": ").append(dept.getDescription()).append("\n");
-        }
-
-        sb.append("\n【医生列表】\n");
-        for (Doctor doc : doctors) {
-            String deptName = departments.stream()
-                    .filter(d -> d.getId().equals(doc.getDepartmentId()))
-                    .map(Department::getName)
-                    .findFirst().orElse("未知科室");
-            sb.append("- ").append(doc.getName())
-              .append(" | 科室: ").append(deptName)
-              .append(" | 职称: ").append(doc.getTitle())
-              .append(" | 擅长: ").append(doc.getSpecialty())
-              .append("\n");
-        }
-
-        sb.append("\n【可用排班】\n");
-        for (DoctorSchedule schedule : availableSchedules) {
-            Doctor doctor = doctors.stream()
-                    .filter(d -> d.getId().equals(schedule.getDoctorId()))
-                    .findFirst().orElse(null);
-
-            if (doctor != null) {
-                Department dept = departments.stream()
-                        .filter(d -> d.getId().equals(doctor.getDepartmentId()))
-                        .findFirst().orElse(null);
-
-                String deptName = dept != null ? dept.getName() : "未知";
-                int availableSlots = schedule.getMaxPatients() - schedule.getBookedCount();
-
-                sb.append(String.format("- 日期:%s | 医生:%s(%s) | 时段:%s | 余号:%d\n",
-                        schedule.getScheduleDate(),
-                        doctor.getName(),
-                        deptName,
-                        schedule.getTimeSlot(),
-                        availableSlots));
-            }
-        }
-
-        return sb.toString();
-    }
-
-    /**
-     * 构建科室+医生上下文（用于RAG替代方案）
-     */
-    private String buildDepartmentAndDoctorContext() {
-        List<Department> departments = departmentMapper.selectList(
-                new QueryWrapper<Department>().eq("status", 1));
-        List<Doctor> doctors = doctorMapper.selectList(
-                new QueryWrapper<Doctor>().eq("status", 1));
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("【科室列表】\n");
-        for (Department dept : departments) {
-            sb.append("- ").append(dept.getName()).append(": ").append(dept.getDescription()).append("\n");
-        }
-        sb.append("\n【医生列表】\n");
-        for (Doctor doc : doctors) {
-            String deptName = departments.stream()
-                    .filter(d -> d.getId().equals(doc.getDepartmentId()))
-                    .map(Department::getName)
-                    .findFirst().orElse("未知科室");
-            sb.append("- ").append(doc.getName())
-              .append(" | 科室: ").append(deptName)
-              .append(" | 职称: ").append(doc.getTitle())
-              .append(" | 擅长: ").append(doc.getSpecialty())
-              .append("\n");
-        }
-        return sb.toString();
-    }
+    // ==================== 多轮对话 ====================
 
     /**
      * 多轮对话式智能导诊
@@ -313,9 +275,10 @@ public class AiAppointmentService {
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append(TRIAGE_CHAT_SYSTEM_PROMPT).append("\n\n");
 
-        // 添加科室和医生基础信息作为背景知识
-        String context = buildDepartmentAndDoctorContext();
-        promptBuilder.append("当前医院可用的科室和医生信息：\n").append(context).append("\n\n");
+        // 添加科室基础信息（从缓存）
+        List<Department> allDepts = getAllDepartmentsFromCache();
+        String context = buildDepartmentContext(allDepts);
+        promptBuilder.append("当前医院可用的科室信息：\n").append(context).append("\n\n");
 
         // 添加历史对话
         if (history != null && !history.isEmpty()) {
@@ -337,70 +300,188 @@ public class AiAppointmentService {
         String response = chatModel.generate(promptBuilder.toString());
         log.info("导诊对话AI原始响应: {}", response);
 
-        // 解析AI回复，提取文本部分和状态JSON
         return parseTriageChatResponse(response, userMessage, history);
     }
 
+    // ==================== 私有辅助方法 ====================
+
     /**
-     * 解析导诊对话AI的回复
+     * 构建科室上下文（从缓存获取数据）
+     */
+    private String buildDepartmentContext(List<Department> departments) {
+        StringBuilder sb = new StringBuilder();
+        for (Department dept : departments) {
+            sb.append("- ").append(dept.getName());
+            if (dept.getDescription() != null) {
+                sb.append(": ").append(dept.getDescription());
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 解析导诊对话AI的回复（对话式：直接从AI回复中提取推荐科室，无需二次AI调用）
      */
     private TriageChatResponse parseTriageChatResponse(String response, String userMessage, List<ChatMessageDto> history) {
-        // 提取completed状态
         boolean completed = false;
+        String recommendedDept = null;
+        String recommendReason = "";
         String replyText = response;
 
         try {
-            // 尝试从回复末尾提取JSON状态块
-            if (response.contains("```json")) {
-                int lastJsonBlock = response.lastIndexOf("```json");
-                String jsonPart = response.substring(lastJsonBlock + 7);
-                jsonPart = jsonPart.substring(0, jsonPart.indexOf("```")).trim();
-
-                var statusNode = objectMapper.readTree(jsonPart);
+            String jsonStr = extractJson(response);
+            if (!jsonStr.isEmpty()) {
+                var statusNode = objectMapper.readTree(jsonStr);
                 if (statusNode.has("completed")) {
                     completed = statusNode.get("completed").asBoolean();
                 }
-
-                // 移除回复中的JSON块，只保留对话文本
-                replyText = response.substring(0, lastJsonBlock).trim();
-                // 也尝试移除其他位置的json块
-                replyText = replyText.replaceAll("```json\\s*\\{[^}]*}\\s*```", "").trim();
-            } else if (response.contains("```")) {
-                int lastBlock = response.lastIndexOf("```");
-                String blockContent = response.substring(response.lastIndexOf("```", lastBlock - 1) + 3, lastBlock).trim();
-
-                try {
-                    var statusNode = objectMapper.readTree(blockContent);
-                    if (statusNode.has("completed")) {
-                        completed = statusNode.get("completed").asBoolean();
-                    }
-                } catch (Exception ignored) {}
-
-                replyText = response.substring(0, response.lastIndexOf("```", lastBlock - 1)).trim();
-                replyText = replyText.replaceAll("```\\s*\\{[^}]*}\\s*```", "").trim();
+                if (completed) {
+                    if (statusNode.has("department")) recommendedDept = statusNode.get("department").asText();
+                    if (statusNode.has("reason")) recommendReason = statusNode.get("reason").asText();
+                }
             }
+
+            // 去掉JSON块，只保留对话文本
+            replyText = removeJsonBlocks(response);
         } catch (Exception e) {
             log.warn("解析导诊对话状态失败，默认为未完成: {}", e.getMessage());
         }
 
-        // 清理回复文本中可能残留的JSON标记
-        replyText = replyText.replaceAll("```\\w*\\s*", "").trim();
-        if (replyText.endsWith("```")) {
-            replyText = replyText.substring(0, replyText.length() - 3).trim();
-        }
-
         if (!completed) {
-            // 还在收集信息，返回对话
             return TriageChatResponse.ongoing(replyText);
         }
 
-        // 信息收集完毕，进行导诊推荐
-        // 构建完整的症状描述（包含历史对话中的关键信息）
-        String fullSymptom = buildFullSymptomFromHistory(userMessage, history);
-        log.info("导诊对话完成，综合症状描述: {}", fullSymptom);
+        // 对话完成：从AI回复中提取科室，查库构建推荐结果（无需二次AI调用）
+        log.info("导诊对话完成，AI推荐科室: {}, 理由: {}", recommendedDept, recommendReason);
 
-        AppointmentRecommendation recommendation = recommendWithSchedules(fullSymptom);
+        if (recommendedDept == null || recommendedDept.isEmpty()) {
+            // AI未返回科室，用对话内容作为症状兜底走单次推荐
+            String fullSymptom = buildFullSymptomFromHistory(userMessage, history);
+            log.warn("对话完成但AI未返回科室，用症状兜底推荐: {}", fullSymptom);
+            AppointmentRecommendation recommendation = recommendWithSchedules(fullSymptom);
+            return TriageChatResponse.completed(replyText, recommendation);
+        }
+
+        AppointmentRecommendation recommendation = buildRecommendationByDepartment(recommendedDept, recommendReason);
         return TriageChatResponse.completed(replyText, recommendation);
+    }
+
+    /**
+     * 根据科室名称构建推荐结果（从缓存查医生+排班，不需要AI调用）
+     */
+    private AppointmentRecommendation buildRecommendationByDepartment(String deptName, String reason) {
+        List<Department> allDepts = getAllDepartmentsFromCache();
+
+        Department department = matchDepartment(allDepts, deptName);
+
+        if (department == null) {
+            return buildFallbackRecommendation("未找到推荐科室「" + deptName + "」，请前往导诊台咨询");
+        }
+
+        // 从缓存查医生和排班
+        List<Doctor> doctors = getDoctorsByDepartmentFromCache(department.getId());
+        List<DoctorSchedule> allSchedules = getDepartmentSchedulesFromCache(department.getId());
+
+        // 构建可选医生列表
+        List<DoctorWithScheduleDto> availableDoctors = new ArrayList<>();
+        for (Doctor doc : doctors) {
+            List<DoctorSchedule> docSchedules = allSchedules.stream()
+                    .filter(s -> s.getDoctorId().equals(doc.getId()))
+                    .toList();
+
+            if (!docSchedules.isEmpty()) {
+                for (DoctorSchedule schedule : docSchedules) {
+                    schedule.setDoctorName(doc.getName());
+                    schedule.setDepartmentName(department.getName());
+                }
+
+                DoctorWithScheduleDto dto = new DoctorWithScheduleDto();
+                dto.setDoctorId(doc.getId());
+                dto.setDoctorName(doc.getName());
+                dto.setTitle(doc.getTitle());
+                dto.setSpecialty(doc.getSpecialty());
+                dto.setSchedules(docSchedules);
+                availableDoctors.add(dto);
+            }
+        }
+
+        // 构建返回结果
+        AppointmentRecommendation recommendation = new AppointmentRecommendation();
+        recommendation.setDepartment(department.getName());
+        recommendation.setDepartmentId(department.getId());
+        recommendation.setReason(reason);
+        recommendation.setAvailableDoctors(availableDoctors);
+
+        if (availableDoctors.isEmpty()) {
+            recommendation.setNeedChooseDoctor(false);
+            recommendation.setReason(reason + "\n该科室未来7天暂无可用排班，建议稍后重试或前往导诊台咨询");
+            return recommendation;
+        }
+
+        if (availableDoctors.size() == 1) {
+            DoctorWithScheduleDto onlyDoctor = availableDoctors.get(0);
+            DoctorSchedule firstSlot = onlyDoctor.getSchedules().get(0);
+            recommendation.setDoctor(onlyDoctor.getDoctorName());
+            recommendation.setDoctorId(onlyDoctor.getDoctorId());
+            recommendation.setRecommendedDate(firstSlot.getScheduleDate().toString());
+            recommendation.setRecommendedTime(firstSlot.getTimeSlot());
+            recommendation.setNeedChooseDoctor(false);
+            recommendation.setReason(reason + String.format(
+                    "\n该科室仅一位医生有排班：%s（%s），已为您选择最早时段：%s %s",
+                    onlyDoctor.getDoctorName(), onlyDoctor.getTitle(),
+                    firstSlot.getScheduleDate(), firstSlot.getTimeSlot()));
+        } else {
+            recommendation.setNeedChooseDoctor(true);
+            StringBuilder reasonBuilder = new StringBuilder(reason);
+            reasonBuilder.append("\n该科室以下医生有可用排班，请选择：");
+            for (DoctorWithScheduleDto doc : availableDoctors) {
+                reasonBuilder.append(String.format("\n- %s（%s，擅长：%s），%d个可用时段",
+                        doc.getDoctorName(), doc.getTitle(), doc.getSpecialty(),
+                        doc.getSchedules().size()));
+            }
+            recommendation.setReason(reasonBuilder.toString());
+        }
+
+        return recommendation;
+    }
+
+    /**
+     * 从AI回复中去除JSON代码块，只保留对话文本
+     */
+    private String removeJsonBlocks(String response) {
+        String text = response;
+        // 去掉 ```json ... ``` 块
+        text = text.replaceAll("```json\\s*\\{[^}]*}\\s*```", "").trim();
+        // 去掉 ``` ... ``` 块
+        text = text.replaceAll("```\\s*\\{[^}]*}\\s*```", "").trim();
+        // 清理残留的 ``` 标记
+        text = text.replaceAll("```\\w*\\s*", "").trim();
+        if (text.endsWith("```")) {
+            text = text.substring(0, text.length() - 3).trim();
+        }
+        return text;
+    }
+
+    /**
+     * 匹配科室：先精确匹配，再模糊匹配
+     */
+    private Department matchDepartment(List<Department> allDepts, String deptName) {
+        // 精确匹配
+        Department result = allDepts.stream()
+                .filter(d -> d.getName().equals(deptName))
+                .findFirst()
+                .orElse(null);
+
+        // 模糊匹配
+        if (result == null) {
+            result = allDepts.stream()
+                    .filter(d -> d.getName().contains(deptName) || deptName.contains(d.getName()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        return result;
     }
 
     /**
@@ -420,29 +501,41 @@ public class AiAppointmentService {
     }
 
     /**
-     * 解析AI返回的JSON为推荐结果
+     * 构建降级推荐结果
+     */
+    private AppointmentRecommendation buildFallbackRecommendation(String reason) {
+        AppointmentRecommendation fallback = new AppointmentRecommendation();
+        fallback.setDepartment("全科");
+        fallback.setDoctor("请前往导诊台咨询");
+        fallback.setReason(reason);
+        return fallback;
+    }
+
+    /**
+     * 从AI响应中提取JSON字符串
+     */
+    private String extractJson(String response) {
+        String json = response;
+        if (response.contains("```json")) {
+            json = response.substring(response.indexOf("```json") + 7);
+            json = json.substring(0, json.indexOf("```"));
+        } else if (response.contains("```")) {
+            json = response.substring(response.indexOf("```") + 3);
+            json = json.substring(0, json.indexOf("```"));
+        }
+        return json.trim();
+    }
+
+    /**
+     * 解析AI返回的JSON为推荐结果（旧接口兼容）
      */
     private AppointmentRecommendation parseRecommendation(String response) {
         try {
-            // 提取JSON部分（AI可能返回markdown代码块包裹的JSON）
-            String json = response;
-            if (response.contains("```json")) {
-                json = response.substring(response.indexOf("```json") + 7);
-                json = json.substring(0, json.indexOf("```"));
-            } else if (response.contains("```")) {
-                json = response.substring(response.indexOf("```") + 3);
-                json = json.substring(0, json.indexOf("```"));
-            }
-            json = json.trim();
+            String json = extractJson(response);
             return objectMapper.readValue(json, AppointmentRecommendation.class);
         } catch (Exception e) {
             log.error("解析AI推荐结果失败: {}", e.getMessage());
-            AppointmentRecommendation fallback = new AppointmentRecommendation();
-            fallback.setDepartment("全科");
-            fallback.setDoctor("请前往导诊台咨询");
-            fallback.setRecommendedTime("工作日上午");
-            fallback.setReason("AI推荐解析异常，建议前往导诊台");
-            return fallback;
+            return buildFallbackRecommendation("AI推荐解析异常，建议前往导诊台");
         }
     }
 }

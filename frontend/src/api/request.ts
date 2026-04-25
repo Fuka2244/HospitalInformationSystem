@@ -9,7 +9,7 @@ export const DEV_MODE = true
 
 const instance = axios.create({
   baseURL: BASE_URL,
-  timeout: DEV_MODE ? 5000 : 30000,
+  timeout: 60000,
   withCredentials: true,
 })
 

@@ -31,6 +31,8 @@ public class CacheConfig {
     public static final String CACHE_MEDICINE = "medicine";
     public static final String CACHE_DEPARTMENT = "department";
     public static final String CACHE_PATIENT = "patient";
+    public static final String CACHE_SCHEDULE = "schedule";
+    public static final String CACHE_DOCTOR = "doctor";
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -63,6 +65,10 @@ public class CacheConfig {
         cacheConfigurations.put(CACHE_DEPARTMENT, defaultConfig.entryTtl(Duration.ofHours(1)));
         // 患者信息：10分钟
         cacheConfigurations.put(CACHE_PATIENT, defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        // 排班数据：3分钟（号源变化较快，需短TTL）
+        cacheConfigurations.put(CACHE_SCHEDULE, defaultConfig.entryTtl(Duration.ofMinutes(3)));
+        // 医生数据：30分钟（相对稳定，科室变动时才变）
+        cacheConfigurations.put(CACHE_DOCTOR, defaultConfig.entryTtl(Duration.ofMinutes(30)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

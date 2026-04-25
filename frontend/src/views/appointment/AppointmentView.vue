@@ -59,32 +59,56 @@
               <el-descriptions-item label="推荐科室">
                 <el-tag type="success">{{ recommendation.department }}</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="推荐医生">{{ recommendation.doctor }}</el-descriptions-item>
-              <el-descriptions-item label="推荐日期">{{ recommendation.recommendedDate }}</el-descriptions-item>
-              <el-descriptions-item label="推荐时段">{{ recommendation.recommendedTime }}</el-descriptions-item>
               <el-descriptions-item label="推荐理由">{{ recommendation.reason }}</el-descriptions-item>
             </el-descriptions>
 
-            <!-- 可用排班列表 -->
-            <el-divider>可用时间段</el-divider>
-            <div v-if="aiAvailableSchedules.length > 0" class="schedule-list">
-              <div
-                v-for="schedule in aiAvailableSchedules"
-                :key="schedule.id"
-                class="schedule-item"
-                :class="{ selected: selectedSchedule?.id === schedule.id }"
-                @click="selectSchedule(schedule)"
-              >
-                <div class="schedule-time">{{ schedule.timeSlot }}</div>
-                <div class="schedule-info">余号: {{ schedule.maxPatients - schedule.bookedCount }}</div>
+            <!-- 医生选择区域（needChooseDoctor=true 或 availableDoctors 有多个） -->
+            <template v-if="recommendation.availableDoctors && recommendation.availableDoctors.length > 0">
+              <el-divider>选择医生</el-divider>
+              <div class="doctor-select-list">
+                <div
+                  v-for="doc in recommendation.availableDoctors"
+                  :key="doc.doctorId"
+                  class="doctor-select-card"
+                  :class="{ selected: selectedDoctorForBooking?.doctorId === doc.doctorId }"
+                  @click="selectedDoctorForBooking = doc; selectedSlotForBooking = null"
+                >
+                  <div class="doctor-select-name">{{ doc.doctorName }}</div>
+                  <div class="doctor-select-meta">
+                    <el-tag size="small" type="primary">{{ doc.title }}</el-tag>
+                    <span class="doctor-select-specialty">擅长：{{ doc.specialty }}</span>
+                  </div>
+                  <div class="doctor-select-count">{{ doc.schedules.length }}个可用时段</div>
+                </div>
               </div>
-              <el-button type="primary" :disabled="!selectedSchedule" style="width: 100%; margin-top: 12px" @click="handleAiBook">
-                确认预约
-              </el-button>
-            </div>
-            <div v-else class="no-schedule">
-              <el-text type="info">该医生在推荐日期无可用排班，建议选择其他日期或医生</el-text>
-            </div>
+
+              <!-- 选中医生后的排班选择 -->
+              <template v-if="selectedDoctorForBooking">
+                <el-divider>选择就诊时段</el-divider>
+                <div class="schedule-list">
+                  <div
+                    v-for="schedule in selectedDoctorForBooking.schedules"
+                    :key="schedule.id"
+                    class="schedule-item"
+                    :class="{ selected: selectedSlotForBooking?.id === schedule.id }"
+                    @click="selectedSlotForBooking = schedule"
+                  >
+                    <div class="schedule-date">{{ schedule.scheduleDate }}</div>
+                    <div class="schedule-time">{{ schedule.timeSlot }}</div>
+                    <div class="schedule-info">余号: {{ schedule.maxPatients - schedule.bookedCount }}</div>
+                  </div>
+                  <el-button type="primary" :disabled="!selectedSlotForBooking" style="width: 100%; margin-top: 12px" @click="handleAiBook">
+                    确认预约
+                  </el-button>
+                </div>
+              </template>
+            </template>
+            <template v-else>
+              <el-divider>可用时间段</el-divider>
+              <div class="no-schedule">
+                <el-text type="info">该科室未来7天暂无可用排班，建议稍后重试或前往导诊台咨询</el-text>
+              </div>
+            </template>
           </div>
 
           <!-- 输入框 -->
@@ -312,7 +336,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAppointmentStore } from '@/stores/appointment'
 import { getDepartmentList, getDoctorList } from '@/api/department'
 import { getChatHistory, saveChatMessages, clearChatHistory } from '@/api/chatHistory'
-import type { Appointment, AppointmentCreateDto, AppointmentRecommendation, ChatMessageDto, Department, Doctor, DoctorSchedule } from '@/types'
+import type { Appointment, AppointmentCreateDto, AppointmentRecommendation, ChatMessageDto, Department, Doctor, DoctorSchedule, DoctorWithSchedule } from '@/types'
 
 const CHAT_TYPE = 'TRIAGE'
 
@@ -324,8 +348,6 @@ const cancelLoading = ref(false)
 const cancelReason = ref('')
 const cancelTarget = ref<Appointment | null>(null)
 const recommendation = ref<AppointmentRecommendation | null>(null)
-const selectedSchedule = ref<DoctorSchedule | null>(null)
-const aiAvailableSchedules = ref<DoctorSchedule[]>([])
 const departments = ref<Department[]>([])
 const allDoctors = ref<Doctor[]>([])
 
@@ -339,6 +361,10 @@ const chatLoading = ref(false)
 const chatCompleted = ref(false)
 const chatMessagesRef = ref<HTMLElement | null>(null)
 const chatHistoryLoaded = ref(false)
+
+// AI推荐后的医生选择状态
+const selectedDoctorForBooking = ref<DoctorWithSchedule | null>(null)
+const selectedSlotForBooking = ref<DoctorSchedule | null>(null)
 
 // 筛选状态
 const filterDepartment = ref<number | undefined>(undefined)
@@ -443,7 +469,10 @@ async function sendChatMessage() {
     if (res.completed) {
       chatCompleted.value = true
       recommendation.value = res.recommendation || null
-      aiAvailableSchedules.value = res.availableSchedules || []
+      // 如果只有一位医生有排班，自动选中
+      if (recommendation.value?.availableDoctors?.length === 1) {
+        selectedDoctorForBooking.value = recommendation.value.availableDoctors[0]
+      }
     }
   } catch (error) {
     ElMessage.error('AI导诊服务暂时不可用，请稍后重试')
@@ -463,8 +492,8 @@ function resetChat() {
   chatLoading.value = false
   chatCompleted.value = false
   recommendation.value = null
-  selectedSchedule.value = null
-  aiAvailableSchedules.value = []
+  selectedDoctorForBooking.value = null
+  selectedSlotForBooking.value = null
   // 清除后端聊天历史
   clearChatHistory(CHAT_TYPE).catch(() => {})
 }
@@ -529,22 +558,18 @@ function confirmSchedule() {
   showScheduleDialog.value = false
 }
 
-function selectSchedule(schedule: DoctorSchedule) {
-  selectedSchedule.value = schedule
-}
-
 async function handleAiBook() {
-  if (!selectedSchedule.value || !recommendation.value) {
+  if (!selectedSlotForBooking.value || !recommendation.value) {
     return
   }
 
   const createDto: AppointmentCreateDto = {
     departmentId: recommendation.value.departmentId!,
-    doctorId: recommendation.value.doctorId!,
+    doctorId: selectedSlotForBooking.value.doctorId,
     appointmentType: 'DOCTOR',
     examinationType: undefined,
-    appointmentDate: selectedSchedule.value.scheduleDate,
-    timeSlot: selectedSchedule.value.timeSlot,
+    appointmentDate: selectedSlotForBooking.value.scheduleDate,
+    timeSlot: selectedSlotForBooking.value.timeSlot,
   }
 
   try {
@@ -1071,8 +1096,8 @@ onMounted(async () => {
   cursor: pointer;
   transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
   background: rgba(15, 23, 42, 0.02);
 }
 
@@ -1092,14 +1117,83 @@ onMounted(async () => {
   color: white;
 }
 
+.schedule-item.selected .schedule-date {
+  color: white;
+}
+
+.schedule-date {
+  font-weight: 500;
+  font-size: 14px;
+  color: #606266;
+  white-space: nowrap;
+}
+
 .schedule-time {
   font-weight: bold;
   font-size: 16px;
+  flex: 1;
 }
 
 .schedule-info {
   font-size: 14px;
   color: #909399;
+  white-space: nowrap;
+}
+
+/* 医生选择列表 */
+.doctor-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.doctor-select-card {
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.doctor-select-card:hover {
+  border-color: rgba(47, 128, 237, 0.20);
+  background: rgba(47, 128, 237, 0.06);
+  transform: translateY(-1px);
+}
+
+.doctor-select-card.selected {
+  border-color: rgba(47, 128, 237, 0.25);
+  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
+  color: white;
+}
+
+.doctor-select-card.selected .doctor-select-specialty,
+.doctor-select-card.selected .doctor-select-count {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.doctor-select-name {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.doctor-select-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.doctor-select-specialty {
+  font-size: 13px;
+  color: #909399;
+}
+
+.doctor-select-count {
+  font-size: 13px;
+  color: #67c23a;
 }
 
 .no-schedule {

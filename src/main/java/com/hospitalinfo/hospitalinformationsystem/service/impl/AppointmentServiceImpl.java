@@ -1,15 +1,16 @@
 package com.hospitalinfo.hospitalinformationsystem.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hospitalinfo.hospitalinformationsystem.ai.AiAppointmentService;
+import com.hospitalinfo.hospitalinformationsystem.config.CacheConfig;
 import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.entity.*;
 import com.hospitalinfo.hospitalinformationsystem.mapper.*;
 import com.hospitalinfo.hospitalinformationsystem.service.IAppointmentService;
 import com.hospitalinfo.hospitalinformationsystem.utils.RedisDistributedLock;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
     public Result createAppointment(AppointmentCreateDto dto, String patientId) {
         if (dto.getDoctorId() != null) {
             // 分布式锁：按排班维度加锁，同一排班同时只能有一个预约操作
@@ -126,6 +128,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
     public Result cancelAppointment(Long appointmentId, String cancelReason, String patientId) {
         Appointment appointment = appointmentMapper.selectById(appointmentId);
         if (appointment == null) {
@@ -155,7 +158,6 @@ public class AppointmentServiceImpl implements IAppointmentService {
                     distributedLock.unlock(lockKey, lockValue);
                 }
             } else {
-                // 获取锁失败仍执行原子递减（原子SQL本身安全，锁只是额外保障）
                 doctorScheduleMapper.decrementBookedCount(
                         appointment.getDoctorId(), appointment.getAppointmentDate(), appointment.getTimeSlot());
             }
@@ -167,12 +169,10 @@ public class AppointmentServiceImpl implements IAppointmentService {
     @Override
     @Transactional
     public Result rescheduleAppointment(Long appointmentId, AppointmentCreateDto dto, String patientId) {
-        // 先取消原预约
         Result cancelResult = cancelAppointment(appointmentId, "改期", patientId);
         if (!cancelResult.getSuccess()) {
             return cancelResult;
         }
-        // 创建新预约
         return createAppointment(dto, patientId);
     }
 
@@ -184,47 +184,8 @@ public class AppointmentServiceImpl implements IAppointmentService {
 
     @Override
     public Result aiRecommendWithSchedules(String symptom) {
-        // 获取AI推荐并查询可用排班
         AppointmentRecommendation recommendation = aiAppointmentService.recommendWithSchedules(symptom);
-
-        // 如果没有可用的医生ID，返回推荐结果
-        if (recommendation.getDoctorId() == null || recommendation.getRecommendedDate() == null) {
-            return Result.ok(recommendation);
-        }
-
-        // 查询该医生在该日期的所有可用排班
-        LocalDate appointmentDate = LocalDate.parse(recommendation.getRecommendedDate());
-        QueryWrapper<DoctorSchedule> wrapper = new QueryWrapper<DoctorSchedule>()
-                .eq("doctor_id", recommendation.getDoctorId())
-                .eq("schedule_date", appointmentDate)
-                .eq("status", 1)
-                .orderByAsc("time_slot");
-
-        List<DoctorSchedule> schedules = doctorScheduleMapper.selectList(wrapper);
-
-        // 过滤出可用的排班（未约满）
-        List<DoctorSchedule> availableSchedules = schedules.stream()
-                .filter(s -> s.getBookedCount() < s.getMaxPatients())
-                .toList();
-
-        // 填充医生名称和科室名称
-        for (DoctorSchedule schedule : availableSchedules) {
-            Doctor doctor = doctorMapper.selectById(schedule.getDoctorId());
-            if (doctor != null) {
-                schedule.setDoctorName(doctor.getName());
-                Department dept = departmentMapper.selectById(doctor.getDepartmentId());
-                if (dept != null) {
-                    schedule.setDepartmentName(dept.getName());
-                }
-            }
-        }
-
-        // 将可用排班列表放入推荐结果中
-        Map<String, Object> result = new java.util.HashMap<>();
-        result.put("recommendation", recommendation);
-        result.put("availableSchedules", availableSchedules);
-
-        return Result.ok(result);
+        return Result.ok(recommendation);
     }
 
     @Override
@@ -233,59 +194,32 @@ public class AppointmentServiceImpl implements IAppointmentService {
             return Result.fail("请输入您的消息");
         }
         TriageChatResponse chatResponse = aiAppointmentService.triageChat(message, history);
-
-        if (!chatResponse.isCompleted()) {
-            // 还在对话中，直接返回
-            return Result.ok(chatResponse);
-        }
-
-        // 对话完成，需要附带可用排班
-        AppointmentRecommendation recommendation = chatResponse.getRecommendation();
-        if (recommendation == null || recommendation.getDoctorId() == null) {
-            return Result.ok(chatResponse);
-        }
-
-        // 查询推荐医生的可用排班
-        if (recommendation.getRecommendedDate() != null) {
-            LocalDate appointmentDate = LocalDate.parse(recommendation.getRecommendedDate());
-            QueryWrapper<DoctorSchedule> wrapper = new QueryWrapper<DoctorSchedule>()
-                    .eq("doctor_id", recommendation.getDoctorId())
-                    .eq("schedule_date", appointmentDate)
-                    .eq("status", 1)
-                    .orderByAsc("time_slot");
-
-            List<DoctorSchedule> schedules = doctorScheduleMapper.selectList(wrapper);
-            List<DoctorSchedule> availableSchedules = schedules.stream()
-                    .filter(s -> s.getBookedCount() < s.getMaxPatients())
-                    .toList();
-
-            for (DoctorSchedule schedule : availableSchedules) {
-                Doctor doctor = doctorMapper.selectById(schedule.getDoctorId());
-                if (doctor != null) {
-                    schedule.setDoctorName(doctor.getName());
-                    Department dept = departmentMapper.selectById(doctor.getDepartmentId());
-                    if (dept != null) {
-                        schedule.setDepartmentName(dept.getName());
-                    }
-                }
-            }
-
-            Map<String, Object> resultData = new java.util.HashMap<>();
-            resultData.put("reply", chatResponse.getReply());
-            resultData.put("completed", true);
-            resultData.put("recommendation", recommendation);
-            resultData.put("availableSchedules", availableSchedules);
-            return Result.ok(resultData);
-        }
-
         return Result.ok(chatResponse);
     }
 
     @Override
     public Result getAvailableSchedules(Long departmentId, Long doctorId, String date) {
+        // 优先走缓存
+        if (departmentId != null && doctorId == null && (date == null || date.isEmpty())) {
+            // 查科室下所有排班（走缓存）
+            List<DoctorSchedule> schedules = aiAppointmentService.getDepartmentSchedulesFromCache(departmentId);
+            List<Doctor> doctors = aiAppointmentService.getDoctorsByDepartmentFromCache(departmentId);
+            Department dept = departmentMapper.selectById(departmentId);
+            for (DoctorSchedule schedule : schedules) {
+                doctors.stream()
+                        .filter(d -> d.getId().equals(schedule.getDoctorId()))
+                        .findFirst()
+                        .ifPresent(d -> {
+                            schedule.setDoctorName(d.getName());
+                            schedule.setDepartmentName(dept != null ? dept.getName() : "");
+                        });
+            }
+            return Result.ok(schedules);
+        }
+
+        // 其他情况直接查DB
         QueryWrapper<DoctorSchedule> wrapper = new QueryWrapper<>();
         if (departmentId != null) {
-            // 先查该科室下的医生
             List<Doctor> doctors = doctorMapper.selectList(
                     new QueryWrapper<Doctor>().eq("department_id", departmentId).eq("status", 1));
             List<Long> doctorIds = doctors.stream().map(Doctor::getId).toList();
@@ -300,7 +234,6 @@ public class AppointmentServiceImpl implements IAppointmentService {
         if (date != null && !date.isEmpty()) {
             wrapper.eq("schedule_date", LocalDate.parse(date));
         } else {
-            // 默认查未来7天
             wrapper.ge("schedule_date", LocalDate.now());
             wrapper.le("schedule_date", LocalDate.now().plusDays(7));
         }
@@ -308,7 +241,6 @@ public class AppointmentServiceImpl implements IAppointmentService {
         wrapper.orderByAsc("schedule_date", "time_slot");
 
         List<DoctorSchedule> schedules = doctorScheduleMapper.selectList(wrapper);
-        // 填充医生名称和科室名称
         for (DoctorSchedule schedule : schedules) {
             Doctor doctor = doctorMapper.selectById(schedule.getDoctorId());
             if (doctor != null) {

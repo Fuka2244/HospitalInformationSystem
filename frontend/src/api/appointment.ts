@@ -43,10 +43,7 @@ export function aiRecommendAppointment(data: AiRecommendDto) {
 
 /** AI智能预约推荐并查询可用排班 */
 export function aiRecommendWithSchedules(data: AiRecommendDto) {
-  return post<{
-    recommendation: AppointmentRecommendation
-    availableSchedules: DoctorSchedule[]
-  }>('/appointment/ai-recommend-with-schedules', data)
+  return post<AppointmentRecommendation>('/appointment/ai-recommend-with-schedules', data)
 }
 
 /** AI多轮对话式智能导诊 */
