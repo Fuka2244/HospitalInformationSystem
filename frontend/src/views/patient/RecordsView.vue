@@ -1,9 +1,12 @@
 <template>
   <div class="page records-container">
-    <div class="page-header">
-      <div>
-        <div class="page-title">病历与就诊</div>
-        <div class="page-subtitle">按科室/医生/日期快速筛选与查看病历详情</div>
+    <div class="page-header hero-header">
+      <div class="hero-left">
+        <div class="hero-title-row">
+          <el-icon class="hero-icon"><Calendar /></el-icon>
+          <span class="hero-title">病历与就诊</span>
+        </div>
+        <div class="hero-subtitle">按科室/医生/日期快速筛选与查看病历详情</div>
       </div>
     </div>
     <el-card class="records-card" shadow="hover">
@@ -88,6 +91,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Calendar } from '@element-plus/icons-vue'
 import { getVisitHistory, getMedicalRecordDetail } from '@/api/patient'
 import { getDepartmentList, getDoctorList } from '@/api/department'
 import type { VisitRecord, VisitHistoryParams, MedicalRecordDetail, Department, Doctor } from '@/types'
@@ -158,20 +162,131 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.records-card{
-  min-height: calc(100vh - var(--his-header-height) - 120px);
+.records-container {
+  position: relative;
+  min-height: calc(100vh - var(--his-header-height));
+  background:
+    radial-gradient(860px 420px at -6% -8%, rgba(var(--his-primary-rgb), 0.18), transparent 64%),
+    radial-gradient(760px 360px at 108% 0%, rgba(var(--his-primary-rgb), 0.12), transparent 68%),
+    linear-gradient(160deg, #f5fdf8 0%, #eefaf3 52%, #f8fffb 100%);
+  overflow: hidden;
 }
-.records-card :deep(.el-card__body){
-  display:flex;
+
+.records-container::before,
+.records-container::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(2px);
+}
+
+.records-container::before {
+  width: 420px;
+  height: 420px;
+  top: -160px;
+  left: -140px;
+  background: radial-gradient(circle at 30% 30%, rgba(var(--his-primary-rgb), 0.22), rgba(var(--his-primary-rgb), 0));
+}
+
+.records-container::after {
+  width: 540px;
+  height: 540px;
+  right: -240px;
+  bottom: -240px;
+  background: radial-gradient(circle at 35% 30%, rgba(var(--his-primary-rgb), 0.16), rgba(var(--his-primary-rgb), 0));
+}
+
+.records-container .page-header,
+.records-card {
+  position: relative;
+  z-index: 1;
+}
+
+.records-container .page-header {
+  margin-bottom: 16px;
+}
+
+.hero-header {
+  padding: 22px 28px;
+  border-radius: 22px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.24);
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(12px) saturate(130%);
+  box-shadow:
+    0 16px 34px rgba(18, 56, 38, 0.1),
+    0 8px 18px rgba(var(--his-primary-rgb), 0.1);
+}
+
+.hero-left {
+  min-width: 0;
+}
+
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-icon {
+  font-size: 30px;
+  color: var(--his-primary);
+}
+
+.hero-title {
+  font-size: 42px;
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: var(--his-text);
+}
+
+.hero-subtitle {
+  margin-top: 6px;
+  padding-left: 42px;
+  font-size: 14px;
+  color: var(--his-text-2);
+}
+
+.records-card {
+  min-height: calc(100vh - var(--his-header-height) - 122px);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow:
+    0 18px 40px rgba(18, 56, 38, 0.1),
+    0 10px 22px rgba(var(--his-primary-rgb), 0.08);
+}
+
+.records-card :deep(.el-card__header) {
+  border-bottom: 1px solid rgba(var(--his-primary-rgb), 0.14);
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.12), rgba(var(--his-primary-rgb), 0.04));
+}
+
+.records-card :deep(.el-card__body) {
+  display: flex;
   flex-direction: column;
   gap: 12px;
 }
-.records-card :deep(.el-table){
+
+.records-card :deep(.el-table) {
   flex: 1;
+  border-radius: 14px;
+  overflow: hidden;
 }
-.records-card :deep(.el-pagination){
+
+.records-card :deep(.el-table th.el-table__cell) {
+  background: rgba(var(--his-primary-rgb), 0.1);
+}
+
+.records-card :deep(.el-table__row:hover > td.el-table__cell) {
+  background: rgba(var(--his-primary-rgb), 0.08) !important;
+}
+
+.records-card :deep(.el-pagination) {
   margin-top: auto;
 }
+
 .header-row {
   display: flex;
   justify-content: space-between;
@@ -179,24 +294,70 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 12px;
 }
-.head-left{
-  display:flex;
-  align-items:center;
+
+.head-left {
+  display: flex;
+  align-items: center;
   gap: 10px;
   font-weight: 800;
   letter-spacing: 0.2px;
+  color: var(--his-text);
 }
-.filters{
-  display:flex;
-  align-items:center;
+
+.filters {
+  display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
+
 .filters :deep(.el-input__wrapper),
 .filters :deep(.el-select__wrapper),
-.filters :deep(.el-range-editor.el-input__wrapper){
-  background: rgba(15, 23, 42, 0.02);
-  border: 1px solid rgba(15, 23, 42, 0.08);
+.filters :deep(.el-range-editor.el-input__wrapper) {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
   box-shadow: none;
+}
+
+.filters :deep(.el-input__wrapper.is-focus),
+.filters :deep(.el-select__wrapper.is-focused),
+.filters :deep(.el-range-editor.el-input__wrapper.is-focus) {
+  border-color: rgba(var(--his-primary-rgb), 0.44);
+  box-shadow: 0 0 0 1px rgba(var(--his-primary-rgb), 0.18) inset;
+}
+
+.records-container :deep(.el-dialog) {
+  border-radius: 16px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
+  overflow: hidden;
+}
+
+.records-container :deep(.el-dialog__header) {
+  margin-bottom: 0;
+  background: linear-gradient(180deg, rgba(var(--his-primary-rgb), 0.12), rgba(255, 255, 255, 0.02));
+}
+
+@media (max-width: 768px) {
+  .hero-header {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .hero-icon {
+    font-size: 24px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-subtitle {
+    padding-left: 36px;
+    font-size: 12px;
+  }
+
+  .records-card {
+    min-height: auto;
+  }
 }
 </style>

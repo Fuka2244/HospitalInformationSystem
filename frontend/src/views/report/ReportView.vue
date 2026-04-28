@@ -1,9 +1,12 @@
 <template>
   <div class="page report-container">
-    <div class="page-header">
-      <div>
-        <div class="page-title">医疗报告</div>
-        <div class="page-subtitle">查看报告、导出 PDF，并可通过 AI 从病历生成草稿报告</div>
+    <div class="page-header hero-header">
+      <div class="hero-left">
+        <div class="hero-title-row">
+          <el-icon class="hero-icon"><Document /></el-icon>
+          <span class="hero-title">医疗报告</span>
+        </div>
+        <div class="hero-subtitle">查看报告、导出 PDF，并可通过 AI 从病历生成草稿报告</div>
       </div>
     </div>
     <el-row class="fill-row" :gutter="20">
@@ -468,33 +471,127 @@ onMounted(loadReports)
 </script>
 
 <style scoped>
-.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-.head-left{
-  display:flex;
-  align-items:center;
+.report-container {
+  position: relative;
+  min-height: calc(100vh - var(--his-header-height));
+  background:
+    radial-gradient(920px 420px at -8% -10%, rgba(var(--his-primary-rgb), 0.18), transparent 64%),
+    radial-gradient(820px 360px at 108% 4%, rgba(var(--his-primary-rgb), 0.12), transparent 68%),
+    linear-gradient(160deg, #f4fdf8 0%, #eefaf3 52%, #f8fffb 100%);
+}
+
+.report-container .page-header,
+.report-container .el-row {
+  position: relative;
+  z-index: 1;
+}
+
+.report-container :deep(.el-card) {
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow:
+    0 16px 36px rgba(18, 56, 38, 0.1),
+    0 8px 20px rgba(var(--his-primary-rgb), 0.08);
+}
+
+.hero-header {
+  margin-bottom: 16px;
+  padding: 22px 28px;
+  border-radius: 22px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.24);
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(12px) saturate(130%);
+  box-shadow:
+    0 16px 34px rgba(18, 56, 38, 0.1),
+    0 8px 18px rgba(var(--his-primary-rgb), 0.1);
+}
+
+.hero-left {
+  min-width: 0;
+}
+
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-icon {
+  font-size: 30px;
+  color: var(--his-primary);
+}
+
+.hero-title {
+  font-size: 42px;
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: var(--his-text);
+}
+
+.hero-subtitle {
+  margin-top: 6px;
+  padding-left: 42px;
+  font-size: 14px;
+  color: var(--his-text-2);
+}
+
+.report-container :deep(.el-card__header) {
+  border-bottom: 1px solid rgba(var(--his-primary-rgb), 0.14);
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.12), rgba(var(--his-primary-rgb), 0.03));
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.head-left {
+  display: flex;
+  align-items: center;
   gap: 10px;
   font-weight: 800;
   letter-spacing: 0.2px;
+  color: var(--his-text);
 }
 
-.list-card :deep(.el-card__body){
-  display:flex;
+.list-card :deep(.el-card__body) {
+  display: flex;
   flex-direction: column;
   gap: 12px;
 }
-.list-card :deep(.el-table){
+
+.list-card :deep(.el-table) {
   flex: 1;
+  border-radius: 14px;
+  overflow: hidden;
 }
-.list-card :deep(.el-pagination){
+
+.list-card :deep(.el-table th.el-table__cell) {
+  background: rgba(var(--his-primary-rgb), 0.1);
+}
+
+.list-card :deep(.el-table__row:hover > td.el-table__cell) {
+  background: rgba(var(--his-primary-rgb), 0.08) !important;
+}
+
+.list-card :deep(.el-pagination) {
   margin-top: auto;
 }
-.side-card :deep(.el-card__body){
-  display:flex;
+
+.side-card :deep(.el-card__body) {
+  display: flex;
   flex-direction: column;
   gap: 12px;
 }
-.side-card :deep(.el-alert){
+
+.side-card :deep(.el-alert) {
   margin-top: auto;
+  border-color: rgba(var(--his-primary-rgb), 0.22);
 }
 
 /* 报告生成对话框 */
@@ -504,12 +601,11 @@ onMounted(loadReports)
   height: 650px;
 }
 
-/* 病历列表部分 */
 .medical-records-section {
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(15, 23, 42, 0.08);
+  border-right: 1px solid rgba(var(--his-primary-rgb), 0.18);
   padding-right: 20px;
   min-width: 280px;
 }
@@ -525,6 +621,7 @@ onMounted(loadReports)
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+  color: var(--his-text);
 }
 
 .records-list {
@@ -534,29 +631,24 @@ onMounted(loadReports)
 }
 
 .record-item {
-  border: 1px solid rgba(15, 23, 42, 0.10);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.16);
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 12px;
   cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-  background: rgba(255,255,255,0.72);
-  backdrop-filter: blur(10px);
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .record-item:hover {
-  border-color: rgba(47, 128, 237, 0.20);
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);
+  border-color: rgba(var(--his-primary-rgb), 0.35);
+  box-shadow: 0 12px 26px rgba(var(--his-primary-rgb), 0.14);
   transform: translateY(-1px);
 }
 
 .record-item.selected {
-  border-color: rgba(47, 128, 237, 0.30);
-  background:
-    radial-gradient(700px 340px at 20% 0%, rgba(47, 128, 237, 0.42), transparent 60%),
-    radial-gradient(700px 340px at 100% 20%, rgba(120, 87, 255, 0.36), transparent 60%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.84) 100%);
-  color: white;
+  border-color: rgba(var(--his-primary-rgb), 0.45);
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.16), rgba(var(--his-primary-rgb), 0.06));
 }
 
 .record-header {
@@ -568,11 +660,8 @@ onMounted(loadReports)
 
 .record-date {
   font-size: 16px;
-  font-weight: bold;
-}
-
-.record-item.selected .record-date {
-  color: white;
+  font-weight: 700;
+  color: var(--his-text);
 }
 
 .record-content {
@@ -581,48 +670,23 @@ onMounted(loadReports)
   gap: 8px;
 }
 
-.record-doctor {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #606266;
-}
-
-.record-item.selected .record-doctor {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.record-dept {
-  margin-left: auto;
-  font-size: 13px;
-  color: #909399;
-}
-
-.record-item.selected .record-dept {
-  color: rgba(255, 255, 255, 0.85);
-}
-
+.record-doctor,
 .record-diagnosis,
 .record-complaint {
   font-size: 13px;
   line-height: 1.5;
-  color: #606266;
+  color: var(--his-text-2);
 }
 
-.record-item.selected .record-diagnosis,
-.record-item.selected .record-complaint {
-  color: rgba(255, 255, 255, 0.9);
+.record-dept {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--his-text-2);
 }
 
 .record-diagnosis strong,
 .record-complaint strong {
-  color: #303133;
-}
-
-.record-item.selected .record-diagnosis strong,
-.record-item.selected .record-complaint strong {
-  color: white;
+  color: var(--his-text);
 }
 
 .empty-records {
@@ -630,12 +694,11 @@ onMounted(loadReports)
   text-align: center;
 }
 
-/* 报告表单部分 */
 .report-form-section {
   flex: 1;
   overflow-y: auto;
   min-width: 280px;
-  border-right: 1px solid rgba(15, 23, 42, 0.08);
+  border-right: 1px solid rgba(var(--his-primary-rgb), 0.18);
   padding-right: 20px;
 }
 
@@ -643,12 +706,13 @@ onMounted(loadReports)
   margin: 0 0 20px 0;
   font-size: 16px;
   font-weight: 600;
+  color: var(--his-text);
 }
 
 .selected-record-preview {
-  background: rgba(15, 23, 42, 0.02);
+  background: rgba(var(--his-primary-rgb), 0.06);
   border-radius: 14px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.18);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -663,16 +727,15 @@ onMounted(loadReports)
 }
 
 .preview-row .label {
-  color: #909399;
+  color: var(--his-text-2);
   font-weight: 500;
 }
 
 .preview-row .value {
-  color: #303133;
-  font-weight: 500;
+  color: var(--his-text);
+  font-weight: 600;
 }
 
-/* 实时思维链展示部分 */
 .thought-chain-section {
   flex: 1;
   display: flex;
@@ -688,6 +751,7 @@ onMounted(loadReports)
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  color: var(--his-text);
 }
 
 .thought-chain-section .el-progress {
@@ -714,22 +778,22 @@ onMounted(loadReports)
   display: flex;
   gap: 12px;
   padding: 12px;
-  background: rgba(15, 23, 42, 0.02);
+  background: rgba(var(--his-primary-rgb), 0.04);
   border-radius: 14px;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.14);
+  transition: all 0.2s ease;
 }
 
 .thought-step-item.active {
-  background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
-  border-color: #409eff;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+  background: rgba(var(--his-primary-rgb), 0.12);
+  border-color: rgba(var(--his-primary-rgb), 0.34);
+  box-shadow: 0 6px 16px rgba(var(--his-primary-rgb), 0.12);
 }
 
 .thought-step-item.completed {
-  background: #f0f9ff;
-  border-color: #67c23a;
-  opacity: 0.7;
+  background: rgba(var(--his-primary-rgb), 0.06);
+  border-color: rgba(var(--his-primary-rgb), 0.2);
+  opacity: 0.84;
 }
 
 .step-indicator {
@@ -740,20 +804,20 @@ onMounted(loadReports)
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #dcdfe6;
-  color: #909399;
+  background: rgba(var(--his-primary-rgb), 0.18);
+  color: var(--his-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: bold;
-  transition: all 0.3s;
+  font-weight: 700;
+  transition: all 0.2s ease;
 }
 
 .thought-step-item.active .step-circle {
-  background: #409eff;
+  background: var(--his-primary);
   color: white;
-  transform: scale(1.1);
+  transform: scale(1.04);
 }
 
 .thought-step-item.completed .step-circle {
@@ -771,12 +835,12 @@ onMounted(loadReports)
 .step-title {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--his-text);
 }
 
 .step-message {
   font-size: 13px;
-  color: #606266;
+  color: var(--his-text-2);
   line-height: 1.8;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -785,9 +849,9 @@ onMounted(loadReports)
 }
 
 .thought-chain-detail {
-  background: white;
-  border: 2px solid #409eff;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.24);
+  border-radius: 10px;
   padding: 16px;
   flex-shrink: 0;
 }
@@ -795,7 +859,7 @@ onMounted(loadReports)
 .detail-header {
   font-size: 14px;
   font-weight: 600;
-  color: #409eff;
+  color: var(--his-primary);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -804,7 +868,7 @@ onMounted(loadReports)
 
 .detail-content {
   font-size: 13px;
-  color: #303133;
+  color: var(--his-text);
   line-height: 1.8;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -812,10 +876,10 @@ onMounted(loadReports)
   overflow-y: auto;
 }
 
-/* 思维链容器 */
 .thought-chain-container {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.08), rgba(var(--his-primary-rgb), 0.02));
   border-radius: 12px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.16);
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -827,16 +891,16 @@ onMounted(loadReports)
 }
 
 .thought-step {
-  background: white;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.16);
+  border-radius: 10px;
   padding: 16px;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
 }
 
 .thought-step:hover {
-  box-shadow: 0 2px 12px 0 rgba(64, 158, 255, 0.15);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(var(--his-primary-rgb), 0.12);
+  transform: translateY(-1px);
 }
 
 .step-header {
@@ -849,57 +913,80 @@ onMounted(loadReports)
 .step-number {
   width: 80px;
   height: 32px;
-  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  background: linear-gradient(135deg, var(--his-primary) 0%, var(--his-accent) 100%);
   color: white;
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: bold;
+  font-weight: 700;
   flex-shrink: 0;
 }
 
-.step-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.step-content {
-  font-size: 14px;
-  color: #606266;
-  line-height: 1.6;
-  padding-left: 92px;
-}
-
 .thought-detail {
-  background: white;
-  border: 2px solid #409eff;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.24);
+  border-radius: 10px;
   padding: 16px;
 }
 
 .thought-detail-header {
   font-size: 15px;
   font-weight: 600;
-  color: #409eff;
+  color: var(--his-primary);
   margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.thought-detail-header::before {
-  content: '💭';
-  font-size: 18px;
 }
 
 .thought-detail-content {
   font-size: 14px;
-  color: #303133;
+  color: var(--his-text);
   line-height: 1.8;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.report-container :deep(.el-dialog) {
+  border-radius: 18px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
+  overflow: hidden;
+}
+
+.report-container :deep(.el-dialog__header) {
+  margin-bottom: 0;
+  background: linear-gradient(180deg, rgba(var(--his-primary-rgb), 0.14), rgba(255, 255, 255, 0.03));
+}
+
+@media (max-width: 1200px) {
+  .hero-header {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .hero-icon {
+    font-size: 24px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-subtitle {
+    padding-left: 36px;
+    font-size: 12px;
+  }
+
+  .generate-report-container {
+    flex-direction: column;
+    height: auto;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .medical-records-section,
+  .report-form-section {
+    border-right: none;
+    padding-right: 0;
+  }
 }
 </style>

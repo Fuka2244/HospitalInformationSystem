@@ -1,9 +1,12 @@
 <template>
   <div class="page department-container">
-    <div class="page-header">
-      <div>
-        <div class="page-title">科室信息</div>
-        <div class="page-subtitle">浏览科室介绍与在岗医生信息</div>
+    <div class="page-header hero-header">
+      <div class="hero-left">
+        <div class="hero-title-row">
+          <el-icon class="hero-icon"><OfficeBuilding /></el-icon>
+          <span class="hero-title">科室信息</span>
+        </div>
+        <div class="hero-subtitle">浏览科室介绍与在岗医生信息</div>
       </div>
     </div>
     <el-row class="fill-row" :gutter="20">
@@ -105,40 +108,144 @@ onMounted(loadDepartments)
 </script>
 
 <style scoped>
-.department-container :deep(.el-card__body){
-  display:flex;
+.department-container {
+  position: relative;
+  min-height: calc(100vh - var(--his-header-height));
+  background:
+    radial-gradient(900px 420px at -8% -10%, rgba(var(--his-primary-rgb), 0.18), transparent 64%),
+    radial-gradient(760px 360px at 108% 0%, rgba(var(--his-primary-rgb), 0.12), transparent 68%),
+    linear-gradient(160deg, #f4fdf8 0%, #eefaf3 52%, #f8fffb 100%);
+}
+
+.department-container .page-header,
+.department-container .el-row {
+  position: relative;
+  z-index: 1;
+}
+
+.department-container :deep(.el-card) {
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow:
+    0 16px 36px rgba(18, 56, 38, 0.1),
+    0 8px 20px rgba(var(--his-primary-rgb), 0.08);
+}
+
+.hero-header {
+  margin-bottom: 16px;
+  padding: 22px 28px;
+  border-radius: 22px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.24);
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(12px) saturate(130%);
+  box-shadow:
+    0 16px 34px rgba(18, 56, 38, 0.1),
+    0 8px 18px rgba(var(--his-primary-rgb), 0.1);
+}
+
+.hero-left {
+  min-width: 0;
+}
+
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-icon {
+  font-size: 30px;
+  color: var(--his-primary);
+}
+
+.hero-title {
+  font-size: 42px;
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: var(--his-text);
+}
+
+.hero-subtitle {
+  margin-top: 6px;
+  padding-left: 42px;
+  font-size: 14px;
+  color: var(--his-text-2);
+}
+
+.department-container :deep(.el-card__header) {
+  border-bottom: 1px solid rgba(var(--his-primary-rgb), 0.14);
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.12), rgba(var(--his-primary-rgb), 0.03));
+}
+
+.department-container :deep(.el-card__body) {
+  display: flex;
   flex-direction: column;
 }
-.department-container :deep(.el-table){
+
+.department-container :deep(.el-table) {
   flex: 1;
+  border-radius: 14px;
+  overflow: hidden;
 }
+
+.department-container :deep(.el-table th.el-table__cell) {
+  background: rgba(var(--his-primary-rgb), 0.1);
+}
+
+.department-container :deep(.el-table__row:hover > td.el-table__cell) {
+  background: rgba(var(--his-primary-rgb), 0.08) !important;
+}
+
 .dept-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 13px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  background: rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.14);
+  background: rgba(255, 255, 255, 0.76);
   cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .dept-item:hover {
   transform: translateY(-1px);
-  background: rgba(47, 128, 237, 0.06);
-  border-color: rgba(47, 128, 237, 0.18);
+  background: rgba(var(--his-primary-rgb), 0.08);
+  border-color: rgba(var(--his-primary-rgb), 0.34);
+  box-shadow: 0 8px 16px rgba(var(--his-primary-rgb), 0.12);
 }
 .dept-item.active {
-  background: rgba(47, 128, 237, 0.10);
-  border-color: rgba(47, 128, 237, 0.26);
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.16), rgba(var(--his-primary-rgb), 0.06));
+  border-color: rgba(var(--his-primary-rgb), 0.44);
 }
 .dept-info { flex: 1; }
-.dept-name { font-weight: bold; color: #303133; }
-.dept-desc { font-size: 12px; color: #909399; margin-top: 2px; }
+.dept-name { font-weight: 700; color: var(--his-text); }
+.dept-desc { font-size: 12px; color: var(--his-text-2); margin-top: 2px; }
 .header-row { display: flex; justify-content: space-between; align-items: center; }
 .dept-description{
-  color: rgba(15, 23, 42, 0.62);
+  color: var(--his-text-2);
   margin-bottom: 18px;
   line-height: 1.7;
+}
+
+@media (max-width: 1200px) {
+  .hero-header {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .hero-icon {
+    font-size: 24px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-subtitle {
+    padding-left: 36px;
+    font-size: 12px;
+  }
 }
 </style>

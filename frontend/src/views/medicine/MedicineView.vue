@@ -1,9 +1,12 @@
 <template>
   <div class="page medicine-container">
-    <div class="page-header">
-      <div>
-        <div class="page-title">药品查询</div>
-        <div class="page-subtitle">搜索药品信息，并通过 AI 获取用药建议（仅供参考）</div>
+    <div class="page-header hero-header">
+      <div class="hero-left">
+        <div class="hero-title-row">
+          <el-icon class="hero-icon"><List /></el-icon>
+          <span class="hero-title">药品查询</span>
+        </div>
+        <div class="hero-subtitle">搜索药品信息，并通过 AI 获取用药建议（仅供参考）</div>
       </div>
     </div>
     <el-row class="fill-row" :gutter="20">
@@ -166,6 +169,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import { List } from '@element-plus/icons-vue'
 import { getMedicineList, getMedicineDetail, aiMedicineChatAsync, getMedicineAiTaskResult } from '@/api/medicine'
 import { getChatHistory, saveChatMessages, clearChatHistory } from '@/api/chatHistory'
 import type { Medicine, MedicineListParams, MedicineRecommendation, MedicineChatResponse, ChatMessageDto } from '@/types'
@@ -338,61 +342,162 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-.head-left{
-  display:flex;
-  align-items:center;
+.medicine-container {
+  position: relative;
+  min-height: calc(100vh - var(--his-header-height));
+  background:
+    radial-gradient(920px 420px at -8% -10%, rgba(var(--his-primary-rgb), 0.18), transparent 64%),
+    radial-gradient(780px 360px at 108% -6%, rgba(var(--his-primary-rgb), 0.12), transparent 68%),
+    linear-gradient(160deg, #f4fdf8 0%, #eefaf3 52%, #f8fffb 100%);
+}
+
+.medicine-container .page-header,
+.medicine-container .el-row {
+  position: relative;
+  z-index: 1;
+}
+
+.medicine-container .fill-row {
+  min-height: calc(100vh - var(--his-header-height) - 190px);
+}
+
+.list-card,
+.ai-card {
+  min-height: 100%;
+}
+
+.medicine-container :deep(.el-card) {
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow:
+    0 16px 36px rgba(18, 56, 38, 0.1),
+    0 8px 20px rgba(var(--his-primary-rgb), 0.08);
+}
+
+.hero-header {
+  margin-bottom: 16px;
+  padding: 22px 28px;
+  border-radius: 22px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.24);
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(12px) saturate(130%);
+  box-shadow:
+    0 16px 34px rgba(18, 56, 38, 0.1),
+    0 8px 18px rgba(var(--his-primary-rgb), 0.1);
+}
+
+.hero-left {
+  min-width: 0;
+}
+
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-icon {
+  font-size: 30px;
+  color: var(--his-primary);
+}
+
+.hero-title {
+  font-size: 42px;
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: var(--his-text);
+}
+
+.hero-subtitle {
+  margin-top: 6px;
+  padding-left: 42px;
+  font-size: 14px;
+  color: var(--his-text-2);
+}
+
+.medicine-container :deep(.el-card__header) {
+  border-bottom: 1px solid rgba(var(--his-primary-rgb), 0.14);
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.12), rgba(var(--his-primary-rgb), 0.03));
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.head-left {
+  display: flex;
+  align-items: center;
   gap: 10px;
   font-weight: 800;
   letter-spacing: 0.2px;
+  color: var(--his-text);
 }
-.filters{
-  display:flex;
-  align-items:center;
+
+.filters {
+  display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
+
 .filters :deep(.el-input__wrapper),
-.filters :deep(.el-select__wrapper){
-  background: rgba(15, 23, 42, 0.02);
-  border: 1px solid rgba(15, 23, 42, 0.08);
+.filters :deep(.el-select__wrapper) {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
   box-shadow: none;
 }
 
-.card-head{
-  display:flex;
-  align-items:center;
+.card-head {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.ai-card :deep(.el-card__header){
-  background: linear-gradient(180deg, rgba(47, 128, 237, 0.10), rgba(255,255,255,0));
-}
-
-.list-card :deep(.el-card__body){
-  display:flex;
+.list-card :deep(.el-card__body) {
+  display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
 }
-.list-card :deep(.el-table){
+
+.list-card :deep(.el-table) {
   flex: 1;
+  border-radius: 14px;
+  overflow: hidden;
 }
-.list-card :deep(.el-pagination){
+
+.list-card :deep(.el-table th.el-table__cell) {
+  background: rgba(var(--his-primary-rgb), 0.1);
+}
+
+.list-card :deep(.el-table__row:hover > td.el-table__cell) {
+  background: rgba(var(--his-primary-rgb), 0.08) !important;
+}
+
+.list-card :deep(.el-pagination) {
   margin-top: auto;
 }
-.ai-card :deep(.el-card__body){
-  display:flex;
+
+.ai-card :deep(.el-card__body) {
+  display: flex;
   flex-direction: column;
+  height: 100%;
 }
-.ai-card .ai-result{
+
+.ai-card .ai-result {
   margin-top: 12px;
   flex-shrink: 0;
   overflow: auto;
   padding-right: 4px;
 }
 
-/* 聊天界面样式 */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -400,8 +505,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 200px;
-  max-height: 420px;
+  min-height: 0;
+  max-height: none;
 }
 
 .chat-message {
@@ -432,23 +537,22 @@ onMounted(async () => {
 }
 
 .chat-message.assistant .chat-content {
-  background: rgba(47, 128, 237, 0.08);
-  color: #303133;
+  background: rgba(var(--his-primary-rgb), 0.08);
+  color: var(--his-text);
   border-bottom-left-radius: 4px;
 }
 
 .chat-message.user .chat-content {
-  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
+  background: linear-gradient(135deg, var(--his-primary) 0%, var(--his-accent) 100%);
   color: white;
   border-bottom-right-radius: 4px;
 }
 
-/* AI正在输入动画 */
 .chat-typing {
   display: flex;
   gap: 5px;
   padding: 10px 14px;
-  background: rgba(47, 128, 237, 0.08);
+  background: rgba(var(--his-primary-rgb), 0.08);
   border-radius: 14px;
   border-bottom-left-radius: 4px;
 }
@@ -457,30 +561,18 @@ onMounted(async () => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(47, 128, 237, 0.4);
+  background: rgba(var(--his-primary-rgb), 0.5);
   animation: typing 1.4s infinite both;
 }
 
-.chat-typing span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.chat-typing span:nth-child(3) {
-  animation-delay: 0.4s;
-}
+.chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+.chat-typing span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes typing {
-  0%, 80%, 100% {
-    transform: scale(0.6);
-    opacity: 0.4;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
 }
 
-/* 输入框区域 */
 .chat-input-area {
   margin-top: 12px;
   flex-shrink: 0;
@@ -494,14 +586,58 @@ onMounted(async () => {
   margin: 0;
   border: none;
   border-radius: 0 4px 4px 0;
+  background: linear-gradient(135deg, var(--his-primary) 0%, var(--his-accent) 100%);
+  color: #fff;
 }
 
-.ai-item-card{
+.ai-item-card {
+  border-radius: 14px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.16);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+:deep(.ai-item-card .el-card__header) {
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.12), rgba(var(--his-primary-rgb), 0.03));
+}
+
+.ai-item-card p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--his-text-2);
+}
+
+.medicine-container :deep(.el-dialog) {
   border-radius: 16px;
-  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
+  overflow: hidden;
 }
-:deep(.ai-item-card .el-card__header){
-  background: linear-gradient(180deg, rgba(47, 128, 237, 0.10), rgba(255,255,255,0));
+
+.medicine-container :deep(.el-dialog__header) {
+  margin-bottom: 0;
+  background: linear-gradient(180deg, rgba(var(--his-primary-rgb), 0.14), rgba(255, 255, 255, 0.03));
 }
-.ai-item-card p { margin: 4px 0; font-size: 13px; color: #606266; }
+
+@media (max-width: 1200px) {
+  .medicine-container .fill-row {
+    min-height: auto;
+  }
+
+  .hero-header {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .hero-icon {
+    font-size: 24px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-subtitle {
+    padding-left: 36px;
+    font-size: 12px;
+  }
+}
 </style>

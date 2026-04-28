@@ -1,52 +1,72 @@
 <template>
-  <div class="page appointment-container">
-    <div class="page-header">
-      <div>
-        <div class="page-title">预约挂号</div>
-        <div class="page-subtitle">AI 智能导诊、医生排班与预约管理</div>
-      </div>
-      <div class="page-actions">
-        <el-button type="primary" @click="showCreate = true">新建预约</el-button>
-      </div>
+  <div class="appointment-page">
+    <!-- 背景装饰 -->
+    <div class="bg-decoration">
+      <div class="bg-circle bg-circle-1"></div>
+      <div class="bg-circle bg-circle-2"></div>
+      <div class="bg-circle bg-circle-3"></div>
     </div>
-    <el-row class="fill-row" :gutter="20">
-      <!-- AI智能导诊 -->
-      <el-col :xs="24" :lg="8" class="fill-col">
-        <el-card class="ai-card fill-card" shadow="hover">
-          <template #header>
-            <div class="card-head">
+
+    <div class="page-content">
+      <!-- 页面头部 -->
+      <div class="page-header hero-header">
+        <div class="hero-left">
+          <div class="hero-title-row">
+            <el-icon class="hero-icon"><Calendar /></el-icon>
+            <span class="hero-title">预约挂号</span>
+          </div>
+          <p class="hero-subtitle">AI 智能导诊 · 医生排班与预约管理</p>
+        </div>
+        <div class="hero-actions">
+          <el-button class="hero-action-btn" type="primary" size="large" @click="showCreate = true">
+            <el-icon><Plus /></el-icon>新建预约
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 主内容区域 -->
+      <div class="main-grid">
+        <!-- AI智能导诊 -->
+        <div class="section-card ai-section">
+          <div class="section-header">
+            <div class="section-title">
+              <el-icon class="section-icon"><ChatDotRound /></el-icon>
               <span>AI 智能导诊</span>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <el-tag v-if="chatCompleted" effect="light" type="success" size="small">推荐完成</el-tag>
-                <el-tag v-else effect="light" type="warning" size="small">仅供参考</el-tag>
-                <el-button v-if="chatMessages.length > 1" link type="info" size="small" @click="resetChat">重新开始</el-button>
-              </div>
             </div>
-          </template>
+            <div class="section-tags">
+              <el-tag v-if="chatCompleted" effect="light" type="success" size="small" round>推荐完成</el-tag>
+              <el-tag v-else effect="light" type="warning" size="small" round>在线咨询</el-tag>
+              <el-button v-if="chatMessages.length > 1" link type="info" size="small" @click="resetChat">重新开始</el-button>
+            </div>
+          </div>
 
           <!-- 聊天消息列表 -->
-          <div class="chat-messages" ref="chatMessagesRef">
-            <div v-for="(msg, idx) in chatMessages" :key="idx" class="chat-message" :class="msg.role">
-              <div class="chat-avatar">
-                <el-avatar v-if="msg.role === 'assistant'" :size="32" style="background: linear-gradient(135deg, #2f80ed, #7857ff);">
-                  AI
-                </el-avatar>
-                <el-avatar v-else :size="32" style="background: #67c23a;">
-                  我
-                </el-avatar>
+          <div class="chat-container">
+            <div class="chat-messages" ref="chatMessagesRef">
+              <div v-for="(msg, idx) in chatMessages" :key="idx" class="chat-message" :class="msg.role">
+                <div class="chat-avatar">
+                  <el-avatar v-if="msg.role === 'assistant'" :size="36" class="avatar-ai">
+                    AI
+                  </el-avatar>
+                  <el-avatar v-else :size="36" class="avatar-user">
+                    <el-icon><User /></el-icon>
+                  </el-avatar>
+                </div>
+                <div class="chat-bubble">
+                  <div class="chat-content">{{ msg.content }}</div>
+                </div>
               </div>
-              <div class="chat-bubble">
-                <div class="chat-content">{{ msg.content }}</div>
-              </div>
-            </div>
-            <!-- AI正在输入提示 -->
-            <div v-if="chatLoading" class="chat-message assistant">
-              <div class="chat-avatar">
-                <el-avatar :size="32" style="background: linear-gradient(135deg, #2f80ed, #7857ff);">AI</el-avatar>
-              </div>
-              <div class="chat-bubble">
-                <div class="chat-typing">
-                  <span></span><span></span><span></span>
+              <!-- AI正在输入提示 -->
+              <div v-if="chatLoading" class="chat-message assistant">
+                <div class="chat-avatar">
+                  <el-avatar :size="36" class="avatar-ai">
+                    AI
+                  </el-avatar>
+                </div>
+                <div class="chat-bubble">
+                  <div class="chat-typing">
+                    <span></span><span></span><span></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -54,17 +74,21 @@
 
           <!-- 推荐结果区域 -->
           <div v-if="recommendation && chatCompleted" class="ai-result">
-            <el-divider>推荐结果</el-divider>
-            <el-descriptions :column="1" border size="small">
+            <el-divider content-position="left">
+              <el-icon><Star /></el-icon> 推荐结果
+            </el-divider>
+            <el-descriptions :column="1" border size="small" class="recommend-desc">
               <el-descriptions-item label="推荐科室">
-                <el-tag type="success">{{ recommendation.department }}</el-tag>
+                <el-tag type="success" effect="dark" size="small">{{ recommendation.department }}</el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="推荐理由">{{ recommendation.reason }}</el-descriptions-item>
             </el-descriptions>
 
-            <!-- 医生选择区域（needChooseDoctor=true 或 availableDoctors 有多个） -->
+            <!-- 医生选择区域 -->
             <template v-if="recommendation.availableDoctors && recommendation.availableDoctors.length > 0">
-              <el-divider>选择医生</el-divider>
+              <el-divider content-position="left">
+                <el-icon><User /></el-icon> 选择医生
+              </el-divider>
               <div class="doctor-select-list">
                 <div
                   v-for="doc in recommendation.availableDoctors"
@@ -73,18 +97,24 @@
                   :class="{ selected: selectedDoctorForBooking?.doctorId === doc.doctorId }"
                   @click="selectedDoctorForBooking = doc; selectedSlotForBooking = null"
                 >
-                  <div class="doctor-select-name">{{ doc.doctorName }}</div>
-                  <div class="doctor-select-meta">
-                    <el-tag size="small" type="primary">{{ doc.title }}</el-tag>
-                    <span class="doctor-select-specialty">擅长：{{ doc.specialty }}</span>
+                  <div class="doctor-select-info">
+                    <div class="doctor-select-name">{{ doc.doctorName }}</div>
+                    <div class="doctor-select-meta">
+                      <el-tag size="small" effect="light">{{ doc.title }}</el-tag>
+                      <span class="doctor-select-specialty">擅长：{{ doc.specialty }}</span>
+                    </div>
                   </div>
-                  <div class="doctor-select-count">{{ doc.schedules.length }}个可用时段</div>
+                  <div class="doctor-select-badge">
+                    <el-tag size="small" type="info">{{ doc.schedules.length }}个时段</el-tag>
+                  </div>
                 </div>
               </div>
 
               <!-- 选中医生后的排班选择 -->
               <template v-if="selectedDoctorForBooking">
-                <el-divider>选择就诊时段</el-divider>
+                <el-divider content-position="left">
+                  <el-icon><Clock /></el-icon> 选择就诊时段
+                </el-divider>
                 <div class="schedule-list">
                   <div
                     v-for="schedule in selectedDoctorForBooking.schedules"
@@ -95,18 +125,25 @@
                   >
                     <div class="schedule-date">{{ schedule.scheduleDate }}</div>
                     <div class="schedule-time">{{ schedule.timeSlot }}</div>
-                    <div class="schedule-info">余号: {{ schedule.maxPatients - schedule.bookedCount }}</div>
+                    <div class="schedule-info">
+                      <el-tag size="small" :type="schedule.bookedCount >= schedule.maxPatients ? 'danger' : 'success'" effect="light">
+                        {{ schedule.bookedCount >= schedule.maxPatients ? '已满' : '余号' }}
+                        {{ schedule.maxPatients - schedule.bookedCount }}
+                      </el-tag>
+                    </div>
                   </div>
-                  <el-button type="primary" :disabled="!selectedSlotForBooking" style="width: 100%; margin-top: 12px" @click="handleAiBook">
-                    确认预约
+                  <el-button type="primary" :disabled="!selectedSlotForBooking" class="confirm-btn" @click="handleAiBook">
+                    <el-icon><Check /></el-icon> 确认预约
                   </el-button>
                 </div>
               </template>
             </template>
             <template v-else>
-              <el-divider>可用时间段</el-divider>
+              <el-divider content-position="left">
+                <el-icon><Warning /></el-icon> 可用时间段
+              </el-divider>
               <div class="no-schedule">
-                <el-text type="info">该科室未来7天暂无可用排班，建议稍后重试或前往导诊台咨询</el-text>
+                <el-empty description="该科室未来7天暂无可用排班" :image-size="60" />
               </div>
             </template>
           </div>
@@ -118,68 +155,75 @@
               placeholder="请描述您的症状或回答问题..."
               :disabled="chatLoading || chatCompleted"
               @keyup.enter="sendChatMessage"
+              size="large"
             >
               <template #append>
                 <el-button :loading="chatLoading" :disabled="!chatInput.trim() || chatCompleted" @click="sendChatMessage">
-                  发送
+                  <el-icon><Promotion /></el-icon> 发送
                 </el-button>
               </template>
             </el-input>
           </div>
-        </el-card>
-      </el-col>
+        </div>
 
-      <!-- 预约列表 -->
-      <el-col :xs="24" :lg="16" class="fill-col">
-        <el-card class="list-card fill-card" shadow="hover">
-          <template #header>
-            <div class="header-row">
-              <div class="head-left">
-                <span>我的预约</span>
-                <el-tag effect="light" type="info" size="small">共 {{ store.total }} 条</el-tag>
-              </div>
+        <!-- 预约列表 -->
+        <div class="section-card list-section">
+          <div class="section-header">
+            <div class="section-title">
+              <el-icon class="section-icon"><List /></el-icon>
+              <span>我的预约</span>
             </div>
-          </template>
-          <el-table :data="store.appointments" v-loading="store.loading" stripe>
-            <el-table-column prop="appointmentDate" label="预约日期" width="120" />
-            <el-table-column prop="timeSlot" label="时段" width="130" />
-            <el-table-column prop="departmentName" label="科室" width="110" />
-            <el-table-column prop="doctorName" label="医生" width="100" />
-            <el-table-column prop="appointmentType" label="类型" width="100">
-              <template #default="{ row }">
-                <el-tag :type="row.appointmentType === 'DOCTOR' ? '' : 'warning'" size="small">
-                  {{ row.appointmentType === 'DOCTOR' ? '医生预约' : '检查预约' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="90">
-              <template #default="{ row }">
-                <el-tag :type="statusTagType[row.status]" size="small">{{ statusMap[row.status] }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" min-width="160" fixed="right">
-              <template #default="{ row }">
-                <template v-if="row.status === 0">
-                  <el-button link type="warning" @click="handleCancel(row)">取消</el-button>
-                  <el-button link type="primary" @click="handleReschedule(row)">改期</el-button>
-                </template>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            v-model:current-page="queryParams.page"
-            v-model:page-size="queryParams.size"
-            :total="store.total"
-            layout="total, prev, pager, next"
-            style="margin-top: 16px; justify-content: flex-end"
-            @change="loadList"
-          />
-        </el-card>
-      </el-col>
-    </el-row>
+            <div class="section-tags">
+              <el-tag effect="light" type="info" size="small" round>共 {{ store.total }} 条</el-tag>
+            </div>
+          </div>
 
-      <!-- 新建预约对话框 -->
-    <el-dialog v-model="showCreate" title="新建预约" width="1400px" @open="resetCreateForm">
+          <div class="table-container">
+            <el-table :data="store.appointments" v-loading="store.loading" stripe border>
+              <el-table-column prop="appointmentDate" label="预约日期" width="110" />
+              <el-table-column prop="timeSlot" label="时段" width="120" />
+              <el-table-column prop="departmentName" label="科室" width="100" />
+              <el-table-column prop="doctorName" label="医生" width="90" />
+              <el-table-column prop="appointmentType" label="类型" width="90">
+                <template #default="{ row }">
+                  <el-tag :type="row.appointmentType === 'DOCTOR' ? '' : 'warning'" size="small" effect="light">
+                    {{ row.appointmentType === 'DOCTOR' ? '医生预约' : '检查预约' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="status" label="状态" width="85">
+                <template #default="{ row }">
+                  <el-tag :type="statusTagType[row.status]" size="small" effect="light">{{ statusMap[row.status] }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" min-width="140" fixed="right">
+                <template #default="{ row }">
+                  <template v-if="row.status === 0">
+                    <el-button link type="warning" @click="handleCancel(row)">取消</el-button>
+                    <el-button link type="primary" @click="handleReschedule(row)">改期</el-button>
+                  </template>
+                  <span v-else class="status-text">-</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+
+          <div class="pagination-container">
+            <el-pagination
+              v-model:current-page="queryParams.page"
+              v-model:page-size="queryParams.size"
+              :total="store.total"
+              layout="total, prev, pager, next"
+              background
+              @change="loadList"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新建预约对话框 -->
+    <el-dialog v-model="showCreate" title="新建预约" width="1400px" class="create-dialog" @open="resetCreateForm">
       <!-- 筛选工具栏 -->
       <div class="filter-toolbar">
         <el-form :inline="true" class="filter-form">
@@ -215,7 +259,7 @@
             @click="selectDoctor(doctor)"
           >
             <div class="doctor-avatar">
-              <el-avatar :size="60" :icon="'UserFilled'" />
+              <el-avatar :size="64" :icon="'UserFilled'" />
             </div>
             <div class="doctor-info-section">
               <div class="doctor-name">{{ doctor.name }}</div>
@@ -240,7 +284,7 @@
       </div>
 
       <!-- 排班选择弹窗 -->
-      <el-dialog v-model="showScheduleDialog" title="选择就诊时段" width="1000px" append-to-body>
+      <el-dialog v-model="showScheduleDialog" title="选择就诊时段" width="1000px" append-to-body class="schedule-dialog">
         <div v-if="currentDoctor" class="schedule-dialog-content">
           <div class="schedule-doctor-info">
             <el-avatar :size="80" :icon="'UserFilled'" />
@@ -265,7 +309,7 @@
                 <div class="slot-time">{{ slot.timeSlot }}</div>
               </div>
               <div class="slot-status">
-                <el-tag :type="slot.bookedCount >= slot.maxPatients ? 'danger' : 'success'" size="small">
+                <el-tag :type="slot.bookedCount >= slot.maxPatients ? 'danger' : 'success'" size="small" effect="light">
                   {{ slot.bookedCount >= slot.maxPatients ? '已满' : '可预约' }}
                 </el-tag>
                 <span class="slot-count">{{ slot.bookedCount }}/{{ slot.maxPatients }}</span>
@@ -286,7 +330,9 @@
 
       <!-- 已选时段预览 -->
       <div v-if="selectedSlot" class="selected-preview">
-        <div class="preview-header">已选时段</div>
+        <div class="preview-header">
+          <el-icon><Check /></el-icon> 已选时段
+        </div>
         <div class="preview-content">
           <div class="preview-item">
             <span class="preview-label">医生：</span>
@@ -308,8 +354,8 @@
       </div>
 
       <template #footer>
-        <el-button @click="showCreate = false">取消</el-button>
-        <el-button type="primary" :loading="createLoading" :disabled="!selectedSlot" @click="handleCreate">
+        <el-button size="large" @click="showCreate = false">取消</el-button>
+        <el-button type="primary" size="large" :loading="createLoading" :disabled="!selectedSlot" @click="handleCreate">
           确认预约
         </el-button>
       </template>
@@ -333,6 +379,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Calendar, Plus, ChatDotRound, User, Star, Clock, Check, Warning, Promotion, List } from '@element-plus/icons-vue'
 import { useAppointmentStore } from '@/stores/appointment'
 import { getDepartmentList, getDoctorList } from '@/api/department'
 import { getChatHistory, saveChatMessages, clearChatHistory } from '@/api/chatHistory'
@@ -682,64 +729,250 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.card-head{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.header-row { display: flex; justify-content: space-between; align-items: center; }
-.head-left{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  font-weight: 800;
-  letter-spacing: 0.2px;
-}
-.ai-card :deep(.el-card__header){
-  background: linear-gradient(180deg, rgba(47, 128, 237, 0.10), rgba(255,255,255,0));
-}
-.list-card :deep(.el-card__header){
-  background: linear-gradient(180deg, rgba(120, 87, 255, 0.08), rgba(255,255,255,0));
-}
-.ai-card :deep(.el-card__body){
-  display:flex;
-  flex-direction: column;
-}
-.ai-card .ai-result{
-  margin-top: 12px;
-  flex-shrink: 0;
-  overflow: auto;
-  padding-right: 4px;
-}
-.list-card :deep(.el-card__body){
-  display:flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.list-card :deep(.el-table){
-  flex: 1;
-}
-.list-card :deep(.el-pagination){
-  margin-top: auto;
+/* 页面布局 - 满屏 */
+.appointment-page {
+  --ap-primary: var(--his-primary);
+  --ap-accent: #2aa06d;
+  --ap-primary-rgb: var(--his-primary-rgb);
+  --ap-text: var(--his-text);
+  --ap-text-muted: var(--his-text-2);
+  --ap-border: rgba(var(--his-primary-rgb), 0.18);
+  --ap-surface: rgba(255, 255, 255, 0.86);
+  --ap-surface-strong: rgba(255, 255, 255, 0.94);
+  --ap-gradient: linear-gradient(135deg, var(--ap-primary) 0%, var(--ap-accent) 100%);
+  position: relative;
+  min-height: calc(100vh - var(--his-header-height));
+  background:
+    radial-gradient(1000px 480px at -5% -8%, rgba(var(--his-primary-rgb), 0.2), transparent 64%),
+    radial-gradient(980px 460px at 110% -12%, rgba(var(--his-primary-rgb), 0.12), transparent 68%),
+    linear-gradient(155deg, #f4fdf8 0%, #eefbf3 48%, #f8fffb 100%);
+  overflow: hidden;
 }
 
-/* 聊天界面样式 */
+/* 背景装饰 */
+.bg-decoration {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.32;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+
+.bg-circle-1 {
+  width: 460px;
+  height: 460px;
+  background: radial-gradient(circle at 30% 30%, rgba(var(--his-primary-rgb), 0.9), rgba(var(--his-primary-rgb), 0));
+  top: -120px;
+  right: -120px;
+  animation-delay: -2s;
+}
+
+.bg-circle-2 {
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle at 35% 30%, rgba(var(--his-primary-rgb), 0.68), rgba(var(--his-primary-rgb), 0));
+  bottom: -90px;
+  left: -70px;
+  animation-delay: -6s;
+}
+
+.bg-circle-3 {
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle at 35% 30%, rgba(var(--his-primary-rgb), 0.54), rgba(var(--his-primary-rgb), 0));
+  top: 45%;
+  left: 28%;
+  animation-delay: -9s;
+}
+
+/* 内容区域 */
+.page-content {
+  position: relative;
+  z-index: 1;
+  padding: 22px;
+  min-height: calc(100vh - var(--his-header-height));
+  display: flex;
+  flex-direction: column;
+}
+
+/* 页面头部 */
+.hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 24px 30px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(16px) saturate(130%);
+  border-radius: 22px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.24);
+  box-shadow:
+    0 16px 34px rgba(18, 56, 38, 0.1),
+    0 8px 18px rgba(var(--his-primary-rgb), 0.1);
+}
+
+.hero-left {
+  min-width: 0;
+}
+
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-icon {
+  font-size: 30px;
+  color: var(--his-primary);
+}
+
+.hero-title {
+  font-size: 42px;
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: var(--his-text);
+}
+
+.hero-subtitle {
+  font-size: 14px;
+  color: var(--his-text-2);
+  margin: 6px 0 0;
+  padding-left: 42px;
+}
+
+.hero-action-btn {
+  padding: 12px 26px;
+  font-size: 15px;
+  border-radius: 14px;
+  border: none;
+  background: var(--ap-gradient);
+  box-shadow: 0 12px 24px rgba(var(--his-primary-rgb), 0.3);
+}
+
+/* 主网格布局 */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1.35fr;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 卡片通用样式 */
+.section-card {
+  background: var(--ap-surface);
+  backdrop-filter: blur(16px) saturate(130%);
+  border-radius: 20px;
+  border: 1px solid var(--ap-border);
+  box-shadow:
+    0 16px 36px rgba(18, 56, 38, 0.08),
+    0 8px 22px rgba(var(--his-primary-rgb), 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+
+.section-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 22px 44px rgba(18, 56, 38, 0.1),
+    0 12px 24px rgba(var(--his-primary-rgb), 0.12);
+}
+
+/* 区块头部 */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.15), rgba(var(--his-primary-rgb), 0.04));
+  border-bottom: 1px solid rgba(var(--his-primary-rgb), 0.14);
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ap-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-icon {
+  font-size: 22px;
+  color: var(--ap-primary);
+}
+
+.section-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* AI导诊区域 */
+.ai-section {
+  min-height: 0;
+  height: 100%;
+}
+
+.chat-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  min-height: 300px;
+}
+
+/* 聊天消息 */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 4px;
+  padding: 8px 4px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 200px;
-  max-height: 420px;
+  scroll-behavior: smooth;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(var(--his-primary-rgb), 0.28);
+  border-radius: 3px;
 }
 
 .chat-message {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: flex-start;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .chat-message.user {
@@ -750,27 +983,35 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+.avatar-ai {
+  background: var(--ap-gradient) !important;
+}
+
+.avatar-user {
+  background: linear-gradient(135deg, #6dd8a8 0%, #47c88a 100%) !important;
+}
+
 .chat-bubble {
-  max-width: 80%;
+  max-width: 78%;
 }
 
 .chat-content {
-  padding: 10px 14px;
-  border-radius: 14px;
+  padding: 12px 16px;
+  border-radius: 16px;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.7;
   word-break: break-word;
   white-space: pre-wrap;
 }
 
 .chat-message.assistant .chat-content {
-  background: rgba(47, 128, 237, 0.08);
-  color: #303133;
+  background: rgba(var(--his-primary-rgb), 0.08);
+  color: var(--ap-text);
   border-bottom-left-radius: 4px;
 }
 
 .chat-message.user .chat-content {
-  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
+  background: var(--ap-gradient);
   color: white;
   border-bottom-right-radius: 4px;
 }
@@ -779,9 +1020,9 @@ onMounted(async () => {
 .chat-typing {
   display: flex;
   gap: 5px;
-  padding: 10px 14px;
-  background: rgba(47, 128, 237, 0.08);
-  border-radius: 14px;
+  padding: 12px 16px;
+  background: rgba(var(--his-primary-rgb), 0.08);
+  border-radius: 16px;
   border-bottom-left-radius: 4px;
 }
 
@@ -789,7 +1030,7 @@ onMounted(async () => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(47, 128, 237, 0.4);
+  background: var(--ap-primary);
   animation: typing 1.4s infinite both;
 }
 
@@ -812,29 +1053,231 @@ onMounted(async () => {
   }
 }
 
+/* 推荐结果 */
+.ai-result {
+  flex-shrink: 0;
+  overflow: auto;
+  padding: 0 20px 16px;
+  max-height: 380px;
+}
+
+.ai-result :deep(.el-divider) {
+  margin: 16px 0;
+}
+
+.ai-result :deep(.el-divider__text) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ap-text-muted);
+}
+
+.recommend-desc {
+  margin-bottom: 8px;
+}
+
+/* 医生选择卡片 */
+.doctor-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.doctor-select-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.16);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.doctor-select-card:hover {
+  border-color: rgba(var(--his-primary-rgb), 0.42);
+  background: rgba(var(--his-primary-rgb), 0.08);
+  transform: translateX(4px);
+}
+
+.doctor-select-card.selected {
+  border-color: var(--ap-primary);
+  background: var(--ap-gradient);
+  color: white;
+}
+
+.doctor-select-info {
+  flex: 1;
+}
+
+.doctor-select-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.doctor-select-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doctor-select-card.selected .doctor-select-meta :deep(.el-tag) {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+
+.doctor-select-specialty {
+  font-size: 12px;
+  color: var(--ap-text-muted);
+}
+
+.doctor-select-card.selected .doctor-select-specialty {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* 排班列表 */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.16);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.schedule-item:hover {
+  border-color: rgba(var(--his-primary-rgb), 0.42);
+  background: rgba(var(--his-primary-rgb), 0.08);
+  transform: translateX(4px);
+}
+
+.schedule-item.selected {
+  border-color: var(--ap-primary);
+  background: var(--ap-gradient);
+  color: white;
+}
+
+.schedule-date {
+  font-weight: 500;
+  font-size: 14px;
+  min-width: 100px;
+}
+
+.schedule-item.selected .schedule-date {
+  color: white;
+}
+
+.schedule-time {
+  font-weight: 600;
+  font-size: 15px;
+  flex: 1;
+}
+
+.schedule-item.selected .schedule-time {
+  color: white;
+}
+
+.schedule-info {
+  white-space: nowrap;
+}
+
+.schedule-item.selected .schedule-info :deep(.el-tag) {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: transparent !important;
+}
+
+.confirm-btn {
+  width: 100%;
+  margin-top: 8px;
+  height: 44px;
+  font-size: 15px;
+}
+
+.no-schedule {
+  padding: 24px;
+  text-align: center;
+}
+
 /* 输入框区域 */
 .chat-input-area {
-  margin-top: 12px;
-  flex-shrink: 0;
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgba(var(--his-primary-rgb), 0.14);
+  background: rgba(var(--his-primary-rgb), 0.03);
+}
+
+.chat-input-area :deep(.el-input__wrapper) {
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(var(--his-primary-rgb), 0.14);
 }
 
 .chat-input-area :deep(.el-input-group__append) {
-  padding: 0;
+  border-radius: 0 12px 12px 0;
+  padding: 0 16px;
 }
 
-.chat-input-area :deep(.el-input-group__append .el-button) {
-  margin: 0;
-  border: none;
-  border-radius: 0 4px 4px 0;
+/* 预约列表区域 */
+.list-section {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.table-container {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 20px;
+}
+
+.table-container :deep(.el-table) {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table-container :deep(.el-table th) {
+  background: rgba(var(--his-primary-rgb), 0.1) !important;
+  color: var(--ap-text-muted);
+  font-weight: 600;
+}
+
+.table-container :deep(.el-table__row) {
+  transition: background 0.2s;
+}
+
+.table-container :deep(.el-table__row:hover > td) {
+  background: rgba(var(--his-primary-rgb), 0.08) !important;
+}
+
+.status-text {
+  color: #c0c4cc;
+}
+
+.pagination-container {
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgba(var(--his-primary-rgb), 0.14);
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* 筛选工具栏 */
 .filter-toolbar {
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.02);
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.1), rgba(var(--his-primary-rgb), 0.03));
   border-radius: 16px;
   margin-bottom: 20px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.18);
 }
 
 .filter-form {
@@ -843,7 +1286,7 @@ onMounted(async () => {
 
 /* 医生表格 */
 .doctor-table-container {
-  max-height: 500px;
+  max-height: 420px;
   overflow-y: auto;
 }
 
@@ -857,28 +1300,23 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 20px;
-  padding: 20px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 20px 24px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.16);
   border-radius: 16px;
   cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-  background: rgba(255,255,255,0.72);
-  backdrop-filter: blur(10px);
+  transition: all 0.25s ease;
+  background: rgba(255, 255, 255, 0.84);
 }
 
 .doctor-row:hover {
-  border-color: rgba(47, 128, 237, 0.20);
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);
-  transform: translateY(-1px);
+  border-color: rgba(var(--his-primary-rgb), 0.38);
+  box-shadow: 0 8px 24px rgba(var(--his-primary-rgb), 0.18);
+  transform: translateY(-2px);
 }
 
 .doctor-row.selected {
-  border-color: rgba(47, 128, 237, 0.30);
-  background:
-    radial-gradient(700px 340px at 20% 0%, rgba(47, 128, 237, 0.42), transparent 60%),
-    radial-gradient(700px 340px at 100% 20%, rgba(120, 87, 255, 0.36), transparent 60%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.84) 100%);
-  color: white;
+  border-color: var(--ap-primary);
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.15), rgba(var(--his-primary-rgb), 0.06));
 }
 
 .doctor-avatar {
@@ -891,8 +1329,9 @@ onMounted(async () => {
 
 .doctor-row .doctor-name {
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 600;
   margin-bottom: 8px;
+  color: var(--ap-text);
 }
 
 .doctor-meta {
@@ -904,31 +1343,18 @@ onMounted(async () => {
 }
 
 .doctor-dept {
-  color: #909399;
-}
-
-.doctor-row.selected .doctor-dept {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--ap-text-muted);
 }
 
 .doctor-gender,
 .doctor-age {
-  color: #606266;
-}
-
-.doctor-row.selected .doctor-gender,
-.doctor-row.selected .doctor-age {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--ap-text-muted);
 }
 
 .doctor-specialty {
   font-size: 13px;
-  color: #909399;
+  color: var(--ap-text-muted);
   line-height: 1.5;
-}
-
-.doctor-row.selected .doctor-specialty {
-  color: rgba(255, 255, 255, 0.85);
 }
 
 .doctor-action-section {
@@ -936,13 +1362,13 @@ onMounted(async () => {
 }
 
 .empty-state {
-  padding: 60px 20px;
+  padding: 48px 20px;
   text-align: center;
 }
 
-/* 排班选择弹窗 */
+/* 排班弹窗 */
 .schedule-dialog-content {
-  padding: 20px;
+  padding: 16px;
 }
 
 .schedule-doctor-info {
@@ -950,19 +1376,15 @@ onMounted(async () => {
   align-items: center;
   gap: 20px;
   padding: 24px;
-  background:
-    radial-gradient(700px 340px at 20% 0%, rgba(47, 128, 237, 0.52), transparent 60%),
-    radial-gradient(700px 340px at 100% 20%, rgba(120, 87, 255, 0.42), transparent 60%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.84) 100%);
-  border-radius: 18px;
+  background: var(--ap-gradient);
+  border-radius: 16px;
   color: white;
-  margin-bottom: 24px;
-  border: 1px solid rgba(255,255,255,0.16);
+  margin-bottom: 20px;
 }
 
 .doctor-detail-name {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 22px;
+  font-weight: 600;
   margin-bottom: 8px;
 }
 
@@ -973,33 +1395,38 @@ onMounted(async () => {
   font-size: 14px;
 }
 
+.schedule-doctor-info :deep(.el-tag) {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+
 .schedule-slots {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  max-height: 400px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  max-height: 380px;
   overflow-y: auto;
 }
 
 .schedule-slot-card {
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  border-radius: 16px;
-  padding: 20px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.18);
+  border-radius: 14px;
+  padding: 18px;
   cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-  background: rgba(255,255,255,0.72);
-  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .schedule-slot-card:hover {
-  border-color: rgba(47, 128, 237, 0.20);
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);
+  border-color: rgba(var(--his-primary-rgb), 0.42);
+  box-shadow: 0 6px 18px rgba(var(--his-primary-rgb), 0.18);
   transform: translateY(-2px);
 }
 
 .schedule-slot-card.selected {
-  border-color: rgba(47, 128, 237, 0.28);
-  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
+  border-color: var(--ap-primary);
+  background: var(--ap-gradient);
   color: white;
 }
 
@@ -1008,14 +1435,18 @@ onMounted(async () => {
 }
 
 .slot-date {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.schedule-slot-card.selected .slot-date {
+  color: white;
 }
 
 .slot-time {
   font-size: 14px;
-  color: #606266;
+  color: var(--ap-text-muted);
 }
 
 .schedule-slot-card.selected .slot-time {
@@ -1030,33 +1461,30 @@ onMounted(async () => {
 
 .slot-count {
   font-size: 13px;
-  color: #909399;
+  color: var(--ap-text-muted);
 }
 
 .schedule-slot-card.selected .slot-count {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.no-schedule {
-  padding: 60px 20px;
-  text-align: center;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* 已选时段预览 */
 .selected-preview {
   margin-top: 20px;
-  padding: 20px;
-  background: rgba(255,255,255,0.72);
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(var(--his-primary-rgb), 0.11), rgba(var(--his-primary-rgb), 0.03));
   border-radius: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--his-primary-rgb), 0.2);
 }
 
 .preview-header {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 12px;
-  color: #303133;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--ap-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .preview-content {
@@ -1073,131 +1501,88 @@ onMounted(async () => {
 
 .preview-label {
   font-weight: 500;
-  color: #606266;
+  color: var(--ap-text-muted);
 }
 
 .preview-value {
-  color: #303133;
-  font-weight: bold;
+  color: var(--ap-text);
+  font-weight: 600;
 }
 
-/* AI可用时段 */
-.schedule-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
+/* 弹窗统一美化 */
+.appointment-page :deep(.el-dialog) {
+  border-radius: 18px;
+  border: 1px solid var(--ap-border);
+  box-shadow:
+    0 26px 56px rgba(18, 56, 38, 0.14),
+    0 12px 24px rgba(var(--his-primary-rgb), 0.12);
+  overflow: hidden;
 }
 
-.schedule-item {
-  padding: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  border-radius: 14px;
-  cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(15, 23, 42, 0.02);
+.appointment-page :deep(.el-dialog__header) {
+  margin-bottom: 0;
+  padding: 16px 20px 12px;
+  background: linear-gradient(180deg, rgba(var(--his-primary-rgb), 0.14), rgba(255, 255, 255, 0.03));
 }
 
-.schedule-item:hover {
-  border-color: rgba(47, 128, 237, 0.20);
-  background: rgba(47, 128, 237, 0.06);
-  transform: translateY(-1px);
+.appointment-page :deep(.el-dialog__body) {
+  padding-top: 14px;
 }
 
-.schedule-item.selected {
-  border-color: rgba(47, 128, 237, 0.25);
-  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
-  color: white;
+/* 背景动态 */
+@keyframes orbFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(14px, -12px, 0); }
 }
 
-.schedule-item.selected .schedule-info {
-  color: white;
+/* 响应式适配 */
+@media (max-width: 1200px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-header {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .hero-icon {
+    font-size: 24px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-subtitle {
+    padding-left: 36px;
+    font-size: 12px;
+  }
 }
 
-.schedule-item.selected .schedule-date {
-  color: white;
-}
+@media (max-width: 768px) {
+  .page-content {
+    padding: 16px;
+  }
 
-.schedule-date {
-  font-weight: 500;
-  font-size: 14px;
-  color: #606266;
-  white-space: nowrap;
-}
+  .hero-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
 
-.schedule-time {
-  font-weight: bold;
-  font-size: 16px;
-  flex: 1;
-}
+  .hero-title {
+    font-size: 24px;
+  }
 
-.schedule-info {
-  font-size: 14px;
-  color: #909399;
-  white-space: nowrap;
-}
+  .hero-subtitle {
+    padding-left: 36px;
+    font-size: 12px;
+  }
 
-/* 医生选择列表 */
-.doctor-select-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.doctor-select-card {
-  padding: 14px;
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  border-radius: 14px;
-  cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
-  background: rgba(15, 23, 42, 0.02);
-}
-
-.doctor-select-card:hover {
-  border-color: rgba(47, 128, 237, 0.20);
-  background: rgba(47, 128, 237, 0.06);
-  transform: translateY(-1px);
-}
-
-.doctor-select-card.selected {
-  border-color: rgba(47, 128, 237, 0.25);
-  background: linear-gradient(135deg, rgba(47, 128, 237, 0.92) 0%, rgba(120, 87, 255, 0.92) 100%);
-  color: white;
-}
-
-.doctor-select-card.selected .doctor-select-specialty,
-.doctor-select-card.selected .doctor-select-count {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.doctor-select-name {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 6px;
-}
-
-.doctor-select-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.doctor-select-specialty {
-  font-size: 13px;
-  color: #909399;
-}
-
-.doctor-select-count {
-  font-size: 13px;
-  color: #67c23a;
-}
-
-.no-schedule {
-  padding: 20px;
-  text-align: center;
+  .hero-action-btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+  }
 }
 </style>
