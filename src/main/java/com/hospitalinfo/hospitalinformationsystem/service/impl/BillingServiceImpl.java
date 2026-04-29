@@ -146,9 +146,10 @@ public class BillingServiceImpl implements IBillingService {
 
     /**
      * 缓存患者信息查询，避免N+1问题
+     * 注意：必须是public方法，否则Spring AOP代理无法拦截，@Cacheable不生效
      */
     @Cacheable(value = CacheConfig.CACHE_PATIENT, key = "'entity:' + #patientId")
-    private Patient getPatientCached(String patientId) {
+    public Patient getPatientCached(String patientId) {
         return patientMapper.selectById(patientId);
     }
 }

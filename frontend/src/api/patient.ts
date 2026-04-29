@@ -51,7 +51,7 @@ export function forgetPassword(data: ForgetPasswordDto) {
 
 /** 验证密码后获取完整身份证号 */
 export function getIdCard(password: string) {
-  return get<{ idCard: string }>('/patient/id-card', { password })
+  return post<{ idCard: string }>('/patient/id-card', { password })
 }
 
 // ===== 患者信息管理 =====

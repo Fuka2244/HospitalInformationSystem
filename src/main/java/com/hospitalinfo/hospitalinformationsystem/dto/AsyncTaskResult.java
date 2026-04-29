@@ -11,6 +11,9 @@ public class AsyncTaskResult {
     /** 任务ID */
     private String taskId;
 
+    /** 提交任务的患者ID（用于权限验证） */
+    private String patientId;
+
     /** 任务状态：PENDING / PROCESSING / COMPLETED / FAILED */
     private String status;
 

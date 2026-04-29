@@ -56,6 +56,7 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
         session.setAttribute("patient", vo);
         session.setAttribute("phone", patient.getPhone());
         session.setAttribute("account", patient.getAccount());
+        session.setAttribute("role", "patient");
         return Result.ok(vo);
     }
 

@@ -452,9 +452,9 @@ async function showDetail(id: number) {
 async function handleExportPdf(id: number, title: string) {
   try {
     await exportReportPdf(id, title)
-    ElMessage.success('PDF导出成功')
-  } catch (error) {
-    console.error('导出失败:', error)
+    ElMessage.success('PDF导出成功，请查看浏览器下载')
+  } catch (error: any) {
+    ElMessage.error(error?.message || 'PDF导出失败，请稍后重试')
   }
 }
 

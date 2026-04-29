@@ -1384,7 +1384,7 @@ onMounted(async () => {
   align-items: center;
   gap: 20px;
   padding: 24px;
-  background: var(--ap-gradient);
+  background: linear-gradient(135deg, var(--his-primary) 0%, #2aa06d 100%);
   border-radius: 16px;
   color: white;
   margin-bottom: 20px;
@@ -1433,8 +1433,8 @@ onMounted(async () => {
 }
 
 .schedule-slot-card.selected {
-  border-color: var(--ap-primary);
-  background: var(--ap-gradient);
+  border-color: var(--his-primary);
+  background: linear-gradient(135deg, var(--his-primary) 0%, #2aa06d 100%);
   color: white;
 }
 
@@ -1454,7 +1454,7 @@ onMounted(async () => {
 
 .slot-time {
   font-size: 14px;
-  color: var(--ap-text-muted);
+  color: var(--his-text-2);
 }
 
 .schedule-slot-card.selected .slot-time {
@@ -1469,7 +1469,7 @@ onMounted(async () => {
 
 .slot-count {
   font-size: 13px;
-  color: var(--ap-text-muted);
+  color: var(--his-text-2);
 }
 
 .schedule-slot-card.selected .slot-count {
