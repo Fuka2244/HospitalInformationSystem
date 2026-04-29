@@ -41,6 +41,7 @@ public class AsyncTaskServiceImpl implements IAsyncTaskService {
         try {
             // 1. 先在Redis中创建待处理结果
             AsyncTaskResult pendingResult = AsyncTaskResult.pending(taskId);
+            pendingResult.setPatientId(request.getPatientId());
             saveTaskResult(pendingResult);
 
             // 2. 发送消息到Redis Stream

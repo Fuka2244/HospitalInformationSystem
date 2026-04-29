@@ -63,8 +63,9 @@ public class PatientController {
     }
 
     /** 验证密码后获取完整身份证号 */
-    @GetMapping("/id-card")
-    public Result getIdCard(@RequestParam String password, HttpSession session) {
+    @PostMapping("/id-card")
+    public Result getIdCard(@RequestBody java.util.Map<String, String> body, HttpSession session) {
+        String password = body.get("password");
         return patientService.getIdCard(password, session);
     }
 

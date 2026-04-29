@@ -136,8 +136,17 @@ public class BillingController {
      * GET /billing/ai-task/{taskId}
      */
     @GetMapping("/ai-task/{taskId}")
-    public Result getAiTaskResult(@PathVariable String taskId) {
+    public Result getAiTaskResult(@PathVariable String taskId, HttpSession session) {
+        String currentPatientId = (String) session.getAttribute("account");
         AsyncTaskResult taskResult = asyncTaskService.getTaskResult(taskId);
+        // 权限验证：只有任务所属患者才能查看结果
+        if (taskResult != null && taskResult.getPatientId() != null
+                && !taskResult.getPatientId().equals(currentPatientId)) {
+            Object role = session.getAttribute("role");
+            if (role == null || (!"admin".equals(role) && !"doctor".equals(role))) {
+                return Result.fail("无权查看该任务结果");
+            }
+        }
         return Result.ok(taskResult);
     }
 }

@@ -548,12 +548,20 @@ function resetChat() {
 // 应用筛选条件
 async function applyFilter() {
   if (filterDate.value) {
-    // 如果选择了日期，查询该日期的排班
+    // 如果选择了日期，查询该日期的排班（同时传科室ID以精确查询）
     await store.fetchSchedules({
+      departmentId: filterDepartment.value || undefined,
       date: filterDate.value,
     })
 
     // 只保留可用的排班
+    doctorAvailableSlots.value = store.schedules.filter(s => s.bookedCount < s.maxPatients)
+  } else if (filterDepartment.value) {
+    // 只选了科室没选日期，查询该科室未来7天的排班
+    await store.fetchSchedules({
+      departmentId: filterDepartment.value,
+    })
+
     doctorAvailableSlots.value = store.schedules.filter(s => s.bookedCount < s.maxPatients)
   } else {
     doctorAvailableSlots.value = []
@@ -1376,7 +1384,7 @@ onMounted(async () => {
   align-items: center;
   gap: 20px;
   padding: 24px;
-  background: var(--ap-gradient);
+  background: linear-gradient(135deg, var(--his-primary) 0%, #2aa06d 100%);
   border-radius: 16px;
   color: white;
   margin-bottom: 20px;
@@ -1425,8 +1433,8 @@ onMounted(async () => {
 }
 
 .schedule-slot-card.selected {
-  border-color: var(--ap-primary);
-  background: var(--ap-gradient);
+  border-color: var(--his-primary);
+  background: linear-gradient(135deg, var(--his-primary) 0%, #2aa06d 100%);
   color: white;
 }
 
@@ -1446,7 +1454,7 @@ onMounted(async () => {
 
 .slot-time {
   font-size: 14px;
-  color: var(--ap-text-muted);
+  color: var(--his-text-2);
 }
 
 .schedule-slot-card.selected .slot-time {
@@ -1461,7 +1469,7 @@ onMounted(async () => {
 
 .slot-count {
   font-size: 13px;
-  color: var(--ap-text-muted);
+  color: var(--his-text-2);
 }
 
 .schedule-slot-card.selected .slot-count {

@@ -1,11 +1,13 @@
 package com.hospitalinfo.hospitalinformationsystem.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hospitalinfo.hospitalinformationsystem.dto.ReportGenerateDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
 import com.hospitalinfo.hospitalinformationsystem.service.IMedicalReportService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -15,19 +17,27 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 医疗报告控制器（含AI生成 + PDF导出）
  */
+@Slf4j
 @RestController
 @RequestMapping("/report")
 @RequiredArgsConstructor
 public class MedicalReportController {
 
     private final IMedicalReportService reportService;
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final ObjectMapper objectMapper;
+    private final ExecutorService executorService = new ThreadPoolExecutor(
+            2, 8, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(100),
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     /**
      * AI生成医疗报告（流式，实时展示思维链）
@@ -36,14 +46,14 @@ public class MedicalReportController {
     @PostMapping("/generate-stream")
     public SseEmitter generateReportStream(@RequestBody ReportGenerateDto dto, HttpSession session) {
         String patientId = (String) session.getAttribute("account");
-        SseEmitter emitter = new SseEmitter(60000L); // 60秒超时
+        SseEmitter emitter = new SseEmitter(120000L); // 120秒超时，AI生成可能需要较长时间
 
         executorService.submit(() -> {
             try {
                 // 步骤1：开始分析，获取病历基本信息
                 emitter.send(SseEmitter.event()
                         .name("step")
-                        .data("{\"step\":1,\"title\":\"开始分析\",\"message\":\"正在获取病历信息...\",\"progress\":0}"));
+                        .data(objectMapper.writeValueAsString(buildStepData(1, "开始分析", "正在获取病历信息...", 0))));
                 Thread.sleep(200);
 
                 // 获取病历信息，准备展示实际数据
@@ -61,30 +71,28 @@ public class MedicalReportController {
                                     medicalRecord.getPresentIllness());
                     emitter.send(SseEmitter.event()
                             .name("step")
-                            .data(String.format("{\"step\":1,\"title\":\"开始分析\",\"message\":\"%s\",\"progress\":5}",
-                                    message.replace("\n", "\\n").replace("\"", "'"))));
+                            .data(objectMapper.writeValueAsString(buildStepData(1, "开始分析", message, 5))));
                 }
                 Thread.sleep(300);
 
                 // 步骤2：分析主诉和现病史
                 emitter.send(SseEmitter.event()
                         .name("step")
-                        .data("{\"step\":2,\"title\":\"分析主诉和现病史\",\"message\":\"正在提取关键症状信息...\",\"progress\":15}"));
+                        .data(objectMapper.writeValueAsString(buildStepData(2, "分析主诉和现病史", "正在提取关键症状信息...", 15))));
                 if (medicalRecord != null) {
                     String message = String.format("关键症状提取：\n主诉：%s\n分析：患者主诉清晰，主要症状为%s",
                             medicalRecord.getChiefComplaint(),
                             extractMainSymptom(medicalRecord.getChiefComplaint()));
                     emitter.send(SseEmitter.event()
                             .name("step")
-                            .data(String.format("{\"step\":2,\"title\":\"分析主诉和现病史\",\"message\":\"%s\",\"progress\":20}",
-                                    message.replace("\n", "\\n").replace("\"", "'"))));
+                            .data(objectMapper.writeValueAsString(buildStepData(2, "分析主诉和现病史", message, 20))));
                 }
                 Thread.sleep(300);
 
                 // 步骤3：检查结果分析
                 emitter.send(SseEmitter.event()
                         .name("step")
-                        .data("{\"step\":3,\"title\":\"结合检查结果分析\",\"message\":\"正在分析检查异常...\",\"progress\":35}"));
+                        .data(objectMapper.writeValueAsString(buildStepData(3, "结合检查结果分析", "正在分析检查异常...", 35))));
                 if (medicalRecord != null && dto.getExaminationData() != null && !dto.getExaminationData().isEmpty()) {
                     String message = String.format("检查结果分析：\n%s\n分析：检查结果%s，需要结合症状进一步分析",
                             dto.getExaminationData().length() > 150 ?
@@ -93,19 +101,18 @@ public class MedicalReportController {
                             hasAbnormalResult(dto.getExaminationData()) ? "存在异常" : "基本正常");
                     emitter.send(SseEmitter.event()
                             .name("step")
-                            .data(String.format("{\"step\":3,\"title\":\"结合检查结果分析\",\"message\":\"%s\",\"progress\":40}",
-                                    message.replace("\n", "\\n").replace("\"", "'"))));
+                            .data(objectMapper.writeValueAsString(buildStepData(3, "结合检查结果分析", message, 40))));
                 } else {
                     emitter.send(SseEmitter.event()
                             .name("step")
-                            .data(String.format("{\"step\":3,\"title\":\"结合检查结果分析\",\"message\":\"当前病历暂无检查数据，将主要依据临床症状进行分析\",\"progress\":40}")));
+                            .data(objectMapper.writeValueAsString(buildStepData(3, "结合检查结果分析", "当前病历暂无检查数据，将主要依据临床症状进行分析", 40))));
                 }
                 Thread.sleep(300);
 
                 // 步骤4：历史记录分析
                 emitter.send(SseEmitter.event()
                         .name("step")
-                        .data("{\"step\":4,\"title\":\"参考历史记录\",\"message\":\"正在查看历史就诊记录...\",\"progress\":55}"));
+                        .data(objectMapper.writeValueAsString(buildStepData(4, "参考历史记录", "正在查看历史就诊记录...", 55))));
                 String historyInfo = reportService.getPatientHistory(patientId);
                 if (historyInfo != null && !historyInfo.isEmpty()) {
                     String message = String.format("历史就诊记录：\n%s\n分析：%s",
@@ -113,34 +120,32 @@ public class MedicalReportController {
                             analyzeHistory(historyInfo));
                     emitter.send(SseEmitter.event()
                             .name("step")
-                            .data(String.format("{\"step\":4,\"title\":\"参考历史记录\",\"message\":\"%s\",\"progress\":60}",
-                                    message.replace("\n", "\\n").replace("\"", "'"))));
+                            .data(objectMapper.writeValueAsString(buildStepData(4, "参考历史记录", message, 60))));
                 } else {
                     emitter.send(SseEmitter.event()
                             .name("step")
-                            .data(String.format("{\"step\":4,\"title\":\"参考历史记录\",\"message\":\"患者无历史就诊记录，本次为初诊或首诊\",\"progress\":60}")));
+                            .data(objectMapper.writeValueAsString(buildStepData(4, "参考历史记录", "患者无历史就诊记录，本次为初诊或首诊", 60))));
                 }
                 Thread.sleep(300);
 
                 // 步骤5：综合诊断
                 emitter.send(SseEmitter.event()
                         .name("step")
-                        .data("{\"step\":5,\"title\":\"综合分析诊断\",\"message\":\"正在得出诊断结论...\",\"progress\":75}"));
+                        .data(objectMapper.writeValueAsString(buildStepData(5, "综合分析诊断", "正在得出诊断结论...", 75))));
                 if (medicalRecord != null) {
                     String message = String.format("初步诊断：%s\n结合主诉、现病史、检查结果及历史记录，初步诊断为：%s",
                             medicalRecord.getDiagnosis(),
                             medicalRecord.getDiagnosis());
                     emitter.send(SseEmitter.event()
                             .name("step")
-                            .data(String.format("{\"step\":5,\"title\":\"综合分析诊断\",\"message\":\"%s\",\"progress\":80}",
-                                    message.replace("\n", "\\n").replace("\"", "'"))));
+                            .data(objectMapper.writeValueAsString(buildStepData(5, "综合分析诊断", message, 80))));
                 }
                 Thread.sleep(300);
 
                 // 步骤6：治疗方案
                 emitter.send(SseEmitter.event()
                         .name("step")
-                        .data("{\"step\":6,\"title\":\"提出治疗方案和建议\",\"message\":\"正在生成详细建议...\",\"progress\":90}"));
+                        .data(objectMapper.writeValueAsString(buildStepData(6, "提出治疗方案和建议", "正在生成详细建议...", 90))));
 
                 // 生成报告
                 Result result = reportService.generateReport(dto, patientId);
@@ -165,8 +170,7 @@ public class MedicalReportController {
                                             "详见完整报告");
                             emitter.send(SseEmitter.event()
                                     .name("step")
-                                    .data(String.format("{\"step\":6,\"title\":\"提出治疗方案和建议\",\"message\":\"%s\",\"progress\":95}",
-                                            treatmentMessage.replace("\n", "\\n").replace("\"", "'"))));
+                                    .data(objectMapper.writeValueAsString(buildStepData(6, "提出治疗方案和建议", treatmentMessage, 95))));
                         }
 
                         // 发送思维链
@@ -242,6 +246,18 @@ public class MedicalReportController {
     }
 
     /**
+     * 构建SSE步骤数据（使用Map确保ObjectMapper安全序列化，避免JSON注入）
+     */
+    private Map<String, Object> buildStepData(int step, String title, String message, int progress) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("step", step);
+        data.put("title", title);
+        data.put("message", message);
+        data.put("progress", progress);
+        return data;
+    }
+
+    /**
      * AI生成医疗报告（非流式）
      * POST /report/generate
      */
@@ -300,7 +316,16 @@ public class MedicalReportController {
             return;
         }
 
-        Path path = Paths.get(pdfPath);
+        Path path = Paths.get(pdfPath).toAbsolutePath().normalize();
+
+        // 防止路径遍历攻击：确保PDF路径在允许的目录内
+        Path allowedDir = Paths.get("reports/pdf").toAbsolutePath().normalize();
+        if (!path.startsWith(allowedDir)) {
+            log.warn("PDF路径遍历攻击嫌疑: {}", pdfPath);
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
         if (!Files.exists(path)) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;

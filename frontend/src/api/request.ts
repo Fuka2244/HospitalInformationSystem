@@ -73,17 +73,29 @@ export function download(url: string, filename: string, params?: any) {
     params,
     responseType: 'blob'
   }).then((response) => {
-    // 检查是否是错误响应（404等）
-    if (response.status !== 200) {
-      throw new Error('下载失败')
+    const blobData = response.data as Blob
+
+    // 检查是否是错误响应（后端返回JSON错误而非文件）
+    if (blobData.type && blobData.type.includes('application/json')) {
+      return blobData.text().then(text => {
+        try {
+          const errData = JSON.parse(text)
+          throw new Error(errData.errorMsg || '下载失败')
+        } catch {
+          throw new Error('下载失败')
+        }
+      })
     }
 
-    const blob = new Blob([response.data])
+    const blob = new Blob([blobData], { type: blobData.type || 'application/octet-stream' })
     const link = document.createElement('a')
     link.href = window.URL.createObjectURL(blob)
     link.download = filename
+    document.body.appendChild(link)
     link.click()
-    window.URL.revokeObjectURL(link.href)
+    document.body.removeChild(link)
+    // 延迟释放，确保浏览器完成下载
+    setTimeout(() => window.URL.revokeObjectURL(link.href), 5000)
   })
 }
 

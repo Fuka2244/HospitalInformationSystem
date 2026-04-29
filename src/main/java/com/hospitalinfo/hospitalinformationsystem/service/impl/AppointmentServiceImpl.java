@@ -34,44 +34,54 @@ public class AppointmentServiceImpl implements IAppointmentService {
     private static final String APPOINTMENT_LOCK_PREFIX = "lock:appointment:";
 
     @Override
-    @Transactional
     @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
     public Result createAppointment(AppointmentCreateDto dto, String patientId) {
-        if (dto.getDoctorId() != null) {
-            // 分布式锁：按排班维度加锁，同一排班同时只能有一个预约操作
-            String lockKey = APPOINTMENT_LOCK_PREFIX + dto.getDoctorId() + ":"
-                    + dto.getAppointmentDate() + ":" + dto.getTimeSlot();
-            String lockValue = distributedLock.tryLock(lockKey);
-
-            if (lockValue == null) {
-                return Result.fail("当前预约人数较多，请稍后再试");
-            }
-
-            try {
-                // 防重复预约：同一患者不能重复预约同一医生同一时段
-                Long existCount = appointmentMapper.selectCount(
-                        new QueryWrapper<Appointment>()
-                                .eq("patient_id", patientId)
-                                .eq("doctor_id", dto.getDoctorId())
-                                .eq("appointment_date", dto.getAppointmentDate())
-                                .eq("time_slot", dto.getTimeSlot())
-                                .in("status", 0, 1));
-                if (existCount > 0) {
-                    return Result.fail("您已预约该时段，请勿重复预约");
-                }
-
-                // 原子操作递增已预约数，根据返回值判断是否约满
-                int updated = doctorScheduleMapper.incrementBookedCount(
-                        dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
-                if (updated == 0) {
-                    return Result.fail("该时段已约满，请选择其他时间");
-                }
-            } finally {
-                distributedLock.unlock(lockKey, lockValue);
-            }
+        if (dto.getDoctorId() == null) {
+            // 未指定医生时不允许直接预约，必须选择医生和排班时段
+            return Result.fail("请选择医生和就诊时段");
         }
 
-        // 创建预约
+        // 分布式锁：按排班维度加锁，同一排班同时只能有一个预约操作
+        String lockKey = APPOINTMENT_LOCK_PREFIX + dto.getDoctorId() + ":"
+                + dto.getAppointmentDate() + ":" + dto.getTimeSlot();
+        String lockValue = distributedLock.tryLock(lockKey);
+
+        if (lockValue == null) {
+            return Result.fail("当前预约人数较多，请稍后再试");
+        }
+
+        try {
+            // 防重复预约：同一患者不能重复预约同一医生同一时段
+            Long existCount = appointmentMapper.selectCount(
+                    new QueryWrapper<Appointment>()
+                            .eq("patient_id", patientId)
+                            .eq("doctor_id", dto.getDoctorId())
+                            .eq("appointment_date", dto.getAppointmentDate())
+                            .eq("time_slot", dto.getTimeSlot())
+                            .in("status", 0, 1));
+            if (existCount > 0) {
+                return Result.fail("您已预约该时段，请勿重复预约");
+            }
+
+            // 原子操作递增已预约数，根据返回值判断是否约满
+            int updated = doctorScheduleMapper.incrementBookedCount(
+                    dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
+            if (updated == 0) {
+                return Result.fail("该时段已约满，请选择其他时间");
+            }
+
+            // 锁内执行事务性插入，确保锁释放前数据已持久化
+            return doCreateAppointment(dto, patientId);
+        } finally {
+            distributedLock.unlock(lockKey, lockValue);
+        }
+    }
+
+    /**
+     * 事务性创建预约记录（在分布式锁保护范围内调用）
+     */
+    @Transactional
+    public Result doCreateAppointment(AppointmentCreateDto dto, String patientId) {
         Appointment appointment = new Appointment();
         appointment.setPatientId(patientId);
         appointment.setDoctorId(dto.getDoctorId());
@@ -201,19 +211,29 @@ public class AppointmentServiceImpl implements IAppointmentService {
     public Result getAvailableSchedules(Long departmentId, Long doctorId, String date) {
         // 优先走缓存
         if (departmentId != null && doctorId == null && (date == null || date.isEmpty())) {
-            // 查科室下所有排班（走缓存）
-            List<DoctorSchedule> schedules = aiAppointmentService.getDepartmentSchedulesFromCache(departmentId);
+            // 查科室下所有排班（走缓存）——必须深拷贝，避免修改缓存对象
+            List<DoctorSchedule> rawSchedules = aiAppointmentService.getDepartmentSchedulesFromCache(departmentId);
             List<Doctor> doctors = aiAppointmentService.getDoctorsByDepartmentFromCache(departmentId);
             Department dept = departmentMapper.selectById(departmentId);
-            for (DoctorSchedule schedule : schedules) {
+            List<DoctorSchedule> schedules = rawSchedules.stream().map(s -> {
+                DoctorSchedule copy = new DoctorSchedule();
+                copy.setId(s.getId());
+                copy.setDoctorId(s.getDoctorId());
+                copy.setScheduleDate(s.getScheduleDate());
+                copy.setTimeSlot(s.getTimeSlot());
+                copy.setMaxPatients(s.getMaxPatients());
+                copy.setBookedCount(s.getBookedCount());
+                copy.setStatus(s.getStatus());
                 doctors.stream()
-                        .filter(d -> d.getId().equals(schedule.getDoctorId()))
+                        .filter(d -> d.getId().equals(s.getDoctorId()))
                         .findFirst()
                         .ifPresent(d -> {
-                            schedule.setDoctorName(d.getName());
-                            schedule.setDepartmentName(dept != null ? dept.getName() : "");
+                            copy.setDoctorName(d.getName());
+                            copy.setDepartmentId(departmentId);
+                            copy.setDepartmentName(dept != null ? dept.getName() : "");
                         });
-            }
+                return copy;
+            }).toList();
             return Result.ok(schedules);
         }
 
@@ -245,6 +265,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
             Doctor doctor = doctorMapper.selectById(schedule.getDoctorId());
             if (doctor != null) {
                 schedule.setDoctorName(doctor.getName());
+                schedule.setDepartmentId(doctor.getDepartmentId());
                 Department dept = departmentMapper.selectById(doctor.getDepartmentId());
                 if (dept != null) {
                     schedule.setDepartmentName(dept.getName());

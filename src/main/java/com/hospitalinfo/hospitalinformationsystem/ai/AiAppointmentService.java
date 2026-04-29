@@ -199,16 +199,19 @@ public class AiAppointmentService {
         List<DoctorSchedule> allSchedules = getDepartmentSchedulesFromCache(department.getId());
 
         // ===== 第三步：构建可选医生列表 =====
+        // 注意：allSchedules 来自缓存，必须深拷贝后再修改，避免污染缓存
         List<DoctorWithScheduleDto> availableDoctors = new ArrayList<>();
         for (Doctor doc : doctors) {
             List<DoctorSchedule> docSchedules = allSchedules.stream()
                     .filter(s -> s.getDoctorId().equals(doc.getId()))
+                    .map(this::copySchedule) // 深拷贝，避免修改缓存对象
                     .toList();
 
             if (!docSchedules.isEmpty()) {
-                // 填充排班中的医生名和科室名
+                // 填充排班中的医生名、科室ID和科室名
                 for (DoctorSchedule schedule : docSchedules) {
                     schedule.setDoctorName(doc.getName());
+                    schedule.setDepartmentId(department.getId());
                     schedule.setDepartmentName(department.getName());
                 }
 
@@ -223,46 +226,7 @@ public class AiAppointmentService {
         }
 
         // ===== 构建返回结果 =====
-        AppointmentRecommendation recommendation = new AppointmentRecommendation();
-        recommendation.setDepartment(department.getName());
-        recommendation.setDepartmentId(department.getId());
-        recommendation.setReason(recommendReason);
-        recommendation.setAvailableDoctors(availableDoctors);
-
-        if (availableDoctors.isEmpty()) {
-            // 该科室无可用排班
-            recommendation.setNeedChooseDoctor(false);
-            recommendation.setReason(recommendReason + "\n该科室未来7天暂无可用排班，建议稍后重试或前往导诊台咨询");
-            return recommendation;
-        }
-
-        if (availableDoctors.size() == 1) {
-            // 只有一位医生有排班，直接推荐
-            DoctorWithScheduleDto onlyDoctor = availableDoctors.get(0);
-            DoctorSchedule firstSlot = onlyDoctor.getSchedules().get(0);
-            recommendation.setDoctor(onlyDoctor.getDoctorName());
-            recommendation.setDoctorId(onlyDoctor.getDoctorId());
-            recommendation.setRecommendedDate(firstSlot.getScheduleDate().toString());
-            recommendation.setRecommendedTime(firstSlot.getTimeSlot());
-            recommendation.setNeedChooseDoctor(false);
-            recommendation.setReason(recommendReason + String.format(
-                    "\n该科室仅一位医生有排班：%s（%s），已为您选择最早时段：%s %s",
-                    onlyDoctor.getDoctorName(), onlyDoctor.getTitle(),
-                    firstSlot.getScheduleDate(), firstSlot.getTimeSlot()));
-        } else {
-            // 多位医生可选，让患者选择
-            recommendation.setNeedChooseDoctor(true);
-            StringBuilder reasonBuilder = new StringBuilder(recommendReason);
-            reasonBuilder.append("\n该科室以下医生有可用排班，请选择：");
-            for (DoctorWithScheduleDto doc : availableDoctors) {
-                reasonBuilder.append(String.format("\n- %s（%s，擅长：%s），%d个可用时段",
-                        doc.getDoctorName(), doc.getTitle(), doc.getSpecialty(),
-                        doc.getSchedules().size()));
-            }
-            recommendation.setReason(reasonBuilder.toString());
-        }
-
-        return recommendation;
+        return buildRecommendationResult(department, recommendReason, availableDoctors);
     }
 
     // ==================== 多轮对话 ====================
@@ -379,7 +343,7 @@ public class AiAppointmentService {
             return buildFallbackRecommendation("未找到推荐科室「" + deptName + "」，请前往导诊台咨询");
         }
 
-        // 从缓存查医生和排班
+        // 从缓存查医生和排班（深拷贝，避免污染缓存）
         List<Doctor> doctors = getDoctorsByDepartmentFromCache(department.getId());
         List<DoctorSchedule> allSchedules = getDepartmentSchedulesFromCache(department.getId());
 
@@ -388,11 +352,13 @@ public class AiAppointmentService {
         for (Doctor doc : doctors) {
             List<DoctorSchedule> docSchedules = allSchedules.stream()
                     .filter(s -> s.getDoctorId().equals(doc.getId()))
+                    .map(this::copySchedule) // 深拷贝，避免修改缓存对象
                     .toList();
 
             if (!docSchedules.isEmpty()) {
                 for (DoctorSchedule schedule : docSchedules) {
                     schedule.setDoctorName(doc.getName());
+                    schedule.setDepartmentId(department.getId());
                     schedule.setDepartmentName(department.getName());
                 }
 
@@ -407,6 +373,14 @@ public class AiAppointmentService {
         }
 
         // 构建返回结果
+        return buildRecommendationResult(department, reason, availableDoctors);
+    }
+
+    /**
+     * 构建推荐结果（公共逻辑提取）
+     */
+    private AppointmentRecommendation buildRecommendationResult(Department department, String reason,
+                                                                 List<DoctorWithScheduleDto> availableDoctors) {
         AppointmentRecommendation recommendation = new AppointmentRecommendation();
         recommendation.setDepartment(department.getName());
         recommendation.setDepartmentId(department.getId());
@@ -444,6 +418,24 @@ public class AiAppointmentService {
         }
 
         return recommendation;
+    }
+
+    /**
+     * 深拷贝DoctorSchedule对象，避免修改缓存中的原始对象
+     */
+    private DoctorSchedule copySchedule(DoctorSchedule source) {
+        DoctorSchedule copy = new DoctorSchedule();
+        copy.setId(source.getId());
+        copy.setDoctorId(source.getDoctorId());
+        copy.setScheduleDate(source.getScheduleDate());
+        copy.setTimeSlot(source.getTimeSlot());
+        copy.setMaxPatients(source.getMaxPatients());
+        copy.setBookedCount(source.getBookedCount());
+        copy.setStatus(source.getStatus());
+        copy.setDoctorName(source.getDoctorName());
+        copy.setDepartmentId(source.getDepartmentId());
+        copy.setDepartmentName(source.getDepartmentName());
+        return copy;
     }
 
     /**
