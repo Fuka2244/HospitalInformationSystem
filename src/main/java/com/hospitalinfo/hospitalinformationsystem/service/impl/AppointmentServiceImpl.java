@@ -211,6 +211,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
                         .findFirst()
                         .ifPresent(d -> {
                             schedule.setDoctorName(d.getName());
+                            schedule.setDepartmentId(departmentId);
                             schedule.setDepartmentName(dept != null ? dept.getName() : "");
                         });
             }
@@ -245,6 +246,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
             Doctor doctor = doctorMapper.selectById(schedule.getDoctorId());
             if (doctor != null) {
                 schedule.setDoctorName(doctor.getName());
+                schedule.setDepartmentId(doctor.getDepartmentId());
                 Department dept = departmentMapper.selectById(doctor.getDepartmentId());
                 if (dept != null) {
                     schedule.setDepartmentName(dept.getName());

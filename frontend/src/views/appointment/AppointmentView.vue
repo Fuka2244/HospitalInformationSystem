@@ -548,12 +548,20 @@ function resetChat() {
 // 应用筛选条件
 async function applyFilter() {
   if (filterDate.value) {
-    // 如果选择了日期，查询该日期的排班
+    // 如果选择了日期，查询该日期的排班（同时传科室ID以精确查询）
     await store.fetchSchedules({
+      departmentId: filterDepartment.value || undefined,
       date: filterDate.value,
     })
 
     // 只保留可用的排班
+    doctorAvailableSlots.value = store.schedules.filter(s => s.bookedCount < s.maxPatients)
+  } else if (filterDepartment.value) {
+    // 只选了科室没选日期，查询该科室未来7天的排班
+    await store.fetchSchedules({
+      departmentId: filterDepartment.value,
+    })
+
     doctorAvailableSlots.value = store.schedules.filter(s => s.bookedCount < s.maxPatients)
   } else {
     doctorAvailableSlots.value = []

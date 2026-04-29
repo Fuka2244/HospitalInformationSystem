@@ -24,6 +24,8 @@ public class DoctorSchedule {
 
     /** 非数据库字段 */
     @TableField(exist = false)
+    private Long departmentId;
+    @TableField(exist = false)
     private String doctorName;
     @TableField(exist = false)
     private String departmentName;
