@@ -16,6 +16,8 @@ spring:
     username: root
     password: Gg20041213
     driver-class-name: com.mysql.cj.jdbc.Driver
+  cache:
+    type: redis    # 有缓存; 改成 none 即关闭缓存，用于性能对比测试
   data:
     redis:
       host: localhost
@@ -49,3 +51,4 @@ file:
 logging:
   level:
     com.hospitalinfo.hospitalinformationsystem: debug
+    org.springframework.cache: debug
