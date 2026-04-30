@@ -5,7 +5,7 @@ import type { Result } from '@/types'
 const BASE_URL = '/HIS'
 
 // 开发模式开关：设为 true 时后端不可用也不弹错误、不跳登录页，所有页面可正常浏览
-export const DEV_MODE = true
+export const DEV_MODE = false
 
 const instance = axios.create({
   baseURL: BASE_URL,

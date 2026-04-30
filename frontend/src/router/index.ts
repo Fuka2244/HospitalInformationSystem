@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { DEV_MODE } from '@/api/request'
 
 const routes = [
   {
@@ -40,30 +39,37 @@ const router = createRouter({
 router.beforeEach(async (to, _from, next) => {
   document.title = `${to.meta.title || 'HIS'} - 医院信息系统`
 
-  // 开发模式：直接放行所有路由
-  if (DEV_MODE) {
-    next()
-    return
-  }
-
-  if (to.meta.public) {
-    next()
-    return
-  }
-
   const userStore = useUserStore()
+
+  // 公开页面直接放行
+  if (to.meta.public) {
+    // 已登录用户访问登录页时跳转首页
+    if (to.path === '/login' && userStore.isLoggedIn) {
+      next('/')
+      return
+    }
+    next()
+    return
+  }
+
+  // 需要登录的页面：检查登录状态
   if (userStore.isLoggedIn) {
     next()
     return
   }
 
+  // 尝试从后端恢复会话
   try {
     await userStore.fetchProfile()
-    next()
+    if (userStore.isLoggedIn) {
+      next()
+    } else {
+      // 未登录，跳转到登录页，并记录原始目标路径
+      next({ path: '/login', query: { redirect: to.fullPath } })
+    }
   } catch {
-    // 后端不可用或未登录：不强制跳转登录页，允许浏览公开内容
-    // 将需要登录的页面也放行，由各页面内部处理未登录状态
-    next()
+    // 后端不可用或未登录，跳转登录页
+    next({ path: '/login', query: { redirect: to.fullPath } })
   }
 })
 
