@@ -162,7 +162,9 @@ async function handleLogin() {
   try {
     await userStore.login(loginForm)
     ElMessage.success('登录成功')
-    router.push('/')
+    // 登录后跳转回原始目标页面，若无则跳转首页
+    const redirect = route.query.redirect as string
+    router.push(redirect || '/')
   } finally {
     loading.value = false
   }
