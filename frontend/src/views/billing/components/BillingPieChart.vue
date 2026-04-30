@@ -1,28 +1,32 @@
 <template>
   <div class="pie-root">
     <div v-if="totalValue <= 0" class="pie-empty">
-      <el-empty description="暂无可视化数据" :image-size="90" />
+      <el-empty description="暂无可视化数据" :image-size="80" />
     </div>
     <div v-else class="pie-wrap" @mouseleave="hoverKey = null">
-      <svg class="pie-svg" viewBox="0 0 220 220" role="img" aria-label="费用构成饼图">
-        <g>
+      <div class="pie-chart">
+        <div class="pie-glow"></div>
+        <svg viewBox="0 0 100 100" class="pie-svg">
           <template v-for="slice in slices" :key="slice.key">
             <path
               :d="slice.path"
-              :fill="slice.color"
-              :transform="sliceTransform(slice)"
+              :fill="slice.fillColor"
               class="pie-slice"
+              :class="{ active: hoverKey === slice.key }"
               @mouseenter="hoverKey = slice.key"
+              @mouseleave="hoverKey = null"
               @click="emitSelect(slice)"
             >
               <title>{{ slice.label }}：¥{{ slice.value.toFixed(2) }}（{{ (slice.percent * 100).toFixed(1) }}%）</title>
             </path>
           </template>
-        </g>
-        <circle cx="110" cy="110" r="56" fill="rgba(255,255,255,0.92)" />
-        <text x="110" y="104" text-anchor="middle" class="pie-center-title">总计</text>
-        <text x="110" y="128" text-anchor="middle" class="pie-center-value">¥{{ totalValue.toFixed(2) }}</text>
-      </svg>
+        </svg>
+        <div class="pie-hole"></div>
+        <div class="pie-center">
+          <div class="pie-total-label">总计</div>
+          <div class="pie-total-value">¥{{ totalValue.toFixed(2) }}</div>
+        </div>
+      </div>
 
       <div class="pie-legend">
         <div
@@ -34,9 +38,10 @@
           @mouseleave="hoverKey = null"
           @click="emitSelect(slice)"
         >
-          <span class="dot" :style="{ background: slice.color }"></span>
-          <span class="label">{{ slice.label }}</span>
-          <span class="percent">{{ (slice.percent * 100).toFixed(1) }}%</span>
+          <span class="legend-color" :style="{ background: slice.fillColor }"></span>
+          <span class="legend-label">{{ slice.label }}</span>
+          <span class="legend-value">¥{{ slice.value.toFixed(2) }}</span>
+          <span class="legend-percent">{{ (slice.percent * 100).toFixed(1) }}%</span>
         </div>
       </div>
     </div>
@@ -50,88 +55,57 @@ export type PieItem = {
   key: string
   label: string
   value: number
-  color: string
+  color?: string
   count?: number
 }
 
-const props = defineProps<{
-  items: PieItem[]
-}>()
+const fallbackColors = ['#47c88a', '#2fb8a0', '#4b97e8', '#f2b557', '#e97878', '#8a84dd']
 
-const emit = defineEmits<{
-  (e: 'select', item: PieItem & { percent: number }): void
-}>()
+const props = defineProps<{ items?: PieItem[] }>()
+const displayItems = computed(() => props.items ?? [])
+
+const emit = defineEmits<{ (e: 'select', item: PieItem & { percent: number }): void }>()
 
 const hoverKey = ref<string | null>(null)
 
-type Slice = PieItem & {
-  start: number
-  end: number
-  mid: number
-  percent: number
-  path: string
-}
+type Slice = PieItem & { start: number; end: number; percent: number; path: string; fillColor: string }
 
-const totalValue = computed(() =>
-  (props.items || []).reduce((sum, item) => sum + (Number(item.value) || 0), 0)
-)
+const totalValue = computed(() => displayItems.value.reduce((s, i) => s + (Number(i.value) || 0), 0))
 
-function polarToCartesian(cx: number, cy: number, r: number, angleRad: number) {
-  return {
-    x: cx + r * Math.cos(angleRad),
-    y: cy + r * Math.sin(angleRad),
-  }
-}
-
-function arcPath(cx: number, cy: number, r: number, start: number, end: number) {
-  const startPoint = polarToCartesian(cx, cy, r, start)
-  const endPoint = polarToCartesian(cx, cy, r, end)
-  const largeArcFlag = end - start > Math.PI ? 1 : 0
-  return `M ${cx} ${cy} L ${startPoint.x} ${startPoint.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${endPoint.x} ${endPoint.y} Z`
+function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
+  const largeArc = endAngle - startAngle > Math.PI ? 1 : 0
+  const pad = 0.02
+  const s = startAngle + pad
+  const e = endAngle - pad
+  return `M${cx},${cy} L${cx + r * Math.cos(s)},${cy + r * Math.sin(s)} A${r},${r} 0 ${largeArc} 1 ${cx + r * Math.cos(e)},${cy + r * Math.sin(e)} Z`
 }
 
 const slices = computed<Slice[]>(() => {
-  const normalized = (props.items || [])
-    .map(i => ({ ...i, value: Number(i.value) || 0 }))
-    .filter(i => i.value > 0)
-
-  const total = normalized.reduce((sum, i) => sum + i.value, 0)
-  if (total <= 0) return []
-
-  const cx = 110
-  const cy = 110
-  const r = 88
-  let cursor = -Math.PI / 2
-
-  return normalized.map((item) => {
-    const percent = item.value / total
-    const start = cursor
-    const end = cursor + percent * Math.PI * 2
-    cursor = end
-
-    const fullCircle = percent > 0.999999
+  const data = displayItems.value
+    .map(item => ({ ...item, value: Number(item.value) || 0 }))
+    .filter(item => item.value > 0)
+  const total = data.reduce((s, i) => s + i.value, 0)
+  if (!total) return []
+  
+  let cur = -Math.PI / 2
+  return data.map((item, idx) => {
+    const pct = item.value / total
+    const start = cur, end = cur + pct * Math.PI * 2
+    cur = end
+    const fullCircle = pct > 0.999999
     const path = fullCircle
-      ? `M ${cx} ${cy} m 0 -${r} a ${r} ${r} 0 1 1 0 ${2 * r} a ${r} ${r} 0 1 1 0 -${2 * r}`
-      : arcPath(cx, cy, r, start, end)
-
+      ? 'M50 50 m 0 -40 a 40 40 0 1 1 0 80 a 40 40 0 1 1 0 -80'
+      : arcPath(50, 50, 40, start, end)
     return {
       ...item,
       start,
       end,
-      mid: (start + end) / 2,
-      percent,
+      percent: pct,
       path,
+      fillColor: fallbackColors[idx % fallbackColors.length],
     }
   })
 })
-
-function sliceTransform(slice: Slice) {
-  if (hoverKey.value !== slice.key) return undefined
-  const offset = 7
-  const dx = Math.cos(slice.mid) * offset
-  const dy = Math.sin(slice.mid) * offset
-  return `translate(${dx}, ${dy})`
-}
 
 function emitSelect(slice: Slice) {
   emit('select', { ...slice, percent: slice.percent })
@@ -139,73 +113,168 @@ function emitSelect(slice: Slice) {
 </script>
 
 <style scoped>
-.pie-root{ width: 100%; }
-.pie-empty{ padding: 10px 0; }
-.pie-wrap{
-  display:flex;
-  gap: 14px;
+.pie-root {
+  width: 100%;
+}
+
+.pie-empty {
+  padding: 20px 0;
+}
+
+.pie-wrap {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 20px;
+  position: relative;
 }
-.pie-svg{
-  width: 220px;
-  height: 220px;
-  flex: 0 0 auto;
+
+.pie-chart {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  flex-shrink: 0;
 }
-.pie-slice{
+
+.pie-chart::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.24);
+  background: radial-gradient(circle at 65% 30%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.pie-glow {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, rgba(var(--his-primary-rgb), 0.36), rgba(var(--his-primary-rgb), 0)),
+    radial-gradient(circle at 70% 72%, rgba(75, 151, 232, 0.22), rgba(75, 151, 232, 0));
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.pie-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 12px 20px rgba(var(--his-primary-rgb), 0.2));
+  animation: pie-fade-in 0.45s ease;
+}
+
+.pie-slice {
   cursor: pointer;
-  stroke: rgba(255,255,255,0.98);
-  stroke-width: 2;
-  transition: transform 160ms ease, filter 160ms ease, opacity 160ms ease;
-  filter: drop-shadow(0 8px 18px rgba(15, 23, 42, 0.12));
+  transform-origin: 50px 50px;
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 1.6;
+  transition: transform 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
 }
-.pie-slice:hover{
-  filter: drop-shadow(0 12px 26px rgba(15, 23, 42, 0.18));
+
+.pie-slice:hover,
+.pie-slice.active {
+  opacity: 0.96;
+  transform: scale(1.05);
+  filter: brightness(1.04);
 }
-.pie-center-title{
-  fill: rgba(15, 23, 42, 0.6);
+
+.pie-hole {
+  position: absolute;
+  inset: 41px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(245, 250, 247, 0.96));
+  border: 1px solid rgba(var(--his-primary-rgb), 0.22);
+  box-shadow: inset 0 2px 10px rgba(var(--his-primary-rgb), 0.1), 0 2px 8px rgba(var(--his-primary-rgb), 0.14);
+  pointer-events: none;
+}
+
+.pie-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 84px;
+}
+
+.pie-total-label {
   font-size: 12px;
-  font-weight: 700;
+  color: var(--his-text-2);
 }
-.pie-center-value{
-  fill: rgba(15, 23, 42, 0.9);
+
+.pie-total-value {
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 800;
+  color: var(--his-text);
+  margin-top: 3px;
+  letter-spacing: 0.2px;
 }
-.pie-legend{
+
+.pie-legend {
   flex: 1;
-  min-width: 0;
-  display:flex;
+  display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
-.legend-item{
-  display:flex;
-  align-items:center;
+
+.legend-item {
+  display: flex;
+  align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  background: rgba(15, 23, 42, 0.02);
+  border-radius: 10px;
+  border: 1px solid rgba(var(--his-primary-rgb), 0.08);
+  background: rgba(var(--his-primary-rgb), 0.03);
   cursor: pointer;
-  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+  transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
 }
-.legend-item:hover{
-  background: rgba(15, 23, 42, 0.04);
-  border-color: rgba(15, 23, 42, 0.10);
-  transform: translateY(-1px);
-}
-.legend-item.active{
-  background: rgba(99, 102, 241, 0.06);
-  border-color: rgba(99, 102, 241, 0.22);
-}
-.dot{ width: 10px; height: 10px; border-radius: 999px; flex: 0 0 auto; }
-.label{ flex: 1; min-width: 0; font-weight: 700; color: rgba(15, 23, 42, 0.86); }
-.percent{ font-variant-numeric: tabular-nums; color: rgba(15, 23, 42, 0.6); font-size: 12px; }
 
-@media (max-width: 1200px){
-  .pie-wrap{ flex-direction: column; align-items: stretch; }
-  .pie-svg{ margin: 0 auto; }
+.legend-item:hover,
+.legend-item.active {
+  background: rgba(var(--his-primary-rgb), 0.12);
+  border-color: rgba(var(--his-primary-rgb), 0.22);
+  transform: translateX(2px);
+}
+
+.legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
+}
+
+.legend-label {
+  font-size: 12px;
+  color: var(--his-text-2);
+  flex: 1;
+}
+
+.legend-value {
+  font-size: 12px;
+  color: var(--his-text);
+  font-weight: 700;
+}
+
+.legend-percent {
+  font-size: 11px;
+  color: var(--his-primary);
+  font-weight: 700;
+}
+
+@keyframes pie-fade-in {
+  from {
+    opacity: 0.3;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 480px) {
+  .pie-wrap {
+    flex-direction: column;
+  }
 }
 </style>
-
