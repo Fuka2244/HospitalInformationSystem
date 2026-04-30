@@ -18,6 +18,8 @@ public class PatientInfoVo {
     private String idCard;
     /** 是否已验证身份（身份证是否脱敏） */
     private boolean idCardVerified;
+    /** 手机号是否脱敏 */
+    private boolean phoneMasked;
     private String avatar;
     private Long totalVisits;
     private Object lastVisitDate;

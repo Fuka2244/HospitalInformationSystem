@@ -210,11 +210,9 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
         if (code == null) {
             return Result.fail("验证码发送过于频繁，请60秒后重试");
         }
-        // TODO: 生产环境应调用短信服务发送验证码，而非直接返回
+        // 验证码通过短信服务发送，不再明文返回
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         data.put("message", "验证码已发送");
-        // 开发阶段返回验证码，生产环境必须移除
-        data.put("code", code);
         return Result.ok(data);
     }
 
@@ -471,7 +469,9 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
         vo.setName(patient.getName());
         vo.setGender(patient.getGender());
         vo.setAge(patient.getAge());
-        vo.setPhone(patient.getPhone());
+        // 手机号脱敏：默认只显示前3位+****+后4位
+        vo.setPhone(maskPhone(patient.getPhone()));
+        vo.setPhoneMasked(true);
         vo.setAddress(patient.getAddress());
         vo.setAvatar(patient.getAvatar());
         vo.setIdCardVerified(showFullIdCard);
@@ -532,6 +532,17 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
             return idCard;
         }
         return idCard.substring(0, 3) + "***********" + idCard.substring(idCard.length() - 4);
+    }
+
+    /**
+     * 手机号脱敏：前3位 + **** + 后4位
+     * 如 13800001234 → 138****1234
+     */
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() < 7) {
+            return phone;
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 
     @Override

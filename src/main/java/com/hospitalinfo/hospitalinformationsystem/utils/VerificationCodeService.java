@@ -50,7 +50,7 @@ public class VerificationCodeService {
         // 设置发送间隔标记，60秒后自动过期
         redisTemplate.opsForValue().set(intervalKey, "1", CODE_INTERVAL_SECONDS, TimeUnit.SECONDS);
 
-        log.info("验证码已生成(Redis) - 手机号: {}, 验证码: {}", phone, code);
+        log.info("验证码已生成(Redis) - 手机号: {}", phone);
         return code;
     }
 
