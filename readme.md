@@ -255,41 +255,6 @@ mvn test -Dtest=CachePerformanceTest
 - XSS 攻击防护
 - CSRF 令牌验证
 
-## 🤝 贡献指南
 
-欢迎贡献代码！请遵循以下步骤：
-
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 提交 Pull Request
-
-## 📄 开源协议
-
-本项目采用 MIT 协议开源。
-
-## 👥 作者
-
-- **项目维护者** - [Your Name]
-- **技术支持** - [Your Team]
-
-## 🙏 致谢
-
-- [Spring Boot](https://spring.io/projects/spring-boot)
-- [Vue.js](https://vuejs.org/)
-- [Element Plus](https://element-plus.org/)
-- [LangChain4j](https://docs.langchain4j.dev/)
-- [通义千问](https://qwen.aliyun.com/)
-
-## 📮 联系方式
-
-如有问题或建议，请通过以下方式联系：
-
-- 提交 Issue
-- 发送邮件至：your.email@example.com
-- 项目主页：https://github.com/yourusername/HospitalInformationSystem
-
----
 
 ⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！
