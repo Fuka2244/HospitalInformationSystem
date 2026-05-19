@@ -9,8 +9,14 @@ import java.util.List;
  */
 public interface IAppointmentService {
 
-    /** 创建预约 */
+    /** 创建预约（分布式锁版本） */
     Result createAppointment(AppointmentCreateDto dto, String patientId);
+
+    /**
+     * 创建预约（Redis预扣减 + MySQL乐观锁版本）
+     * 适用于高并发场景，Redis作为第一道防线，MySQL作为最终一致性保障
+     */
+    Result createAppointmentWithRedisAndOptimisticLock(AppointmentCreateDto dto, String patientId);
 
     /** 分页查询预约列表 */
     Result listAppointments(String patientId, AppointmentQueryDto queryDto);
@@ -20,6 +26,11 @@ public interface IAppointmentService {
 
     /** 取消预约 */
     Result cancelAppointment(Long appointmentId, String cancelReason, String patientId);
+
+    /**
+     * 取消预约（Redis预扣减 + MySQL乐观锁版本）
+     */
+    Result cancelAppointmentWithRedisAndOptimisticLock(Long appointmentId, String cancelReason, String patientId);
 
     /** 改期 */
     Result rescheduleAppointment(Long appointmentId, AppointmentCreateDto dto, String patientId);
@@ -35,4 +46,10 @@ public interface IAppointmentService {
 
     /** 获取可用排班 */
     Result getAvailableSchedules(Long departmentId, Long doctorId, String date);
+
+    /**
+     * 同步库存到Redis（定时任务调用）
+     * 将数据库中的号源库存同步到Redis缓存
+     */
+    Result syncStockToRedis();
 }

@@ -24,6 +24,16 @@ spring:
       port: 6379
       database: 0
       password: ${REDIS_PASSWORD:}
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: his-ai-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -31,6 +41,27 @@ mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     map-underscore-to-camel-case: true
+
+# JWT配置
+jwt:
+  secret: ${JWT_SECRET:HisSecretKeyForJwtToken2024MustBeAtLeast256BitsLongForHS256}
+  # Token有效期（秒）：24小时
+  expiration: ${JWT_EXPIRATION:86400}
+  # 刷新Token有效期（秒）：7天
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800}
+  # 请求头名称
+  header: Authorization
+  # Token前缀
+  token-prefix: "Bearer "
+
+# Kafka配置
+kafka:
+  enabled: true  # 设置为true启用Kafka，false则跳过Kafka初始化
+  topics:
+    # AI任务消息队列
+    ai-task: his-ai-task
+    # 预约通知消息队列
+    appointment-notify: his-appointment-notify
 
 # LangChain4j + Qwen AI Configuration
 ai:
@@ -52,3 +83,4 @@ logging:
   level:
     com.hospitalinfo.hospitalinformationsystem: debug
     org.springframework.cache: debug
+    org.springframework.kafka: info

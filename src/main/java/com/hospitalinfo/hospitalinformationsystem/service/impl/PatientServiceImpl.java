@@ -7,17 +7,22 @@ import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.entity.*;
 import com.hospitalinfo.hospitalinformationsystem.mapper.*;
 import com.hospitalinfo.hospitalinformationsystem.service.IPatientService;
+import com.hospitalinfo.hospitalinformationsystem.service.IRedisSessionService;
 import com.hospitalinfo.hospitalinformationsystem.utils.EncodePassword;
+import com.hospitalinfo.hospitalinformationsystem.utils.JwtTokenUtil;
 import com.hospitalinfo.hospitalinformationsystem.utils.MatchPassword;
 import com.hospitalinfo.hospitalinformationsystem.utils.RegexTool;
 import com.hospitalinfo.hospitalinformationsystem.utils.VerificationCodeService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> implements IPatientService {
@@ -29,6 +34,12 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
     private final PrescriptionItemMapper prescriptionItemMapper;
     private final MedicineMapper medicineMapper;
     private final VerificationCodeService verificationCodeService;
+    private final JwtTokenUtil jwtTokenUtil;
+    private final IRedisSessionService redisSessionService;
+
+    /** JWT会话过期时间（秒）：默认24小时 */
+    @Value("${jwt.expiration:86400}")
+    private long jwtExpiration;
 
     // ==================== 账户管理 ====================
 
@@ -58,6 +69,56 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
         session.setAttribute("account", patient.getAccount());
         session.setAttribute("role", "patient");
         return Result.ok(vo);
+    }
+
+    /**
+     * JWT登录（新版本）
+     */
+    @Override
+    public Result loginWithJwt(LoginDto loginDto) {
+        String phone = loginDto.getPhone();
+        String password = loginDto.getPassword();
+
+        // 验证手机号格式
+        if (!RegexTool.isPhone(phone)) {
+            return Result.fail("手机号格式不正确");
+        }
+
+        // 查询用户
+        Patient patient = this.lambdaQuery()
+                .eq(Patient::getPhone, phone)
+                .one();
+        if (patient == null) {
+            return Result.fail("手机号不存在");
+        }
+
+        // 验证密码
+        String encodePassword = patient.getPassword();
+        boolean match = MatchPassword.match(password, encodePassword);
+        if (!match) {
+            return Result.fail("密码不正确");
+        }
+
+        // 生成JWT Token
+        String token = jwtTokenUtil.generateToken(patient.getAccount(), "patient");
+        String refreshToken = jwtTokenUtil.generateRefreshToken(patient.getAccount());
+
+        // 构建患者信息
+        PatientInfoVo patientInfo = buildPatientInfoVo(patient);
+        patientInfo.setRole("patient");
+
+        // 保存到Redis
+        redisSessionService.saveSession(token, patientInfo, jwtExpiration);
+
+        // 构建响应
+        LoginResponseDto response = new LoginResponseDto()
+                .setToken(token)
+                .setRefreshToken(refreshToken)
+                .setExpiresIn(jwtExpiration)
+                .setPatientInfo(patientInfo);
+
+        log.info("JWT登录成功: account={}", patient.getAccount());
+        return Result.ok(response);
     }
 
     @Override
@@ -121,6 +182,19 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
         return Result.ok("登出成功");
     }
 
+    /**
+     * JWT登出
+     */
+    @Override
+    public Result loginOutWithJwt(String token) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        redisSessionService.deleteSession(token);
+        log.info("JWT登出成功");
+        return Result.ok("登出成功");
+    }
+
     @Override
     public Result info(HttpSession session) {
         PatientInfoVo vo = (PatientInfoVo) session.getAttribute("patient");
@@ -137,6 +211,69 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> impl
             return Result.ok(vo);
         }
         return Result.ok(null);
+    }
+
+    /**
+     * JWT模式获取用户信息
+     */
+    @Override
+    public Result infoWithJwt(String account) {
+        if (account == null || account.isEmpty()) {
+            return Result.fail("用户未登录");
+        }
+        Patient patient = this.getById(account);
+        if (patient == null) {
+            return Result.fail("用户不存在");
+        }
+        PatientInfoVo vo = buildPatientInfoVo(patient);
+        vo.setRole("patient");
+        return Result.ok(vo);
+    }
+
+    /**
+     * 刷新Token
+     */
+    @Override
+    public Result refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            return Result.fail("刷新令牌不能为空");
+        }
+
+        // 验证刷新令牌
+        if (!jwtTokenUtil.validateToken(refreshToken)) {
+            return Result.fail("刷新令牌无效或已过期");
+        }
+
+        // 提取账户信息
+        String account = jwtTokenUtil.extractAccount(refreshToken);
+        if (account == null) {
+            return Result.fail("刷新令牌解析失败");
+        }
+
+        // 生成新的Token
+        String newToken = jwtTokenUtil.generateToken(account, "patient");
+        String newRefreshToken = jwtTokenUtil.generateRefreshToken(account);
+
+        // 获取用户信息
+        Patient patient = this.getById(account);
+        if (patient == null) {
+            return Result.fail("用户不存在");
+        }
+        PatientInfoVo patientInfo = buildPatientInfoVo(patient);
+        patientInfo.setRole("patient");
+
+        // 保存新会话到Redis
+        redisSessionService.saveSession(newToken, patientInfo, jwtExpiration);
+
+        // 构建响应
+        LoginResponseDto response = new LoginResponseDto()
+                .setToken(newToken)
+                .setRefreshToken(newRefreshToken)
+                .setExpiresIn(jwtExpiration)
+                .setPatientInfo(patientInfo);
+
+        log.info("Token刷新成功: account={}", account);
+        return Result.ok(response);
     }
 
     @Override

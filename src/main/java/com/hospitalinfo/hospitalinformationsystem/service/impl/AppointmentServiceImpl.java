@@ -8,16 +8,18 @@ import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.entity.*;
 import com.hospitalinfo.hospitalinformationsystem.mapper.*;
 import com.hospitalinfo.hospitalinformationsystem.service.IAppointmentService;
+import com.hospitalinfo.hospitalinformationsystem.service.IScheduleStockService;
 import com.hospitalinfo.hospitalinformationsystem.utils.RedisDistributedLock;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AppointmentServiceImpl implements IAppointmentService {
@@ -29,6 +31,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
     private final PatientMapper patientMapper;
     private final AiAppointmentService aiAppointmentService;
     private final RedisDistributedLock distributedLock;
+    private final IScheduleStockService scheduleStockService;
 
     /** 分布式锁Key前缀 */
     private static final String APPOINTMENT_LOCK_PREFIX = "lock:appointment:";
@@ -37,13 +40,11 @@ public class AppointmentServiceImpl implements IAppointmentService {
     @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
     public Result createAppointment(AppointmentCreateDto dto, String patientId) {
         if (dto.getDoctorId() == null) {
-            // 未指定医生时不允许直接预约，必须选择医生和排班时段
             return Result.fail("请选择医生和就诊时段");
         }
 
-        // 分布式锁：按排班维度加锁，同一排班同时只能有一个预约操作
-        String lockKey = APPOINTMENT_LOCK_PREFIX + dto.getDoctorId() + ":"
-                + dto.getAppointmentDate() + ":" + dto.getTimeSlot();
+        // 分布式锁：按排班维度加锁
+        String lockKey = buildLockKey(dto.getDoctorId(), dto.getAppointmentDate().toString(), dto.getTimeSlot());
         String lockValue = distributedLock.tryLock(lockKey);
 
         if (lockValue == null) {
@@ -51,34 +52,126 @@ public class AppointmentServiceImpl implements IAppointmentService {
         }
 
         try {
-            // 防重复预约：同一患者不能重复预约同一医生同一时段
-            Long existCount = appointmentMapper.selectCount(
-                    new QueryWrapper<Appointment>()
-                            .eq("patient_id", patientId)
-                            .eq("doctor_id", dto.getDoctorId())
-                            .eq("appointment_date", dto.getAppointmentDate())
-                            .eq("time_slot", dto.getTimeSlot())
-                            .in("status", 0, 1));
-            if (existCount > 0) {
-                return Result.fail("您已预约该时段，请勿重复预约");
-            }
-
-            // 原子操作递增已预约数，根据返回值判断是否约满
-            int updated = doctorScheduleMapper.incrementBookedCount(
-                    dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
-            if (updated == 0) {
-                return Result.fail("该时段已约满，请选择其他时间");
-            }
-
-            // 锁内执行事务性插入，确保锁释放前数据已持久化
-            return doCreateAppointment(dto, patientId);
+            return doCreateAppointmentWithLock(dto, patientId);
         } finally {
             distributedLock.unlock(lockKey, lockValue);
         }
     }
 
     /**
-     * 事务性创建预约记录（在分布式锁保护范围内调用）
+     * Redis预扣减 + MySQL乐观锁创建预约
+     * 适用于高并发热门号源场景
+     */
+    @Override
+    @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
+    public Result createAppointmentWithRedisAndOptimisticLock(AppointmentCreateDto dto, String patientId) {
+        if (dto.getDoctorId() == null) {
+            return Result.fail("请选择医生和就诊时段");
+        }
+
+        String scheduleDateStr = dto.getAppointmentDate().toString();
+        String scheduleKey = buildScheduleKey(dto.getDoctorId(), scheduleDateStr, dto.getTimeSlot());
+
+        // 防重复预约检查
+        Long existCount = appointmentMapper.selectCount(
+                new QueryWrapper<Appointment>()
+                        .eq("patient_id", patientId)
+                        .eq("doctor_id", dto.getDoctorId())
+                        .eq("appointment_date", dto.getAppointmentDate())
+                        .eq("time_slot", dto.getTimeSlot())
+                        .in("status", 0, 1));
+        if (existCount > 0) {
+            return Result.fail("您已预约该时段，请勿重复预约");
+        }
+
+        // 第一步：Redis预扣减库存（快速过滤大部分无效请求）
+        if (!scheduleStockService.isStockInitialized(scheduleKey)) {
+            // Redis未初始化，先查数据库
+            DoctorSchedule schedule = doctorScheduleMapper.selectScheduleWithVersion(
+                    dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
+            if (schedule == null) {
+                return Result.fail("该排班不存在");
+            }
+            // 初始化Redis库存
+            int availableStock = schedule.getMaxPatients() - schedule.getBookedCount();
+            scheduleStockService.initStockBatch(scheduleKey, availableStock);
+        }
+
+        boolean preDecrementSuccess = scheduleStockService.preDecrementStock(scheduleKey);
+        if (!preDecrementSuccess) {
+            return Result.fail("该时段已约满，请选择其他时间");
+        }
+
+        // 第二步：MySQL乐观锁确保最终一致性
+        int maxRetries = 3;
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                // 查询当前版本
+                DoctorSchedule schedule = doctorScheduleMapper.selectScheduleWithVersion(
+                        dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
+                if (schedule == null) {
+                    scheduleStockService.incrementStock(scheduleKey);
+                    return Result.fail("该排班不存在");
+                }
+
+                if (schedule.getBookedCount() >= schedule.getMaxPatients()) {
+                    scheduleStockService.incrementStock(scheduleKey);
+                    return Result.fail("该时段已约满");
+                }
+
+                // 乐观锁更新
+                int updated = doctorScheduleMapper.incrementBookedCountWithVersion(
+                        dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot(),
+                        schedule.getVersion());
+
+                if (updated > 0) {
+                    // 乐观锁更新成功，创建预约记录
+                    return doCreateAppointment(dto, patientId);
+                }
+
+                // 版本冲突，重试
+                log.info("乐观锁版本冲突，重试第{}次: scheduleKey={}", i + 1, scheduleKey);
+
+            } catch (Exception e) {
+                log.error("预约创建异常: scheduleKey={}, error={}", scheduleKey, e.getMessage());
+                scheduleStockService.incrementStock(scheduleKey);
+                return Result.fail("预约创建失败，请稍后再试");
+            }
+        }
+
+        // 重试次数用完
+        scheduleStockService.incrementStock(scheduleKey);
+        return Result.fail("预约创建失败，请稍后再试");
+    }
+
+    /**
+     * 在分布式锁保护下执行预约创建
+     */
+    private Result doCreateAppointmentWithLock(AppointmentCreateDto dto, String patientId) {
+        // 防重复预约检查
+        Long existCount = appointmentMapper.selectCount(
+                new QueryWrapper<Appointment>()
+                        .eq("patient_id", patientId)
+                        .eq("doctor_id", dto.getDoctorId())
+                        .eq("appointment_date", dto.getAppointmentDate())
+                        .eq("time_slot", dto.getTimeSlot())
+                        .in("status", 0, 1));
+        if (existCount > 0) {
+            return Result.fail("您已预约该时段，请勿重复预约");
+        }
+
+        // 原子操作递增已预约数
+        int updated = doctorScheduleMapper.incrementBookedCount(
+                dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
+        if (updated == 0) {
+            return Result.fail("该时段已约满，请选择其他时间");
+        }
+
+        return doCreateAppointment(dto, patientId);
+    }
+
+    /**
+     * 事务性创建预约记录
      */
     @Transactional
     public Result doCreateAppointment(AppointmentCreateDto dto, String patientId) {
@@ -94,6 +187,8 @@ public class AppointmentServiceImpl implements IAppointmentService {
         appointment.setAiRecommended(0);
 
         appointmentMapper.insert(appointment);
+        log.info("预约创建成功: patientId={}, doctorId={}, date={}, timeSlot={}",
+                patientId, dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
         return Result.ok(appointment);
     }
 
@@ -155,10 +250,10 @@ public class AppointmentServiceImpl implements IAppointmentService {
         appointment.setCancelReason(cancelReason);
         appointmentMapper.updateById(appointment);
 
-        // 释放排班号源：加分布式锁 + 原子操作
+        // 释放排班号源
         if (appointment.getDoctorId() != null) {
-            String lockKey = APPOINTMENT_LOCK_PREFIX + appointment.getDoctorId() + ":"
-                    + appointment.getAppointmentDate() + ":" + appointment.getTimeSlot();
+            String lockKey = buildLockKey(appointment.getDoctorId(),
+                    appointment.getAppointmentDate().toString(), appointment.getTimeSlot());
             String lockValue = distributedLock.tryLock(lockKey);
             if (lockValue != null) {
                 try {
@@ -170,6 +265,63 @@ public class AppointmentServiceImpl implements IAppointmentService {
             } else {
                 doctorScheduleMapper.decrementBookedCount(
                         appointment.getDoctorId(), appointment.getAppointmentDate(), appointment.getTimeSlot());
+            }
+        }
+
+        return Result.ok();
+    }
+
+    /**
+     * Redis预扣减 + MySQL乐观锁取消预约
+     */
+    @Override
+    @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
+    public Result cancelAppointmentWithRedisAndOptimisticLock(Long appointmentId, String cancelReason, String patientId) {
+        Appointment appointment = appointmentMapper.selectById(appointmentId);
+        if (appointment == null) {
+            return Result.fail("预约不存在");
+        }
+        if (!appointment.getPatientId().equals(patientId)) {
+            return Result.fail("无权操作此预约");
+        }
+        if (appointment.getStatus() != 0) {
+            return Result.fail("只能取消已预约状态的预约");
+        }
+
+        // 更新预约状态
+        appointment.setStatus(2);
+        appointment.setCancelReason(cancelReason);
+        appointmentMapper.updateById(appointment);
+
+        // 释放库存
+        if (appointment.getDoctorId() != null) {
+            String scheduleDateStr = appointment.getAppointmentDate().toString();
+            String scheduleKey = buildScheduleKey(appointment.getDoctorId(),
+                    scheduleDateStr, appointment.getTimeSlot());
+
+            // 回补Redis库存
+            scheduleStockService.incrementStock(scheduleKey);
+
+            // MySQL乐观锁更新
+            DoctorSchedule schedule = doctorScheduleMapper.selectScheduleWithVersion(
+                    appointment.getDoctorId(), appointment.getAppointmentDate(), appointment.getTimeSlot());
+            if (schedule != null && schedule.getBookedCount() > 0) {
+                int maxRetries = 3;
+                for (int i = 0; i < maxRetries; i++) {
+                    int updated = doctorScheduleMapper.decrementBookedCountWithVersion(
+                            appointment.getDoctorId(), appointment.getAppointmentDate(), appointment.getTimeSlot(),
+                            schedule.getVersion());
+                    if (updated > 0) {
+                        break;
+                    }
+                    // 版本冲突，查询最新版本重试
+                    schedule = doctorScheduleMapper.selectScheduleWithVersion(
+                            appointment.getDoctorId(), appointment.getAppointmentDate(), appointment.getTimeSlot());
+                    if (schedule == null || schedule.getBookedCount() <= 0) {
+                        break;
+                    }
+                }
             }
         }
 
@@ -211,7 +363,6 @@ public class AppointmentServiceImpl implements IAppointmentService {
     public Result getAvailableSchedules(Long departmentId, Long doctorId, String date) {
         // 优先走缓存
         if (departmentId != null && doctorId == null && (date == null || date.isEmpty())) {
-            // 查科室下所有排班（走缓存）——必须深拷贝，避免修改缓存对象
             List<DoctorSchedule> rawSchedules = aiAppointmentService.getDepartmentSchedulesFromCache(departmentId);
             List<Doctor> doctors = aiAppointmentService.getDoctorsByDepartmentFromCache(departmentId);
             Department dept = departmentMapper.selectById(departmentId);
@@ -237,7 +388,6 @@ public class AppointmentServiceImpl implements IAppointmentService {
             return Result.ok(schedules);
         }
 
-        // 其他情况直接查DB
         QueryWrapper<DoctorSchedule> wrapper = new QueryWrapper<>();
         if (departmentId != null) {
             List<Doctor> doctors = doctorMapper.selectList(
@@ -274,6 +424,55 @@ public class AppointmentServiceImpl implements IAppointmentService {
         }
 
         return Result.ok(schedules);
+    }
+
+    /**
+     * 同步库存到Redis
+     * 定时任务调用，将数据库中的号源库存同步到Redis缓存
+     */
+    @Override
+    public Result syncStockToRedis() {
+        try {
+            // 查询未来7天所有可用排班
+            LocalDate startDate = LocalDate.now();
+            LocalDate endDate = startDate.plusDays(7);
+            QueryWrapper<DoctorSchedule> wrapper = new QueryWrapper<DoctorSchedule>()
+                    .ge("schedule_date", startDate)
+                    .le("schedule_date", endDate)
+                    .eq("status", 1);
+            List<DoctorSchedule> schedules = doctorScheduleMapper.selectList(wrapper);
+
+            int count = 0;
+            for (DoctorSchedule schedule : schedules) {
+                String scheduleKey = buildScheduleKey(
+                        schedule.getDoctorId(),
+                        schedule.getScheduleDate().toString(),
+                        schedule.getTimeSlot());
+                int availableStock = schedule.getMaxPatients() - schedule.getBookedCount();
+                scheduleStockService.initStockBatch(scheduleKey, availableStock);
+                count++;
+            }
+
+            log.info("库存同步到Redis完成: 共{}条排班", count);
+            return Result.ok("库存同步完成，共" + count + "条排班");
+        } catch (Exception e) {
+            log.error("库存同步失败: {}", e.getMessage());
+            return Result.fail("库存同步失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 构建锁Key
+     */
+    private String buildLockKey(Long doctorId, String scheduleDate, String timeSlot) {
+        return APPOINTMENT_LOCK_PREFIX + doctorId + "_" + scheduleDate + "_" + timeSlot;
+    }
+
+    /**
+     * 构建排班库存Key
+     */
+    private String buildScheduleKey(Long doctorId, String scheduleDate, String timeSlot) {
+        return doctorId + "_" + scheduleDate + "_" + timeSlot;
     }
 
     private void fillAppointmentNames(List<Appointment> appointments) {

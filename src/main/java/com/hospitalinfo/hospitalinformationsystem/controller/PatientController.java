@@ -2,6 +2,7 @@ package com.hospitalinfo.hospitalinformationsystem.controller;
 
 import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.service.IPatientService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 患者管理控制器
  * 合并原UserController和PatientController，统一管理患者账户和业务数据
+ * 支持Session和JWT两种认证模式
  */
 @RestController
 @RequestMapping("/patient")
@@ -19,16 +21,49 @@ public class PatientController {
 
     // ==================== 账户管理 ====================
 
-    /** 登录 */
+    /**
+     * Session登录（旧版本兼容）
+     * POST /patient/login
+     */
     @PostMapping("/login")
     public Result login(@RequestBody LoginDto loginDto, HttpSession session) {
         return patientService.login(loginDto, session);
     }
 
-    /** 登出 */
+    /**
+     * JWT登录（新版本，推荐）
+     * POST /patient/login/jwt
+     */
+    @PostMapping("/login/jwt")
+    public Result loginWithJwt(@RequestBody LoginDto loginDto) {
+        return patientService.loginWithJwt(loginDto);
+    }
+
+    /**
+     * 登出（Session模式）
+     * POST /patient/loginout
+     */
     @PostMapping("/loginout")
     public Result loginOut(HttpSession session) {
         return patientService.loginOut(session);
+    }
+
+    /**
+     * JWT登出
+     * POST /patient/loginout/jwt
+     */
+    @PostMapping("/loginout/jwt")
+    public Result loginOutWithJwt(@RequestHeader(value = "Authorization", required = false) String token) {
+        return patientService.loginOutWithJwt(token);
+    }
+
+    /**
+     * 刷新Token
+     * POST /patient/refresh-token
+     */
+    @PostMapping("/refresh-token")
+    public Result refreshToken(@RequestBody RefreshTokenRequest request) {
+        return patientService.refreshToken(request.getRefreshToken());
     }
 
     /** 注册 */
@@ -37,10 +72,23 @@ public class PatientController {
         return patientService.register(registerDto);
     }
 
-    /** 查看个人信息 */
+    /**
+     * 查看个人信息（Session模式）
+     * GET /patient/me
+     */
     @GetMapping("/me")
     public Result info(HttpSession session) {
         return patientService.info(session);
+    }
+
+    /**
+     * 查看个人信息（JWT模式）
+     * GET /patient/me/jwt
+     */
+    @GetMapping("/me/jwt")
+    public Result infoWithJwt(HttpServletRequest request) {
+        String account = (String) request.getAttribute("account");
+        return patientService.infoWithJwt(account);
     }
 
     /** 修改个人信息 */

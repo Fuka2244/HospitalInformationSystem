@@ -10,17 +10,26 @@ import jakarta.servlet.http.HttpSession;
 public interface IPatientService {
     // ========== 账户管理（原IUserService） ==========
 
-    /** 登录 */
+    /** 登录（Session模式，兼容旧版） */
     Result login(LoginDto loginDto, HttpSession session);
+
+    /** JWT登录（新版本） */
+    Result loginWithJwt(LoginDto loginDto);
 
     /** 注册 */
     Result register(RegisterDto registerDto);
 
-    /** 登出 */
+    /** 登出（Session模式） */
     Result loginOut(HttpSession session);
+
+    /** JWT登出 */
+    Result loginOutWithJwt(String token);
 
     /** 查看个人信息（含就诊统计） */
     Result info(HttpSession session);
+
+    /** 查看个人信息（JWT模式） */
+    Result infoWithJwt(String account);
 
     /** 修改个人信息 */
     Result update(UpdateDto updateDto, HttpSession session);
@@ -33,6 +42,9 @@ public interface IPatientService {
 
     /** 验证密码后获取完整身份证号 */
     Result getIdCard(String password, HttpSession session);
+
+    /** 刷新Token */
+    Result refreshToken(String refreshToken);
 
     // ========== 患者业务数据（原IPatientService） ==========
 

@@ -21,6 +21,10 @@ public class DoctorSchedule {
     @TableField("booked_count")
     private Integer bookedCount;
     private Integer status;
+    /** 乐观锁版本号 */
+    @Version
+    @TableField("version")
+    private Integer version;
 
     /** 非数据库字段 */
     @TableField(exist = false)
