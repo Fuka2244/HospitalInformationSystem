@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -486,5 +487,46 @@ public class AppointmentServiceImpl implements IAppointmentService {
             Department dept = departmentMapper.selectById(apt.getDepartmentId());
             if (dept != null) apt.setDepartmentName(dept.getName());
         }
+    }
+
+    @Override
+    @Transactional
+    public Result registration(Long appointmentId, String patientId) {
+        Appointment appointment = appointmentMapper.selectById(appointmentId);
+        if (appointment == null) {
+            return Result.fail("预约不存在");
+        }
+        if (!appointment.getPatientId().equals(patientId)) {
+            return Result.fail("无权操作此预约");
+        }
+        if (appointment.getRegistrationStatus() != null && appointment.getRegistrationStatus() == 1) {
+            return Result.fail("已完成挂号登记");
+        }
+        if (!appointment.getAppointmentDate().equals(LocalDate.now())) {
+            return Result.fail("只能在就诊当天进行挂号登记");
+        }
+
+        appointment.setRegistrationStatus(1);
+        appointment.setUpdateTime(LocalDateTime.now());
+        appointmentMapper.updateById(appointment);
+
+        return Result.ok("挂号登记成功");
+    }
+
+    @Override
+    public Result getLocation(Long appointmentId, String patientId) {
+        Appointment appointment = appointmentMapper.selectById(appointmentId);
+        if (appointment == null) {
+            return Result.fail("预约不存在");
+        }
+        if (!appointment.getPatientId().equals(patientId)) {
+            return Result.fail("无权查看此预约信息");
+        }
+
+        if (appointment.getLocation() == null || appointment.getLocation().isEmpty()) {
+            return Result.ok("等待医生分配就诊地点");
+        }
+
+        return Result.ok(appointment.getLocation());
     }
 }

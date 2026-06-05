@@ -124,4 +124,24 @@ public class AppointmentController {
                                          @RequestParam(required = false) String date) {
         return appointmentService.getAvailableSchedules(departmentId, doctorId, date);
     }
+
+    /**
+     * 挂号登记
+     * POST /appointment/{id}/registration
+     */
+    @PostMapping("/{id}/registration")
+    public Result registration(@PathVariable Long id, HttpSession session) {
+        String patientId = (String) session.getAttribute("account");
+        return appointmentService.registration(id, patientId);
+    }
+
+    /**
+     * 获取就诊地点
+     * GET /appointment/{id}/location
+     */
+    @GetMapping("/{id}/location")
+    public Result getLocation(@PathVariable Long id, HttpSession session) {
+        String patientId = (String) session.getAttribute("account");
+        return appointmentService.getLocation(id, patientId);
+    }
 }

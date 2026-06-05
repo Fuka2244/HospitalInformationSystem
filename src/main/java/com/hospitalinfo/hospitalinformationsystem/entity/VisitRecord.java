@@ -3,41 +3,39 @@ package com.hospitalinfo.hospitalinformationsystem.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("appointment")
-public class Appointment {
+@TableName("visit_record")
+public class VisitRecord {
     @TableId(type = IdType.AUTO)
     private Long id;
+    @TableField("appointment_id")
+    private Long appointmentId;
     @TableField("patient_id")
     private String patientId;
     @TableField("doctor_id")
     private Long doctorId;
     @TableField("department_id")
     private Long departmentId;
-    @TableField("appointment_type")
-    private String appointmentType;
-    @TableField("examination_type")
-    private String examinationType;
-    @TableField("appointment_date")
-    private LocalDate appointmentDate;
-    @TableField("time_slot")
-    private String timeSlot;
-    private Integer status;
-    @TableField("cancel_reason")
-    private String cancelReason;
-    @TableField("ai_recommended")
-    private Integer aiRecommended;
-    private String location;
-    private Integer registrationStatus;
+    private String visitNumber;
+    private Integer callStatus;
+    @TableField("call_time")
+    private LocalDateTime callTime;
+    @TableField("check_in_time")
+    private LocalDateTime checkInTime;
+    @TableField("visit_start_time")
+    private LocalDateTime visitStartTime;
+    @TableField("visit_end_time")
+    private LocalDateTime visitEndTime;
+    private String diagnosis;
+    private String treatment;
+    private String notes;
     @TableField("create_time")
     private LocalDateTime createTime;
     @TableField("update_time")
     private LocalDateTime updateTime;
 
-    /** 非数据库字段 */
     @TableField(exist = false)
     private String patientName;
     @TableField(exist = false)

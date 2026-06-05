@@ -52,4 +52,10 @@ public interface IAppointmentService {
      * 将数据库中的号源库存同步到Redis缓存
      */
     Result syncStockToRedis();
+
+    /** 挂号登记 */
+    Result registration(Long appointmentId, String patientId);
+
+    /** 获取就诊地点 */
+    Result getLocation(Long appointmentId, String patientId);
 }
