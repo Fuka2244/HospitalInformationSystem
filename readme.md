@@ -1,97 +1,92 @@
-# 🏥 医院信息系统 (Hospital Information System)
+# 医院信息系统（Hospital Information System）
 
-一个基于 Spring Boot + Vue.js 的现代化医院信息管理系统，集成 AI 智能服务，提供患者管理、预约挂号、药品管理、账单管理等核心功能。
+## 项目简介
 
-## ✨ 项目特色
+医院信息系统（HIS）是一个面向患者、医生、药师和管理员的综合医疗服务平台。系统围绕医院线上服务流程，提供患者账号管理、预约挂号、AI 导诊、病历查询、药品查询、费用查询、医疗报告、医生工作台、药师工作台、管理员控制台等功能。
 
-- 🤖 **AI 智能服务**：集成 LangChain4j + 通义千问，实现智能药品推荐、账单解释、医疗报告生成
-- ⚡ **高性能缓存**：Redis 缓存 + 分布式锁，提升系统响应速度
-- 📊 **数据可视化**：直观的科室展示、预约统计、账单分析
-- 🔒 **安全可靠**：密码加密、Session 管理、权限控制
-- 📱 **响应式设计**：适配桌面和移动设备
-- 🎯 **模块化架构**：前后端分离，易于维护和扩展
+项目采用前后端分离架构：
 
-## 🛠️ 技术栈
+- 后端基于 Spring Boot，负责业务接口、数据访问、认证鉴权、异常处理和 AI 服务接入。
+- 前端基于 Vue 3，负责患者端、医生端、药师端和管理员端页面交互。
+- 系统支持 JWT 登录、Redis 会话缓存、MySQL 数据持久化、AI 智能推荐和统一异常返回。
+
+## 技术栈
 
 ### 后端
-- **框架**：Spring Boot 3.2.5
-- **语言**：Java 21
-- **数据库**：MySQL 8.0
-- **ORM**：MyBatis Plus 3.5.5
-- **缓存**：Redis
-- **AI 服务**：LangChain4j 0.36.2 + 通义千问 (Qwen)
-- **安全**：Spring Security Crypto
-- **文档生成**：iText PDF
+
+- Java 21
+- Spring Boot 3.2.5
+- MyBatis Plus
+- MySQL 8
+- Redis
+- Kafka
+- JWT
+- Spring Security Crypto
+- LangChain4j
+- iText PDF
 
 ### 前端
-- **框架**：Vue.js 3
-- **UI 组件**：Element Plus
-- **状态管理**：Pinia
-- **路由**：Vue Router
-- **HTTP 客户端**：Axios
-- **构建工具**：Vite
 
-## 📁 项目结构
+- Vue 3
+- TypeScript
+- Vite
+- Pinia
+- Vue Router
+- Axios
+- Element Plus
+- ECharts
 
-```
+## 项目结构
+
+```text
 HospitalInformationSystem/
-├── src/
-│   ├── main/
-│   │   ├── java/com/hospitalinfo/hospitalinformationsystem/
-│   │   │   ├── ai/                          # AI 智能服务
-│   │   │   │   ├── AiMedicineService.java   # 药品推荐
-│   │   │   │   ├── AiBillingService.java    # 账单解释
-│   │   │   │   ├── AiReportService.java     # 报告生成
-│   │   │   │   └── AiAppointmentService.java# 预约推荐
-│   │   │   ├── config/                      # 配置类
-│   │   │   ├── controller/                  # 控制器
-│   │   │   ├── dto/                         # 数据传输对象
-│   │   │   ├── entity/                      # 实体类
-│   │   │   ├── mapper/                      # MyBatis Mapper
-│   │   │   ├── service/                     # 业务逻辑
-│   │   │   └── utils/                       # 工具类
-│   │   └── resources/
-│   │       ├── application.yaml             # 应用配置
-│   │       └── sql/                         # 数据库脚本
-│   └── test/                                # 测试代码
-├── frontend/                                # Vue.js 前端
-│   ├── dist/                                # 构建产物
-│   ├── node_modules/                        # 依赖包
-│   └── index.html                           # 入口文件
-└── pom.xml                                  # Maven 配置
++-- src/
+|   +-- main/
+|       +-- java/com/hospitalinfo/hospitalinformationsystem/
+|       |   +-- ai/              # AI 服务
+|       |   +-- config/          # 系统配置、拦截器、异常处理
+|       |   +-- controller/      # 接口控制器
+|       |   +-- dto/             # 数据传输对象
+|       |   +-- entity/          # 实体类
+|       |   +-- exception/       # 业务异常与错误码
+|       |   +-- mapper/          # MyBatis Mapper
+|       |   +-- service/         # 业务服务接口
+|       |   +-- utils/           # 工具类
+|       +-- resources/
+|           +-- application.yaml # 应用配置
+|           +-- sql/             # SQL 脚本与演示数据
++-- frontend/
+|   +-- src/
+|   |   +-- api/                 # 前端接口封装
+|   |   +-- layouts/             # 页面布局
+|   |   +-- router/              # 路由配置
+|   |   +-- stores/              # Pinia 状态管理
+|   |   +-- types/               # TypeScript 类型
+|   |   +-- views/               # 页面视图
+|   +-- dist/                    # 前端构建产物
++-- pom.xml
++-- readme.md
 ```
 
-## 🚀 快速开始
+## 环境要求
 
-### 环境要求
+- JDK 21 或以上
+- Maven 3.6 或以上
+- Node.js 16 或以上
+- MySQL 8
+- Redis
+- Kafka（AI 异步任务相关功能需要）
 
-- JDK 21+
-- Maven 3.6+
-- Node.js 16+
-- MySQL 8.0+
-- Redis 6.0+
+## 后端启动
 
-### 后端启动
+1. 创建数据库：
 
-1. **克隆项目**
-```bash
-git clone https://github.com/yourusername/HospitalInformationSystem.git
-cd HospitalInformationSystem
-```
-
-2. **配置数据库**
 ```sql
 CREATE DATABASE his CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-3. **执行数据库脚本**
-```bash
-# 执行 src/main/resources/sql/his_schema.sql 创建表结构
-# 执行 src/main/resources/sql/insert_test_data.sql 插入测试数据
-```
+2. 修改配置文件：
 
-4. **修改配置文件**
-编辑 `src/main/resources/application.yaml`：
 ```yaml
 spring:
   datasource:
@@ -102,159 +97,323 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: your_redis_password
 
-ai:
-  qwen:
-    api-key: your_qwen_api_key
+jwt:
+  secret: HisSecretKeyForJwtToken2024MustBeAtLeast256BitsLongForHS256
+  expiration: 86400
+  refresh-expiration: 604800
 ```
 
-5. **启动后端服务**
+3. 启动服务：
+
 ```bash
 mvn spring-boot:run
 ```
 
-后端服务将在 `http://localhost:8080/HIS` 启动
+后端默认访问地址：
 
-### 前端启动
+```text
+http://localhost:8080/HIS
+```
 
-1. **安装依赖**
+## 前端启动
+
+进入前端目录：
+
 ```bash
 cd frontend
+```
+
+安装依赖：
+
+```bash
 npm install
 ```
 
-2. **启动开发服务器**
+启动开发服务：
+
 ```bash
 npm run dev
 ```
 
-前端服务将在 `http://localhost:5173` 启动
+构建生产版本：
 
-3. **构建生产版本**
 ```bash
 npm run build
 ```
 
-## 📋 核心功能
+前端默认访问地址：
 
-### 患者管理
-- 用户注册与登录
-- 个人信息管理
-- 密码修改
-- 头像上传
+```text
+http://localhost:5173
+```
 
-### 预约挂号
-- 科室浏览
-- 医生排班查询
-- 在线预约
-- 预约记录管理
-- AI 智能预约推荐
+## 演示数据
 
-### 药品管理
-- 药品信息查询
-- AI 智能药品推荐
-- 药品详情展示
-- 处方管理
+员工端测试前需要执行员工账号字段扩展和演示数据脚本：
 
-### 账单管理
-- 账单查询
-- 费用明细
-- AI 账单解释
-- 支付状态跟踪
+```text
+src/main/resources/sql/staff_auth_extension.sql
+src/main/resources/sql/staff_portal_demo_data.sql
+```
 
-### 医疗报告
+演示账号：
+
+| 角色 | 账号 | 密码 |
+|---|---|---|
+| 医生 | doctor_lin | 123456 |
+| 医生 | doctor_shen | 123456 |
+| 医生 | doctor_zhou | 123456 |
+| 医生 | doctor_xu | 123456 |
+| 药师 | pharm_zhao | 123456 |
+| 药师 | pharm_qian | 123456 |
+| 管理员 | demo_admin | 123456 |
+
+## 系统功能
+
+### 1. 登录与认证
+
+- 患者登录
+- 患者 JWT 登录
+- 医生登录
+- 药师登录
+- 管理员登录
+- 退出登录
+- Token 刷新
+- Token 失效处理
+- 未登录访问拦截
+- 不同角色登录后进入对应页面
+
+### 2. 患者注册
+
+- 姓名填写
+- 用户名填写
+- 密码填写
+- 确认密码校验
+- 性别选择
+- 年龄填写
+- 手机号填写
+- 地址填写
+- 身份证号填写
+- 注册成功后跳转登录
+
+### 3. 忘记密码
+
+- 输入注册手机号
+- 发送验证码
+- 输入验证码
+- 设置新密码
+- 确认新密码
+- 密码修改成功后重新登录
+
+### 4. 个人信息管理
+
+- 查看当前登录用户信息
+- 修改用户名
+- 修改手机号
+- 修改地址
+- 密码校验后查看身份证号
+- 上传头像
+- 获取头像
+
+### 5. 科室信息查询
+
+- 科室列表查询
+- 科室详情查询
+- 科室下医生查询
+- 医生列表查询
+- 按科室筛选医生
+
+### 6. 预约挂号
+
+- 创建预约
+- 预约列表查询
+- 预约详情查询
+- 取消预约
+- 改期预约
+- 查询医生排班
+- 确认挂号
+- 查询就诊地点
+
+### 7. AI 导诊与预约推荐
+
+- 根据症状推荐科室
+- 根据症状推荐医生
+- 根据排班推荐预约时间
+- 多轮 AI 导诊对话
+- 导诊聊天记录保存
+- 异常输入提示
+
+### 8. 病历与就诊记录
+
+- 当前患者病历列表
+- 指定患者病历列表
+- 病历详情查看
+- 就诊历史查询
+- 处方摘要查看
+
+### 9. 药品查询
+
+- 药品列表查询
+- 药品详情查询
+- 按关键词搜索药品
+- 按分类筛选药品
+- 药品库存状态展示
+
+### 10. AI 药品推荐
+
+- 根据症状推荐药品
+- AI 药品对话
+- AI 药品异步任务提交
+- AI 药品任务结果查询
+- 推荐理由和用药注意事项展示
+
+### 11. 费用查询
+
+- 费用列表查询
+- 指定患者费用查询
+- 费用详情查询
+- 按费用类型筛选
+- 按支付状态筛选
+- 按日期范围筛选
+- 费用汇总展示
+- AI 费用解释
+- AI 费用对话
+- AI 费用异步任务查询
+
+### 12. 医疗报告
+
 - 报告生成
-- PDF 导出
-- AI 辅助报告生成
-- 报告历史记录
+- AI 流式生成报告
+- 报告列表查询
+- 报告详情查看
+- 报告确认
+- 报告 PDF 导出
 
-### AI 智能服务
-- **药品推荐**：基于症状和病情推荐合适药品
-- **账单解释**：智能解释医疗费用构成
-- **报告生成**：AI 辅助生成医疗报告
-- **预约推荐**：根据患者需求推荐合适的医生和时间
+### 13. 医生工作台
 
-## 🔧 配置说明
+- 医生查看今日预约
+- 医生叫号
+- 开始就诊
+- 结束就诊
+- 查看患者历史病历
+- 医生身份权限校验
 
-### AI 服务配置
+### 14. 药师工作台
 
-系统使用通义千问 API 提供 AI 服务，需要配置以下参数：
+- 查看待审核处方
+- 审核处方
+- 拒绝处方
+- 发药
+- 药品库存查询
+- 新增库存记录
+- 修改库存记录
+- 低库存药品提醒
+- 库存流水查询
+- 药师身份权限校验
 
-```yaml
-ai:
-  qwen:
-    api-key: ${DASH_SCOPE_API_KEY:YOUR_QWEN_API_KEY}
-    model-name: qwen-plus
-    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
-```
+### 15. 管理员控制台
 
-### Redis 缓存配置
+- 查看运营统计
+- 查看全局统计
+- 查看系统配置
+- 修改系统配置
+- 用户管理数据查询
+- 科室管理数据查询
+- 医生排班管理数据查询
+- 管理员身份权限校验
 
-```yaml
-spring:
-  cache:
-    type: redis  # 设置为 none 可关闭缓存
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      database: 0
-```
+### 16. 聊天记录
 
-### 文件上传配置
+- 查询聊天记录
+- 保存单条聊天记录
+- 批量保存聊天记录
+- 清空聊天记录
 
-```yaml
-file:
-  upload-dir: ${user.dir}/uploads
-  avatar-max-size: 5242880  # 5MB
-```
+### 17. 文件上传
 
-## 📊 数据库设计
+- 上传头像文件
+- 校验文件类型
+- 校验文件大小
+- 获取头像访问地址
 
-主要数据表：
-- `patient` - 患者信息
-- `doctor` - 医生信息
-- `department` - 科室信息
-- `appointment` - 预约记录
-- `medicine` - 药品信息
-- `billing` - 账单信息
-- `medical_record` - 医疗记录
-- `medical_report` - 医疗报告
-- `chat_history` - AI 对话历史
+### 18. 异常处理
 
-## 🧪 测试
+- 参数校验异常
+- 业务异常
+- 未登录异常
+- Token 异常
+- 请求方法错误
+- 缺少请求参数
+- 参数类型错误
+- JSON 请求体错误
+- 数据库异常
+- Redis 异常
+- Kafka 异常
+- 文件上传异常
+- 空指针异常
+- 系统兜底异常
+- 统一错误响应
 
-项目包含完整的单元测试和集成测试：
+## 测试功能点清单
+
+| 编号 | 测试功能点 | 主要测试内容 | 推荐测试方法 |
+|---|---|---|---|
+| F01 | 登录与认证 | 不同角色登录、错误密码、空账号、Token 失效、退出后访问 | 等价类、边界值、判定表 |
+| F02 | 患者注册 | 合法注册、重复账号、密码长度、手机号格式、身份证格式 | 等价类、边界值 |
+| F03 | 忘记密码 | 手机号、验证码、新密码、确认密码 | 等价类、边界值、判定表 |
+| F04 | 个人信息管理 | 查看资料、修改资料、头像上传、身份证验证 | 等价类、边界值 |
+| F05 | 科室信息查询 | 科室列表、科室详情、医生列表、无效科室 ID | 等价类 |
+| F06 | 预约挂号 | 创建、取消、改期、排班、确认挂号、就诊地点 | 等价类、边界值、判定表 |
+| F07 | AI 导诊推荐 | 空症状、常见症状、超长症状、多轮对话、无排班 | 等价类、边界值 |
+| F08 | 病历与就诊记录 | 病历列表、详情、历史就诊、非法记录 ID | 等价类、边界值 |
+| F09 | 药品查询 | 关键词、分类、详情、无结果、非法药品 ID | 等价类、边界值 |
+| F10 | AI 药品推荐 | 症状输入、空输入、推荐结果、异步任务查询 | 等价类、边界值 |
+| F11 | 费用查询 | 列表、详情、类型筛选、状态筛选、日期筛选、AI 解释 | 等价类、边界值 |
+| F12 | 医疗报告 | 生成、列表、详情、确认、PDF 导出 | 等价类、边界值、判定表 |
+| F13 | 医生工作台 | 今日预约、叫号、开始就诊、结束就诊、历史病历 | 判定表、等价类 |
+| F14 | 药师工作台 | 处方审核、发药、库存、低库存、库存流水 | 判定表、边界值 |
+| F15 | 管理员控制台 | 统计、配置、用户管理、科室管理、排班管理 | 等价类、判定表 |
+| F16 | 聊天记录 | 查询、保存、批量保存、清空 | 等价类 |
+| F17 | 文件上传 | 正常图片、非图片、大文件、未登录上传 | 等价类、边界值 |
+| F18 | 异常处理 | 400、401、403、404、405、500、数据库异常、Redis/Kafka 异常 | 判定表、错误推测法 |
+
+## 测试建议
+
+- 表单类功能优先使用等价类划分和边界值分析。
+- 状态流转类功能优先使用判定表法，例如预约状态、处方审核、报告确认。
+- 权限和异常类功能建议使用错误推测法补充测试。
+- Selenium 自动化测试建议优先覆盖登录、注册、预约、查询、医生工作台、药师工作台、管理员统计等稳定流程。
+- AI 对话类功能返回结果存在不确定性，建议重点验证输入校验、接口可用性、结果结构和异常处理。
+
+## 常用命令
+
+后端启动：
 
 ```bash
-# 运行所有测试
-mvn test
-
-# 运行特定测试类
-mvn test -Dtest=AiServiceTest
-
-# 运行缓存性能测试
-mvn test -Dtest=CachePerformanceTest
+mvn spring-boot:run
 ```
 
-## 📈 性能优化
+后端测试：
 
-- **Redis 缓存**：热点数据缓存，减少数据库查询
-- **分布式锁**：防止并发问题
-- **向量检索**：AI 药品推荐使用语义搜索
-- **异步处理**：耗时任务异步执行
-- **连接池**：数据库连接池优化
+```bash
+mvn test
+```
 
-## 🔐 安全特性
+前端启动：
 
-- 密码 BCrypt 加密存储
-- Session 会话管理
-- 登录拦截器
-- SQL 注入防护
-- XSS 攻击防护
-- CSRF 令牌验证
+```bash
+cd frontend
+npm run dev
+```
 
+前端构建：
 
+```bash
+cd frontend
+npm run build
+```
 
-⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！
+## 说明
+
+本项目适合作为医院信息系统课程设计、软件测试实验和综合实践项目使用。测试报告可以围绕功能点清单展开，结合黑盒测试方法中的等价类划分、边界值分析、判定表法和错误推测法设计测试用例，并进一步使用 Selenium + WebDriver + JUnit 编写自动化测试脚本。
