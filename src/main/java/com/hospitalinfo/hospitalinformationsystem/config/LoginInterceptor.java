@@ -1,36 +1,46 @@
 package com.hospitalinfo.hospitalinformationsystem.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hospitalinfo.hospitalinformationsystem.dto.Result;
+import com.hospitalinfo.hospitalinformationsystem.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-/**
- * 登录拦截器
- * 用于验证用户是否已登录
- */
+import java.util.UUID;
+
 @Component
+@RequiredArgsConstructor
 public class LoginInterceptor implements HandlerInterceptor {
+
+    private final ObjectMapper objectMapper;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 获取Session
         HttpSession session = request.getSession();
-        
-        // 从Session中获取用户信息
         Object phone = session.getAttribute("phone");
-        
-        // 判断用户是否已登录
+
         if (phone == null) {
-            // 用户未登录，返回401状态码
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"success\":false,\"errorMsg\":\"请先登录\",\"data\":null,\"total\":null}");
+
+            Result<?> result = Result.fail(ErrorCode.UNAUTHORIZED, "请先登录");
+            result.setPath(request.getRequestURI());
+            result.setTraceId(resolveTraceId(request));
+
+            response.getWriter().write(objectMapper.writeValueAsString(result));
             return false;
         }
-        
-        // 用户已登录，放行
+
         return true;
+    }
+
+    private String resolveTraceId(HttpServletRequest request) {
+        String traceId = request.getHeader("X-Trace-Id");
+        return StringUtils.hasText(traceId) ? traceId : UUID.randomUUID().toString();
     }
 }

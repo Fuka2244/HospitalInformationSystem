@@ -15,7 +15,13 @@ const instance = axios.create({
 
 // 请求拦截器
 instance.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = localStorage.getItem('his_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
   (error) => Promise.reject(error)
 )
 
@@ -38,6 +44,10 @@ instance.interceptors.response.use(
       return Promise.reject(error)
     }
     if (error.response?.status === 401) {
+      localStorage.removeItem('his_token')
+      localStorage.removeItem('his_refresh_token')
+      localStorage.removeItem('his_role')
+      localStorage.removeItem('his_user_info')
       ElMessage.warning('请先登录')
       window.location.href = '/login'
     } else {

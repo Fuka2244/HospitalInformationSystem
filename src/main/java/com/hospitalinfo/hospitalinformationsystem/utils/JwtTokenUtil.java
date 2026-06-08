@@ -23,11 +23,11 @@ public class JwtTokenUtil {
     @Value("${jwt.secret:HisSecretKeyForJwtToken2024MustBeAtLeast256Bits}")
     private String secret;
 
-    @Value("${jwt.expiration:86400000}")
-    private long expiration; // 默认24小时
+    @Value("${jwt.expiration:86400}")
+    private long expiration; // seconds
 
-    @Value("${jwt.refresh-expiration:604800000}")
-    private long refreshExpiration; // 默认7天
+    @Value("${jwt.refresh-expiration:604800}")
+    private long refreshExpiration; // seconds
 
     /**
      * 生成Token
@@ -59,14 +59,18 @@ public class JwtTokenUtil {
         Map<String, Object> claims = new HashMap<>();
         claims.put("account", account);
         claims.put("type", "refresh");
-        return createToken(claims, account, refreshExpiration);
+        return createToken(claims, account, secondsToMillis(refreshExpiration));
     }
 
     /**
      * 创建Token
      */
     private String createToken(Map<String, Object> claims, String subject) {
-        return createToken(claims, subject, expiration);
+        return createToken(claims, subject, secondsToMillis(expiration));
+    }
+
+    private long secondsToMillis(long seconds) {
+        return seconds * 1000;
     }
 
     private String createToken(Map<String, Object> claims, String subject, long expirationMs) {

@@ -35,6 +35,22 @@ export interface LoginDto {
   password: string
 }
 
+export type StaffRole = 'patient' | 'doctor' | 'pharmacist' | 'admin'
+
+export interface StaffLoginDto {
+  account: string
+  password: string
+  role: Exclude<StaffRole, 'patient'> | string
+}
+
+export interface LoginResponseDto {
+  token: string
+  refreshToken: string
+  tokenType: string
+  expiresIn: number
+  patientInfo: PatientInfo
+}
+
 /** 修改个人信息请求 */
 export interface UpdateProfileDto {
   username?: string
@@ -55,6 +71,7 @@ export interface ForgetPasswordDto {
 export interface PatientInfo {
   account: string
   username: string
+  role?: StaffRole | string
   name: string
   gender: string
   age: number
@@ -411,4 +428,124 @@ export interface AsyncTaskResult {
   errorMsg: string | null
   createTime: number
   finishTime: number | null
+}
+
+// ==================== Staff portals ====================
+
+export interface DoctorCallPatientDto {
+  appointmentId: number
+  location?: string
+}
+
+export interface VisitRecordDto {
+  appointmentId: number
+  diagnosis?: string
+  treatment?: string
+  notes?: string
+}
+
+export interface PrescriptionRecord {
+  id: number
+  medicalRecordId: number
+  patientId: string
+  doctorId: number
+  prescriptionDate: string
+  status: number
+  createTime?: string
+  updateTime?: string
+}
+
+export interface PrescriptionAuditDto {
+  prescriptionId: number
+  auditStatus: number
+  auditRemark?: string
+}
+
+export interface MedicineInventory {
+  id: number
+  medicineId: number
+  medicineName?: string
+  quantity: number
+  minStock: number
+  maxStock: number
+  purchasePrice?: number
+  sellingPrice?: number
+  supplier?: string
+  batchNumber?: string
+  expiryDate?: string
+  createTime?: string
+  updateTime?: string
+}
+
+export interface MedicineInventoryDto {
+  medicineId: number
+  quantity: number
+  minStock?: number
+  maxStock?: number
+  purchasePrice?: number
+  sellingPrice?: number
+  supplier?: string
+  batchNumber?: string
+  expiryDate?: string
+}
+
+export interface MedicineStockLog {
+  id: number
+  medicineId: number
+  inventoryId: number
+  operationType: string
+  quantity: number
+  beforeStock: number
+  afterStock: number
+  unitPrice?: number
+  operator?: string
+  remark?: string
+  createTime: string
+}
+
+export interface StatisticsQueryParams {
+  startDate?: string
+  endDate?: string
+  departmentId?: number
+  doctorId?: number
+  statisticsType?: string
+}
+
+export interface AdminStatistics {
+  totalAppointments?: number
+  completedAppointments?: number
+  cancelledAppointments?: number
+  totalRevenue?: number
+  paidAmount?: number
+  newPatients?: number
+}
+
+export interface AdminGlobalStatistics {
+  totalPatients?: number
+  totalDoctors?: number
+  totalDepartments?: number
+  totalMedicines?: number
+  todayAppointments?: number
+  unpaidBills?: number
+}
+
+export interface SystemConfig {
+  id: number
+  configKey: string
+  configValue: string
+  configType?: string
+  description?: string
+}
+
+export interface SystemConfigDto extends SystemConfig {}
+
+export interface AdminUserManagement {
+  patients: PatientInfo[]
+  doctors: Doctor[]
+  pharmacists: Array<Record<string, any>>
+}
+
+export interface AdminScheduleManagement {
+  doctors: Doctor[]
+  departments: Department[]
 }

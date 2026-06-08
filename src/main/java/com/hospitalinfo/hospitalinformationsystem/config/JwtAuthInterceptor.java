@@ -3,6 +3,7 @@ package com.hospitalinfo.hospitalinformationsystem.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hospitalinfo.hospitalinformationsystem.dto.PatientInfoVo;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
+import com.hospitalinfo.hospitalinformationsystem.exception.ErrorCode;
 import com.hospitalinfo.hospitalinformationsystem.service.IRedisSessionService;
 import com.hospitalinfo.hospitalinformationsystem.utils.JwtTokenUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import java.util.UUID;
 
 /**
  * JWT认证拦截器
@@ -41,20 +44,20 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         String token = extractToken(request);
 
         if (token == null) {
-            sendUnauthorizedResponse(response, "未提供认证令牌");
+            sendUnauthorizedResponse(request, response, "未提供认证令牌");
             return false;
         }
 
         // 验证Token格式和有效期
         if (!jwtTokenUtil.validateToken(token)) {
-            sendUnauthorizedResponse(response, "认证令牌无效或已过期");
+            sendUnauthorizedResponse(request, response, "认证令牌无效或已过期");
             return false;
         }
 
         // 从Redis中获取会话信息
         PatientInfoVo patientInfo = redisSessionService.getSession(token);
         if (patientInfo == null) {
-            sendUnauthorizedResponse(response, "会话已失效，请重新登录");
+            sendUnauthorizedResponse(request, response, "会话已失效，请重新登录");
             return false;
         }
 
@@ -62,6 +65,11 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         request.setAttribute("patientInfo", patientInfo);
         request.setAttribute("account", patientInfo.getAccount());
         request.setAttribute("role", patientInfo.getRole());
+        request.getSession().setAttribute("patient", patientInfo);
+        request.getSession().setAttribute("account", patientInfo.getAccount());
+        request.getSession().setAttribute("role", patientInfo.getRole());
+        request.getSession().setAttribute("phone", patientInfo.getPhone());
+        setRoleSpecificSessionAttributes(request, patientInfo);
 
         // 刷新会话过期时间（可选，用于保持活跃）
         long remainingTime = jwtTokenUtil.getRemainingTime(token);
@@ -95,13 +103,31 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         return null;
     }
 
+    private void setRoleSpecificSessionAttributes(HttpServletRequest request, PatientInfoVo patientInfo) {
+        try {
+            Long staffId = Long.valueOf(patientInfo.getAccount());
+            if ("doctor".equals(patientInfo.getRole())) {
+                request.getSession().setAttribute("doctorId", staffId);
+            } else if ("pharmacist".equals(patientInfo.getRole())) {
+                request.getSession().setAttribute("pharmacistId", staffId);
+            } else if ("admin".equals(patientInfo.getRole())) {
+                request.getSession().setAttribute("adminId", staffId);
+            }
+        } catch (NumberFormatException ignored) {
+            // Patient accounts are UUID strings and do not need numeric staff IDs.
+        }
+    }
+
     /**
      * 发送未授权响应
      */
-    private void sendUnauthorizedResponse(HttpServletResponse response, String message) throws Exception {
+    private void sendUnauthorizedResponse(HttpServletRequest request, HttpServletResponse response, String message) throws Exception {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
-        Result<?> result = Result.fail(message);
+        Result<?> result = Result.fail(ErrorCode.UNAUTHORIZED, message);
+        result.setPath(request.getRequestURI());
+        String traceId = request.getHeader("X-Trace-Id");
+        result.setTraceId(StringUtils.hasText(traceId) ? traceId : UUID.randomUUID().toString());
         response.getWriter().write(objectMapper.writeValueAsString(result));
         log.debug("JWT认证失败: {}", message);
     }

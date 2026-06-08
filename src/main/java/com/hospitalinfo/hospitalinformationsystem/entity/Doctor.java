@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 public class Doctor {
     @TableId(type = IdType.AUTO)
     private Long id;
+    private String username;
+    private String password;
     private String name;
     private String gender;
     private Integer age;

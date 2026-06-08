@@ -1,1 +1,0 @@
-import{Y as t}from"./index-BmRu2oHs.js";function n(){return t("/department/list")}function o(e){return t(`/department/${e}/doctors`)}function a(){return t("/department/doctors")}export{a,o as b,n as g};

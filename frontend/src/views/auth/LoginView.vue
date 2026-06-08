@@ -13,8 +13,16 @@
       <div class="card-content">
         <!-- 登录表单 -->
         <el-form v-if="isLogin" class="login-form" ref="loginFormRef" :model="loginForm" :rules="loginRules" label-width="0">
-          <el-form-item label="手机号" prop="phone">
-            <el-input v-model="loginForm.phone" placeholder="请输入手机号" maxlength="11" />
+          <el-form-item class="role-field">
+            <el-radio-group v-model="loginRole" class="role-switch" @change="loginFormRef?.clearValidate('phone')">
+              <el-radio-button label="patient">患者</el-radio-button>
+              <el-radio-button label="doctor">医生</el-radio-button>
+              <el-radio-button label="pharmacist">药师</el-radio-button>
+              <el-radio-button label="admin">管理员</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item :label="accountLabel" prop="phone">
+            <el-input v-model="loginForm.phone" :placeholder="accountPlaceholder" :maxlength="loginRole === 'patient' ? 11 : 32" />
           </el-form-item>
           <el-form-item label="密码" prop="password">
             <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" show-password />
@@ -24,8 +32,9 @@
           </el-form-item>
           <el-form-item>
             <div class="link-row">
-              <el-link type="primary" @click="isLogin = false">没有账号？去注册</el-link>
-              <el-link type="warning" @click="showForget = true">忘记密码？</el-link>
+              <el-link v-if="loginRole === 'patient'" type="primary" @click="isLogin = false">没有账号？去注册</el-link>
+              <span v-else class="link-placeholder">员工账号由管理员维护</span>
+              <el-link v-if="loginRole === 'patient'" type="warning" @click="showForget = true">忘记密码？</el-link>
             </div>
           </el-form-item>
         </el-form>
@@ -104,19 +113,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { computed, ref, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { forgetPassword, sendVerificationCode } from '@/api/patient'
-import type { LoginDto, RegisterDto, ForgetPasswordDto } from '@/types'
+import type { ForgetPasswordDto, LoginDto, RegisterDto, StaffRole } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
 const isLogin = ref(true)
+const loginRole = ref<StaffRole>('patient')
 const showForget = ref(false)
 const codeLoading = ref(false)
 const codeCooldown = ref(0)
@@ -151,8 +161,22 @@ const idCardValidator = (_rule: any, value: string, callback: any) => {
 // ===== 登录 =====
 const loginFormRef = ref<FormInstance>()
 const loginForm = reactive<LoginDto>({ phone: '', password: '' })
+const accountLabel = computed(() => loginRole.value === 'patient' ? '手机号' : '账号')
+const accountPlaceholder = computed(() => loginRole.value === 'patient' ? '请输入手机号' : '请输入账号或手机号')
 const loginRules: FormRules<LoginDto> = {
-  phone: [{ required: true, message: '请输入手机号', trigger: 'blur' }, { validator: phoneValidator, trigger: 'blur' }],
+  phone: [
+    { required: true, message: '请输入登录账号', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (loginRole.value !== 'patient') {
+          callback()
+          return
+        }
+        phoneValidator(_rule, value, callback)
+      },
+      trigger: 'blur',
+    },
+  ],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 }
 
@@ -160,11 +184,16 @@ async function handleLogin() {
   await loginFormRef.value?.validate()
   loading.value = true
   try {
-    await userStore.login(loginForm)
+    await userStore.login(loginForm, loginRole.value)
     ElMessage.success('登录成功')
-    // 登录后跳转回原始目标页面，若无则跳转首页
     const redirect = route.query.redirect as string
-    router.push(redirect || '/')
+    const roleHome: Record<StaffRole, string> = {
+      patient: '/',
+      doctor: '/doctor-workstation',
+      pharmacist: '/pharmacist-workstation',
+      admin: '/admin-console',
+    }
+    router.push(redirect || roleHome[loginRole.value])
   } finally {
     loading.value = false
   }
@@ -455,6 +484,24 @@ async function handleForget() {
   height: 46px;
 }
 
+.role-field {
+  margin-bottom: 14px !important;
+}
+
+.role-switch {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.role-switch :deep(.el-radio-button__inner) {
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  line-height: 32px;
+  font-size: 13px;
+}
+
 .register-form :deep(.el-input-number) {
   width: 100%;
 }
@@ -481,6 +528,11 @@ async function handleForget() {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+}
+
+.link-placeholder {
+  color: var(--his-text-2);
+  font-size: 13px;
 }
 
 .login-footer {

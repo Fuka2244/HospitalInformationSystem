@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 public class Pharmacist {
     @TableId(type = IdType.AUTO)
     private Long id;
+    private String username;
+    private String password;
     private String name;
     private String gender;
     private String phone;

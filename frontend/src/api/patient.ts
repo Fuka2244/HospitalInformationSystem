@@ -1,6 +1,7 @@
 import { get, post, put, upload } from './request'
 import type {
   LoginDto,
+  LoginResponseDto,
   RegisterDto,
   UpdateProfileDto,
   ForgetPasswordDto,
@@ -21,17 +22,17 @@ export function register(data: RegisterDto) {
 
 /** 用户登录 */
 export function login(data: LoginDto) {
-  return post<PatientInfo>('/patient/login', data)
+  return post<LoginResponseDto>('/patient/login/jwt', data)
 }
 
 /** 用户登出 */
 export function logout() {
-  return post('/patient/loginout')
+  return post('/patient/loginout/jwt')
 }
 
 /** 查看个人信息 */
 export function getProfile() {
-  return get<PatientInfo>('/patient/me')
+  return get<PatientInfo>('/patient/me/jwt')
 }
 
 /** 修改个人信息 */

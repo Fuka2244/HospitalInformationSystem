@@ -61,8 +61,8 @@ public class AdminServiceImpl implements IAdminService {
         QueryWrapper<Billing> billingWrapper = new QueryWrapper<>();
         billingWrapper.between("create_time", startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
         List<Billing> billings = billingMapper.selectList(billingWrapper);
-        statistics.put("totalRevenue", billings.stream().mapToDouble(Billing::getAmount).sum());
-        statistics.put("paidAmount", billings.stream().filter(b -> b.getStatus() == 1).mapToDouble(Billing::getAmount).sum());
+        statistics.put("totalRevenue", billings.stream().mapToDouble(b -> b.getAmount().doubleValue()).sum());
+        statistics.put("paidAmount", billings.stream().filter(b -> b.getStatus() == 1).mapToDouble(b -> b.getAmount().doubleValue()).sum());
 
         QueryWrapper<Patient> patientWrapper = new QueryWrapper<>();
         patientWrapper.between("create_time", startDate.atStartOfDay(), endDate.atTime(23, 59, 59));

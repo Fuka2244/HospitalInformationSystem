@@ -32,6 +32,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/patient/login/**",                     // 登录接口及忘记密码接口
                         "/patient/register",                  // 注册接口
                         "/patient/loginout",                  // 登出接口
+                        "/staff/login/**",
+                        "/staff/loginout/**",
                         "/medicine/list",                  // 药品列表（公开查询）
                         "/medicine/*",                     // 药品详情（公开查询）
                         "/medicine/ai-recommend",          // AI药品推荐
@@ -55,6 +57,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/patient/login/**",
                         "/patient/register",
                         "/patient/loginout",
+                        "/staff/login/**",
+                        "/staff/loginout/**",
                         "/medicine/list",
                         "/medicine/*",
                         "/medicine/ai-recommend",

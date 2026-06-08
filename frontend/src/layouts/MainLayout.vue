@@ -41,6 +41,18 @@
             <el-icon><OfficeBuilding /></el-icon>
             <span>科室信息</span>
           </el-menu-item>
+          <el-menu-item index="/doctor-workstation">
+            <el-icon><User /></el-icon>
+            <span>医生端</span>
+          </el-menu-item>
+          <el-menu-item index="/pharmacist-workstation">
+            <el-icon><FirstAidKit /></el-icon>
+            <span>药师端</span>
+          </el-menu-item>
+          <el-menu-item index="/admin-console">
+            <el-icon><OfficeBuilding /></el-icon>
+            <span>管理端</span>
+          </el-menu-item>
           <el-menu-item index="/about">
             <el-icon><InfoFilled /></el-icon>
             <span>系统概况</span>
@@ -267,7 +279,7 @@ async function handleCommand(cmd: string) {
   padding: 0;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1320px) {
   .brand-title { display: none; }
   .top-menu { min-width: 0; }
   .header-inner { padding: 0 12px; gap: 8px; }
