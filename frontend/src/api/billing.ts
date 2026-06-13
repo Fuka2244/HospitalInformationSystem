@@ -1,4 +1,4 @@
-import { get, post } from './request'
+import { get, post, put } from './request'
 import type {
   Billing,
   BillingQueryParams,
@@ -22,6 +22,14 @@ export function getPatientBillingList(patientId: string, params: BillingQueryPar
 /** 费用详情 */
 export function getBillingDetail(id: number) {
   return get<Billing>(`/billing/detail/${id}`)
+}
+
+export function payBilling(id: number, paymentMethod = 'ONLINE') {
+  return put<Billing>(`/billing/${id}/pay`, { paymentMethod })
+}
+
+export function payAllUnpaid(paymentMethod = 'ONLINE') {
+  return put<Billing[]>('/billing/pay-all', { paymentMethod })
 }
 
 /** AI费用解释 */

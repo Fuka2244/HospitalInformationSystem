@@ -50,4 +50,9 @@ public class AdminController {
     public Result getGlobalStatistics(HttpSession session) {
         return adminService.getGlobalStatistics(session);
     }
+
+    @GetMapping("/periodic-report")
+    public Result getPeriodicReport(StatisticsQueryDto queryDto, HttpSession session) {
+        return adminService.getPeriodicReport(queryDto, session);
+    }
 }

@@ -136,6 +136,19 @@ public class AppointmentController {
     }
 
     /**
+     * 前台登记/现场挂号
+     * POST /appointment/frontdesk/registration
+     */
+    @PostMapping("/frontdesk/registration")
+    public Result frontDeskRegistration(@RequestBody @Valid FrontDeskRegistrationDto dto, HttpSession session) {
+        Object role = session.getAttribute("role");
+        if (role == null || (!"admin".equals(role) && !"doctor".equals(role))) {
+            return Result.fail("无权执行前台登记");
+        }
+        return appointmentService.frontDeskRegistration(dto);
+    }
+
+    /**
      * 获取就诊地点
      * GET /appointment/{id}/location
      */

@@ -53,6 +53,7 @@
                 </el-select>
                 <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="margin-right: 8px" />
                 <el-button type="primary" @click="handleSearch">查询</el-button>
+                <el-button type="success" :disabled="unpaidTotal <= 0" @click="handlePayAll">一键支付</el-button>
               </div>
             </div>
           </template>
@@ -74,6 +75,12 @@
               </template>
             </el-table-column>
             <el-table-column prop="description" label="说明" min-width="150" show-overflow-tooltip />
+            <el-table-column label="操作" width="100" fixed="right">
+              <template #default="{ row }">
+                <el-button v-if="row.status === 0" link type="success" @click="handlePay(row.id)">支付</el-button>
+                <span v-else class="paid-text">-</span>
+              </template>
+            </el-table-column>
           </el-table>
 
           <el-pagination
@@ -192,7 +199,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { List } from '@element-plus/icons-vue'
-import { getBillingList, aiBillingChatAsync, getAiTaskResult } from '@/api/billing'
+import { getBillingList, aiBillingChatAsync, getAiTaskResult, payAllUnpaid, payBilling } from '@/api/billing'
 import { getChatHistory, saveChatMessages, clearChatHistory } from '@/api/chatHistory'
 import BillingPieChart, { type PieItem } from './components/BillingPieChart.vue'
 import type { Billing, BillingQueryParams, BillingExplanation, BillingChatResponse, ChatMessageDto } from '@/types'
@@ -386,6 +393,18 @@ async function loadBillings() {
 
 function handleSearch() {
   queryParams.page = 1
+  loadBillings()
+}
+
+async function handlePay(id: number) {
+  await payBilling(id)
+  ElMessage.success('支付成功')
+  loadBillings()
+}
+
+async function handlePayAll() {
+  await payAllUnpaid()
+  ElMessage.success('未支付费用已结清')
   loadBillings()
 }
 
@@ -613,6 +632,7 @@ onMounted(async () => {
 
 .stat-value.success { color: #16a34a; }
 .stat-value.danger { color: #dc2626; }
+.paid-text { color: var(--his-text-2); }
 
 @media (max-width: 1200px) {
   .hero-header {

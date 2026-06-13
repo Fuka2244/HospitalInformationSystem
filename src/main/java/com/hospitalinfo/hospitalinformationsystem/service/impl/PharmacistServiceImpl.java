@@ -8,9 +8,11 @@ import com.hospitalinfo.hospitalinformationsystem.entity.MedicineInventory;
 import com.hospitalinfo.hospitalinformationsystem.entity.MedicineStockLog;
 import com.hospitalinfo.hospitalinformationsystem.entity.Prescription;
 import com.hospitalinfo.hospitalinformationsystem.entity.PrescriptionAudit;
+import com.hospitalinfo.hospitalinformationsystem.entity.PrescriptionItem;
 import com.hospitalinfo.hospitalinformationsystem.mapper.MedicineInventoryMapper;
 import com.hospitalinfo.hospitalinformationsystem.mapper.MedicineStockLogMapper;
 import com.hospitalinfo.hospitalinformationsystem.mapper.PrescriptionAuditMapper;
+import com.hospitalinfo.hospitalinformationsystem.mapper.PrescriptionItemMapper;
 import com.hospitalinfo.hospitalinformationsystem.mapper.PrescriptionMapper;
 import com.hospitalinfo.hospitalinformationsystem.service.IPharmacistService;
 import jakarta.servlet.http.HttpSession;
@@ -32,6 +34,7 @@ public class PharmacistServiceImpl implements IPharmacistService {
     private final PrescriptionAuditMapper prescriptionAuditMapper;
     private final MedicineInventoryMapper medicineInventoryMapper;
     private final MedicineStockLogMapper medicineStockLogMapper;
+    private final PrescriptionItemMapper prescriptionItemMapper;
 
     @Override
     public Result getPendingPrescriptions(HttpSession session) {
@@ -102,6 +105,42 @@ public class PharmacistServiceImpl implements IPharmacistService {
 
         if (prescription.getStatus() != 1) {
             return Result.fail("该处方未通过审核");
+        }
+
+        List<PrescriptionItem> items = prescriptionItemMapper.selectList(
+                new QueryWrapper<PrescriptionItem>().eq("prescription_id", prescriptionId));
+        for (PrescriptionItem item : items) {
+            MedicineInventory inventory = medicineInventoryMapper.selectOne(
+                    new QueryWrapper<MedicineInventory>().eq("medicine_id", item.getMedicineId()).last("LIMIT 1"));
+            if (inventory == null) {
+                return Result.fail("药品库存不存在，medicineId=" + item.getMedicineId());
+            }
+            if (inventory.getQuantity() == null || inventory.getQuantity() < item.getQuantity()) {
+                return Result.fail("药品库存不足，medicineId=" + item.getMedicineId());
+            }
+        }
+
+        for (PrescriptionItem item : items) {
+            MedicineInventory inventory = medicineInventoryMapper.selectOne(
+                    new QueryWrapper<MedicineInventory>().eq("medicine_id", item.getMedicineId()).last("LIMIT 1"));
+            int beforeStock = inventory.getQuantity();
+            int afterStock = beforeStock - item.getQuantity();
+            inventory.setQuantity(afterStock);
+            inventory.setUpdateTime(LocalDateTime.now());
+            medicineInventoryMapper.updateById(inventory);
+
+            MedicineStockLog log = new MedicineStockLog();
+            log.setMedicineId(item.getMedicineId());
+            log.setInventoryId(inventory.getId());
+            log.setOperationType("出库");
+            log.setQuantity(-item.getQuantity());
+            log.setBeforeStock(beforeStock);
+            log.setAfterStock(afterStock);
+            log.setUnitPrice(inventory.getPurchasePrice());
+            log.setOperator(pharmacistId);
+            log.setRemark("处方发药，处方号：" + prescriptionId);
+            log.setCreateTime(LocalDateTime.now());
+            medicineStockLogMapper.insert(log);
         }
 
         prescription.setStatus(2);

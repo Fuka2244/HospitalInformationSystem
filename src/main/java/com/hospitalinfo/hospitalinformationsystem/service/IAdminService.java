@@ -13,4 +13,5 @@ public interface IAdminService {
     Result getDepartmentManagement(HttpSession session);
     Result getDoctorScheduleManagement(HttpSession session);
     Result getGlobalStatistics(HttpSession session);
+    Result getPeriodicReport(StatisticsQueryDto queryDto, HttpSession session);
 }

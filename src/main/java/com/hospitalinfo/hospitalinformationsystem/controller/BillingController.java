@@ -1,9 +1,6 @@
 package com.hospitalinfo.hospitalinformationsystem.controller;
 
-import com.hospitalinfo.hospitalinformationsystem.dto.AsyncTaskResult;
-import com.hospitalinfo.hospitalinformationsystem.dto.BillingQueryDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.ChatMessageDto;
-import com.hospitalinfo.hospitalinformationsystem.dto.Result;
+import com.hospitalinfo.hospitalinformationsystem.dto.*;
 import com.hospitalinfo.hospitalinformationsystem.service.IAsyncTaskService;
 import com.hospitalinfo.hospitalinformationsystem.service.IBillingService;
 import jakarta.servlet.http.HttpSession;
@@ -59,6 +56,24 @@ public class BillingController {
         String currentPatientId = (String) session.getAttribute("account");
         Object role = session.getAttribute("role");
         return billingService.getBillingDetail(id, currentPatientId, role);
+    }
+
+    @PutMapping("/{id}/pay")
+    public Result payBilling(@PathVariable Long id,
+                             @RequestBody(required = false) BillingPayDto dto,
+                             HttpSession session) {
+        String currentPatientId = (String) session.getAttribute("account");
+        Object role = session.getAttribute("role");
+        String paymentMethod = dto == null ? null : dto.getPaymentMethod();
+        return billingService.payBilling(id, currentPatientId, role, paymentMethod);
+    }
+
+    @PutMapping("/pay-all")
+    public Result payAllUnpaid(@RequestBody(required = false) BillingPayDto dto,
+                               HttpSession session) {
+        String currentPatientId = (String) session.getAttribute("account");
+        String paymentMethod = dto == null ? null : dto.getPaymentMethod();
+        return billingService.payAllUnpaid(currentPatientId, paymentMethod);
     }
 
     /**

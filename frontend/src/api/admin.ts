@@ -18,6 +18,10 @@ export function getGlobalStatistics() {
   return get<AdminGlobalStatistics>('/admin/global-statistics')
 }
 
+export function getPeriodicReport(params: StatisticsQueryParams) {
+  return get<Record<string, any>>('/admin/periodic-report', params)
+}
+
 export function getSystemConfigs() {
   return get<SystemConfig[]>('/admin/system-configs')
 }

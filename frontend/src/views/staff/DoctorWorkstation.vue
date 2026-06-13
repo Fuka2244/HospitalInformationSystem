@@ -69,6 +69,12 @@
 
     <el-dialog v-model="endVisible" title="结束就诊" width="620px">
       <el-form label-position="top">
+        <el-form-item label="主诉">
+          <el-input v-model="visitForm.chiefComplaint" placeholder="例如：头痛、发热 2 天" />
+        </el-form-item>
+        <el-form-item label="现病史">
+          <el-input v-model="visitForm.presentIllness" type="textarea" :rows="2" placeholder="简要记录本次病情经过" />
+        </el-form-item>
         <el-form-item label="诊断结果">
           <el-input v-model="visitForm.diagnosis" type="textarea" :rows="3" placeholder="填写诊断结果" />
         </el-form-item>
@@ -77,6 +83,20 @@
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="visitForm.notes" type="textarea" :rows="2" placeholder="补充说明" />
+        </el-form-item>
+        <el-form-item label="处方">
+          <div class="prescription-box">
+            <div v-for="(item, index) in prescriptionItems" :key="index" class="prescription-row">
+              <el-select v-model="item.medicineId" filterable placeholder="药品" class="medicine-select">
+                <el-option v-for="medicine in medicines" :key="medicine.id" :label="medicine.name" :value="medicine.id" />
+              </el-select>
+              <el-input-number v-model="item.quantity" :min="1" :max="999" controls-position="right" />
+              <el-input v-model="item.dosage" placeholder="用法用量" />
+              <el-input-number v-model="item.days" :min="1" :max="90" controls-position="right" />
+              <el-button link type="danger" @click="removePrescriptionItem(index)">删除</el-button>
+            </div>
+            <el-button type="primary" plain @click="addPrescriptionItem">添加药品</el-button>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -102,20 +122,23 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { callPatient, endVisit, getPatientMedicalRecords, getTodayAppointments, startVisit } from '@/api/doctor'
-import type { Appointment, MedicalRecord } from '@/types'
+import { getMedicineList } from '@/api/medicine'
+import type { Appointment, MedicalRecord, Medicine, PrescriptionItemCreateDto } from '@/types'
 
 const loading = ref(false)
 const actionLoading = ref(false)
 const recordsLoading = ref(false)
 const appointments = ref<Appointment[]>([])
 const records = ref<MedicalRecord[]>([])
+const medicines = ref<Medicine[]>([])
+const prescriptionItems = ref<PrescriptionItemCreateDto[]>([])
 const statusFilter = ref('全部')
 const callVisible = ref(false)
 const endVisible = ref(false)
 const recordsVisible = ref(false)
 const callLocation = ref('门诊二楼 203 诊室')
 const currentAppointment = ref<Appointment | null>(null)
-const visitForm = reactive({ diagnosis: '', treatment: '', notes: '' })
+const visitForm = reactive({ chiefComplaint: '', presentIllness: '', diagnosis: '', treatment: '', notes: '' })
 
 const statusOptions = ['全部', '待叫号', '已叫号', '接诊中', '已完成']
 const appointmentStatus: Record<number, { text: string; type: '' | 'success' | 'warning' | 'info' | 'danger' }> = {
@@ -180,15 +203,36 @@ async function handleStartVisit(id: number) {
 
 function openEndVisit(row: Appointment) {
   currentAppointment.value = row
-  Object.assign(visitForm, { diagnosis: '', treatment: '', notes: '' })
+  Object.assign(visitForm, { chiefComplaint: '', presentIllness: '', diagnosis: '', treatment: '', notes: '' })
+  prescriptionItems.value = []
   endVisible.value = true
+  loadMedicines()
+}
+
+async function loadMedicines() {
+  if (medicines.value.length > 0) return
+  const res = await getMedicineList({ page: 1, size: 200 })
+  medicines.value = res.data || []
+}
+
+function addPrescriptionItem() {
+  prescriptionItems.value.push({ medicineId: 0, quantity: 1, days: 1, dosage: '' })
+}
+
+function removePrescriptionItem(index: number) {
+  prescriptionItems.value.splice(index, 1)
 }
 
 async function handleEndVisit() {
   if (!currentAppointment.value) return
   actionLoading.value = true
   try {
-    await endVisit(currentAppointment.value.id, { appointmentId: currentAppointment.value.id, ...visitForm })
+    const validItems = prescriptionItems.value.filter((item) => item.medicineId && item.quantity > 0)
+    await endVisit(currentAppointment.value.id, {
+      appointmentId: currentAppointment.value.id,
+      ...visitForm,
+      prescriptionItems: validItems,
+    })
     ElMessage.success('就诊已结束')
     endVisible.value = false
     loadData()
@@ -224,5 +268,9 @@ p { margin: 0; color: var(--his-text-2); }
 .metric-card strong { font-size: 28px; color: var(--his-text); }
 .work-card { border-radius: 8px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.prescription-box { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.prescription-row { display: grid; grid-template-columns: minmax(150px, 1.2fr) 92px minmax(130px, 1fr) 88px 48px; gap: 8px; align-items: center; }
+.medicine-select { width: 100%; }
 @media (max-width: 768px) { .staff-header { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 768px) { .prescription-row { grid-template-columns: 1fr; } }
 </style>

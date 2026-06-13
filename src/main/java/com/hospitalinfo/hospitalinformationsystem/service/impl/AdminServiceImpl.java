@@ -64,9 +64,7 @@ public class AdminServiceImpl implements IAdminService {
         statistics.put("totalRevenue", billings.stream().mapToDouble(b -> b.getAmount().doubleValue()).sum());
         statistics.put("paidAmount", billings.stream().filter(b -> b.getStatus() == 1).mapToDouble(b -> b.getAmount().doubleValue()).sum());
 
-        QueryWrapper<Patient> patientWrapper = new QueryWrapper<>();
-        patientWrapper.between("create_time", startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
-        statistics.put("newPatients", patientMapper.selectCount(patientWrapper));
+        statistics.put("totalPatients", patientMapper.selectCount(null));
 
         return Result.ok(statistics);
     }
@@ -174,5 +172,47 @@ public class AdminServiceImpl implements IAdminService {
         globalStats.put("unpaidBills", billingMapper.selectCount(billingWrapper));
 
         return Result.ok(globalStats);
+    }
+
+    @Override
+    public Result getPeriodicReport(StatisticsQueryDto queryDto, HttpSession session) {
+        String role = (String) session.getAttribute("role");
+        if (!"admin".equals(role)) {
+            return Result.fail("无权访问统计报表");
+        }
+
+        LocalDate startDate = queryDto.getStartDate() != null ? queryDto.getStartDate() : LocalDate.now().minusDays(30);
+        LocalDate endDate = queryDto.getEndDate() != null ? queryDto.getEndDate() : LocalDate.now();
+
+        Map<String, Object> report = new HashMap<>();
+        report.put("startDate", startDate);
+        report.put("endDate", endDate);
+        report.put("generatedAt", LocalDateTime.now());
+
+        QueryWrapper<Appointment> appointmentWrapper = new QueryWrapper<Appointment>()
+                .between("create_time", startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
+        List<Appointment> appointments = appointmentMapper.selectList(appointmentWrapper);
+        report.put("appointmentTotal", appointments.size());
+        report.put("appointmentCompleted", appointments.stream().filter(a -> a.getStatus() != null && a.getStatus() == 3).count());
+        report.put("appointmentCancelled", appointments.stream().filter(a -> a.getStatus() != null && (a.getStatus() == 2 || a.getStatus() == -1)).count());
+
+        QueryWrapper<Billing> billingWrapper = new QueryWrapper<Billing>()
+                .between("create_time", startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
+        List<Billing> billings = billingMapper.selectList(billingWrapper);
+        report.put("billingTotalAmount", billings.stream().mapToDouble(b -> b.getAmount().doubleValue()).sum());
+        report.put("billingPaidAmount", billings.stream()
+                .filter(b -> b.getStatus() != null && b.getStatus() == 1)
+                .mapToDouble(b -> b.getAmount().doubleValue()).sum());
+        report.put("billingUnpaidCount", billings.stream().filter(b -> b.getStatus() != null && b.getStatus() == 0).count());
+
+        QueryWrapper<MedicineInventory> lowStockWrapper = new QueryWrapper<MedicineInventory>()
+                .apply("quantity <= min_stock");
+        List<MedicineInventory> lowStock = medicineInventoryMapper.selectList(lowStockWrapper);
+        report.put("lowStockCount", lowStock.size());
+        report.put("lowStockMedicines", lowStock);
+
+        report.put("totalPatients", patientMapper.selectCount(null));
+
+        return Result.ok(report);
     }
 }

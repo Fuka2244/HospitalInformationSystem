@@ -6,6 +6,7 @@ import type {
   AppointmentRecommendation,
   AiRecommendDto,
   DoctorSchedule,
+  FrontDeskRegistrationDto,
   ScheduleQueryParams,
   TriageChatRequest,
   TriageChatResponse,
@@ -54,4 +55,12 @@ export function aiTriageChat(data: TriageChatRequest) {
 /** 可用排班查询 */
 export function getAvailableSchedules(params: ScheduleQueryParams) {
   return get<DoctorSchedule[]>('/appointment/schedules', params)
+}
+
+export function registerAppointment(id: number) {
+  return post(`/appointment/${id}/registration`)
+}
+
+export function frontDeskRegistration(data: FrontDeskRegistrationDto) {
+  return post<Record<string, any>>('/appointment/frontdesk/registration', data)
 }

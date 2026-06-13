@@ -16,9 +16,12 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -30,6 +33,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
     private final DoctorMapper doctorMapper;
     private final DepartmentMapper departmentMapper;
     private final PatientMapper patientMapper;
+    private final BillingMapper billingMapper;
     private final AiAppointmentService aiAppointmentService;
     private final RedisDistributedLock distributedLock;
     private final IScheduleStockService scheduleStockService;
@@ -510,7 +514,84 @@ public class AppointmentServiceImpl implements IAppointmentService {
         appointment.setUpdateTime(LocalDateTime.now());
         appointmentMapper.updateById(appointment);
 
-        return Result.ok("挂号登记成功");
+        createRegistrationBillingIfAbsent(appointment);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("appointment", appointment);
+        data.put("message", buildConfirmationMessage(appointment));
+        return Result.ok(data);
+    }
+
+    @Override
+    @Transactional
+    public Result frontDeskRegistration(FrontDeskRegistrationDto dto) {
+        Appointment appointment;
+        if (dto.getAppointmentId() != null) {
+            appointment = appointmentMapper.selectById(dto.getAppointmentId());
+            if (appointment == null) {
+                return Result.fail("预约不存在");
+            }
+            if (!appointment.getPatientId().equals(dto.getPatientId())) {
+                return Result.fail("预约与患者不匹配");
+            }
+            if (dto.getLocation() != null && !dto.getLocation().isBlank()) {
+                appointment.setLocation(dto.getLocation());
+            }
+        } else {
+            if (dto.getDoctorId() == null || dto.getDepartmentId() == null
+                    || dto.getAppointmentDate() == null || dto.getTimeSlot() == null) {
+                return Result.fail("新建现场挂号需要选择科室、医生、日期和时段");
+            }
+            Result createResult = createAppointment(dto, dto.getPatientId());
+            if (!createResult.getSuccess()) {
+                return createResult;
+            }
+            appointment = (Appointment) createResult.getData();
+            if (dto.getLocation() != null && !dto.getLocation().isBlank()) {
+                appointment.setLocation(dto.getLocation());
+            }
+        }
+
+        appointment.setRegistrationStatus(1);
+        appointment.setUpdateTime(LocalDateTime.now());
+        appointmentMapper.updateById(appointment);
+        createRegistrationBillingIfAbsent(appointment);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("appointment", appointment);
+        data.put("message", buildConfirmationMessage(appointment));
+        return Result.ok(data);
+    }
+
+    private void createRegistrationBillingIfAbsent(Appointment appointment) {
+        Long exists = billingMapper.selectCount(new QueryWrapper<Billing>()
+                .eq("appointment_id", appointment.getId())
+                .eq("item_type", "REGISTRATION"));
+        if (exists != null && exists > 0) {
+            return;
+        }
+
+        Billing billing = new Billing();
+        billing.setPatientId(appointment.getPatientId());
+        billing.setAppointmentId(appointment.getId());
+        billing.setItemType("REGISTRATION");
+        billing.setItemName("门诊挂号费");
+        billing.setAmount(new BigDecimal("30.00"));
+        billing.setDescription(buildConfirmationMessage(appointment));
+        billing.setStatus(0);
+        billing.setCreateTime(LocalDateTime.now());
+        billing.setUpdateTime(LocalDateTime.now());
+        billingMapper.insert(billing);
+    }
+
+    private String buildConfirmationMessage(Appointment appointment) {
+        String location = appointment.getLocation();
+        if (location == null || location.isBlank()) {
+            location = "待医生叫号后通知";
+        }
+        return "预约/挂号确认：日期 " + appointment.getAppointmentDate()
+                + "，时段 " + appointment.getTimeSlot()
+                + "，就诊地点 " + location + "。";
     }
 
     @Override

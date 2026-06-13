@@ -14,7 +14,7 @@ export function startVisit(appointmentId: number) {
 }
 
 export function endVisit(appointmentId: number, data: VisitRecordDto) {
-  return put<string>(`/doctor/end-visit/${appointmentId}`, data)
+  return put<MedicalRecord>(`/doctor/end-visit/${appointmentId}`, data)
 }
 
 export function getPatientMedicalRecords(patientId: string) {

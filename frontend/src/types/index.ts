@@ -161,6 +161,12 @@ export interface AppointmentCreateDto {
   timeSlot: string
 }
 
+export interface FrontDeskRegistrationDto extends AppointmentCreateDto {
+  appointmentId?: number
+  patientId: string
+  location?: string
+}
+
 /** 预约查询参数 */
 export interface AppointmentQueryParams extends PageParams {
   status?: number
@@ -439,9 +445,20 @@ export interface DoctorCallPatientDto {
 
 export interface VisitRecordDto {
   appointmentId: number
+  chiefComplaint?: string
+  presentIllness?: string
   diagnosis?: string
   treatment?: string
   notes?: string
+  prescriptionItems?: PrescriptionItemCreateDto[]
+}
+
+export interface PrescriptionItemCreateDto {
+  medicineId: number
+  dosage?: string
+  quantity: number
+  days?: number
+  remark?: string
 }
 
 export interface PrescriptionRecord {
@@ -518,6 +535,7 @@ export interface AdminStatistics {
   totalRevenue?: number
   paidAmount?: number
   newPatients?: number
+  totalPatients?: number
 }
 
 export interface AdminGlobalStatistics {

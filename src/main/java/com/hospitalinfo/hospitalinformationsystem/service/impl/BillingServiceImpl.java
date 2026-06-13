@@ -17,7 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -78,6 +80,60 @@ public class BillingServiceImpl implements IBillingService {
         Patient patient = getPatientCached(billing.getPatientId());
         if (patient != null) billing.setPatientName(patient.getName());
         return Result.ok(billing);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_BILLING, allEntries = true)
+    public Result payBilling(Long billingId, String currentPatientId, Object role, String paymentMethod) {
+        Billing billing = billingMapper.selectById(billingId);
+        if (billing == null) {
+            return Result.fail("费用记录不存在");
+        }
+        if (!billing.getPatientId().equals(currentPatientId) &&
+                (role == null || (!"admin".equals(role) && !"doctor".equals(role) && !"pharmacist".equals(role)))) {
+            return Result.fail("无权支付该费用");
+        }
+        if (billing.getStatus() == 1) {
+            return Result.fail("该费用已支付");
+        }
+        if (billing.getStatus() == 2) {
+            return Result.fail("已退款费用不能支付");
+        }
+
+        billing.setStatus(1);
+        String method = paymentMethod == null || paymentMethod.isBlank() ? "系统支付" : paymentMethod.trim();
+        String prefix = billing.getDescription() == null || billing.getDescription().isBlank()
+                ? ""
+                : billing.getDescription() + "；";
+        billing.setDescription(prefix + "支付方式：" + method);
+        billing.setUpdateTime(LocalDateTime.now());
+        billingMapper.updateById(billing);
+        return Result.ok(billing);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_BILLING, allEntries = true)
+    public Result payAllUnpaid(String patientId, String paymentMethod) {
+        List<Billing> unpaid = billingMapper.selectList(new QueryWrapper<Billing>()
+                .eq("patient_id", patientId)
+                .eq("status", 0));
+        if (unpaid.isEmpty()) {
+            return Result.fail("暂无未支付费用");
+        }
+
+        String method = paymentMethod == null || paymentMethod.isBlank() ? "系统支付" : paymentMethod.trim();
+        for (Billing billing : unpaid) {
+            String prefix = billing.getDescription() == null || billing.getDescription().isBlank()
+                    ? ""
+                    : billing.getDescription() + "；";
+            billing.setStatus(1);
+            billing.setDescription(prefix + "支付方式：" + method);
+            billing.setUpdateTime(LocalDateTime.now());
+            billingMapper.updateById(billing);
+        }
+        return Result.ok(unpaid);
     }
 
     @Override
