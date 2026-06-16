@@ -50,6 +50,7 @@ class AppointmentServiceTest {
     private AppointmentCreateDto createDto;
     private DoctorSchedule mockSchedule;
     private Appointment mockAppointment;
+    private Billing mockRegistrationBilling;
     private Patient mockPatient;
     private Doctor mockDoctor;
     private Department mockDept;
@@ -82,6 +83,15 @@ class AppointmentServiceTest {
         mockAppointment.setTimeSlot("09:00-10:00");
         mockAppointment.setStatus(0);
         mockAppointment.setAiRecommended(0);
+
+        mockRegistrationBilling = new Billing();
+        mockRegistrationBilling.setId(10L);
+        mockRegistrationBilling.setPatientId("patient-001");
+        mockRegistrationBilling.setAppointmentId(1L);
+        mockRegistrationBilling.setItemType("REGISTRATION");
+        mockRegistrationBilling.setItemName("门诊挂号费");
+        mockRegistrationBilling.setStatus(0);
+        mockRegistrationBilling.setDescription("预约/挂号确认");
 
         mockPatient = new Patient();
         mockPatient.setAccount("patient-001");
@@ -263,12 +273,16 @@ class AppointmentServiceTest {
         void cancelSuccess() {
             when(appointmentMapper.selectById(1L)).thenReturn(mockAppointment);
             when(appointmentMapper.updateById(any(Appointment.class))).thenReturn(1);
+            when(billingMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of(mockRegistrationBilling));
+            when(billingMapper.updateById(any(Billing.class))).thenReturn(1);
             when(doctorScheduleMapper.decrementBookedCount(anyLong(), any(), anyString())).thenReturn(1);
 
             Result result = appointmentService.cancelAppointment(1L, "不想要了", "patient-001");
 
             assertTrue(result.getSuccess());
             verify(doctorScheduleMapper).decrementBookedCount(anyLong(), any(), anyString());
+            assertEquals(2, mockRegistrationBilling.getStatus());
+            verify(billingMapper).updateById(mockRegistrationBilling);
         }
 
         @Test

@@ -239,7 +239,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
 
     @Override
     @Transactional
-    @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
+    @CacheEvict(value = {CacheConfig.CACHE_SCHEDULE, CacheConfig.CACHE_BILLING}, allEntries = true)
     public Result cancelAppointment(Long appointmentId, String cancelReason, String patientId) {
         Appointment appointment = appointmentMapper.selectById(appointmentId);
         if (appointment == null) {
@@ -255,6 +255,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
         appointment.setStatus(2);
         appointment.setCancelReason(cancelReason);
         appointmentMapper.updateById(appointment);
+        cancelRegistrationBilling(appointment, cancelReason);
 
         // 释放排班号源
         if (appointment.getDoctorId() != null) {
@@ -282,7 +283,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
      */
     @Override
     @Transactional
-    @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
+    @CacheEvict(value = {CacheConfig.CACHE_SCHEDULE, CacheConfig.CACHE_BILLING}, allEntries = true)
     public Result cancelAppointmentWithRedisAndOptimisticLock(Long appointmentId, String cancelReason, String patientId) {
         Appointment appointment = appointmentMapper.selectById(appointmentId);
         if (appointment == null) {
@@ -299,6 +300,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
         appointment.setStatus(2);
         appointment.setCancelReason(cancelReason);
         appointmentMapper.updateById(appointment);
+        cancelRegistrationBilling(appointment, cancelReason);
 
         // 释放库存
         if (appointment.getDoctorId() != null) {
@@ -336,6 +338,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {CacheConfig.CACHE_SCHEDULE, CacheConfig.CACHE_BILLING}, allEntries = true)
     public Result rescheduleAppointment(Long appointmentId, AppointmentCreateDto dto, String patientId) {
         Result cancelResult = cancelAppointment(appointmentId, "改期", patientId);
         if (!cancelResult.getSuccess()) {
@@ -585,6 +588,27 @@ public class AppointmentServiceImpl implements IAppointmentService {
         billing.setCreateTime(LocalDateTime.now());
         billing.setUpdateTime(LocalDateTime.now());
         billingMapper.insert(billing);
+    }
+
+    private void cancelRegistrationBilling(Appointment appointment, String cancelReason) {
+        List<Billing> billings = billingMapper.selectList(new QueryWrapper<Billing>()
+                .eq("appointment_id", appointment.getId())
+                .eq("item_type", "REGISTRATION")
+                .ne("status", 2));
+        if (billings == null || billings.isEmpty()) {
+            return;
+        }
+
+        String reason = cancelReason == null || cancelReason.isBlank() ? "未填写" : cancelReason.trim();
+        for (Billing billing : billings) {
+            String prefix = billing.getDescription() == null || billing.getDescription().isBlank()
+                    ? ""
+                    : billing.getDescription() + "；";
+            billing.setStatus(2);
+            billing.setDescription(prefix + "预约已取消，挂号费已退款/取消，取消原因：" + reason);
+            billing.setUpdateTime(LocalDateTime.now());
+            billingMapper.updateById(billing);
+        }
     }
 
     private String buildConfirmationMessage(Appointment appointment) {
