@@ -42,7 +42,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
     private static final String APPOINTMENT_LOCK_PREFIX = "lock:appointment:";
 
     @Override
-    @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
+    @CacheEvict(value = {CacheConfig.CACHE_SCHEDULE, CacheConfig.CACHE_BILLING}, allEntries = true)
     public Result createAppointment(AppointmentCreateDto dto, String patientId) {
         if (dto.getDoctorId() == null) {
             return Result.fail("请选择医生和就诊时段");
@@ -68,7 +68,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
      * 适用于高并发热门号源场景
      */
     @Override
-    @CacheEvict(value = CacheConfig.CACHE_SCHEDULE, allEntries = true)
+    @CacheEvict(value = {CacheConfig.CACHE_SCHEDULE, CacheConfig.CACHE_BILLING}, allEntries = true)
     public Result createAppointmentWithRedisAndOptimisticLock(AppointmentCreateDto dto, String patientId) {
         if (dto.getDoctorId() == null) {
             return Result.fail("请选择医生和就诊时段");
@@ -192,6 +192,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
         appointment.setAiRecommended(0);
 
         appointmentMapper.insert(appointment);
+        createRegistrationBillingIfAbsent(appointment);
         log.info("预约创建成功: patientId={}, doctorId={}, date={}, timeSlot={}",
                 patientId, dto.getDoctorId(), dto.getAppointmentDate(), dto.getTimeSlot());
         return Result.ok(appointment);
@@ -495,6 +496,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_BILLING, allEntries = true)
     public Result registration(Long appointmentId, String patientId) {
         Appointment appointment = appointmentMapper.selectById(appointmentId);
         if (appointment == null) {
@@ -524,6 +526,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_BILLING, allEntries = true)
     public Result frontDeskRegistration(FrontDeskRegistrationDto dto) {
         Appointment appointment;
         if (dto.getAppointmentId() != null) {

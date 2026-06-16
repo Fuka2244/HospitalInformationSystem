@@ -1,6 +1,7 @@
 package com.hospitalinfo.hospitalinformationsystem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.hospitalinfo.hospitalinformationsystem.config.CacheConfig;
 import com.hospitalinfo.hospitalinformationsystem.dto.DoctorCallPatientDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.PrescriptionItemDto;
 import com.hospitalinfo.hospitalinformationsystem.dto.Result;
@@ -23,6 +24,7 @@ import com.hospitalinfo.hospitalinformationsystem.service.IDoctorService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class DoctorServiceImpl implements IDoctorService {
+
+    private static final BigDecimal DISPENSE_SERVICE_FEE = new BigDecimal("5.00");
 
     private final AppointmentMapper appointmentMapper;
     private final MedicalRecordMapper medicalRecordMapper;
@@ -145,6 +149,7 @@ public class DoctorServiceImpl implements IDoctorService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_BILLING, allEntries = true)
     public Result endVisit(Long appointmentId, VisitRecordDto dto, HttpSession session) {
         String doctorId = (String) session.getAttribute("account");
         String role = (String) session.getAttribute("role");
@@ -251,6 +256,19 @@ public class DoctorServiceImpl implements IDoctorService {
             billing.setUpdateTime(LocalDateTime.now());
             billingMapper.insert(billing);
         }
+
+        Billing dispenseFee = new Billing();
+        dispenseFee.setPatientId(appointment.getPatientId());
+        dispenseFee.setAppointmentId(appointment.getId());
+        dispenseFee.setMedicalRecordId(medicalRecord.getId());
+        dispenseFee.setItemType("OTHER");
+        dispenseFee.setItemName("取药服务费");
+        dispenseFee.setAmount(DISPENSE_SERVICE_FEE);
+        dispenseFee.setDescription("病历生成处方后自动生成的取药服务费，处方号：" + prescription.getId());
+        dispenseFee.setStatus(0);
+        dispenseFee.setCreateTime(LocalDateTime.now());
+        dispenseFee.setUpdateTime(LocalDateTime.now());
+        billingMapper.insert(dispenseFee);
     }
 
     @Override

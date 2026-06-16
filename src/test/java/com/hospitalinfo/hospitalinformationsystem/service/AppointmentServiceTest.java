@@ -39,8 +39,10 @@ class AppointmentServiceTest {
     @Mock private DoctorMapper doctorMapper;
     @Mock private DepartmentMapper departmentMapper;
     @Mock private PatientMapper patientMapper;
+    @Mock private BillingMapper billingMapper;
     @Mock private AiAppointmentService aiAppointmentService;
     @Mock private RedisDistributedLock distributedLock;
+    @Mock private IScheduleStockService scheduleStockService;
 
     @InjectMocks
     private AppointmentServiceImpl appointmentService;
@@ -116,6 +118,7 @@ class AppointmentServiceTest {
             assertTrue(result.getSuccess());
             verify(doctorScheduleMapper).incrementBookedCount(anyLong(), any(), anyString());
             verify(appointmentMapper).insert(any(Appointment.class));
+            verify(billingMapper).insert(any(Billing.class));
             verify(distributedLock).unlock(anyString(), anyString());
         }
 
@@ -165,6 +168,7 @@ class AppointmentServiceTest {
             Result result = appointmentService.createAppointment(createDto, "patient-001");
 
             assertTrue(result.getSuccess());
+            verify(billingMapper).insert(any(Billing.class));
         }
     }
 
@@ -323,6 +327,7 @@ class AppointmentServiceTest {
             assertTrue(result.getSuccess());
             verify(appointmentMapper).updateById(any(Appointment.class));
             verify(appointmentMapper).insert(any(Appointment.class));
+            verify(billingMapper).insert(any(Billing.class));
         }
     }
 

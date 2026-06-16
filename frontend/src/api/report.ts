@@ -23,18 +23,32 @@ export function generateReportStream(
 
   const fetchStream = async () => {
     try {
+      const token = localStorage.getItem('his_token')
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+      }
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+
       const response = await fetch('/HIS/report/generate-stream', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(data),
         signal,
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        let message = `HTTP error! status: ${response.status}`
+        try {
+          const errorData = await response.json()
+          message = errorData.errorMsg || message
+        } catch {
+          // Keep the HTTP status message if the backend did not return JSON.
+        }
+        throw new Error(message)
       }
 
       const reader = response.body?.getReader()
