@@ -1,0 +1,1096 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "医院信息系统 (HIS) API",
+    "description": "Hospital Information System - 医院信息系统后端API文档，用于OWASP ZAP安全扫描导入",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/HIS",
+      "description": "本地开发环境"
+    }
+  ],
+  "tags": [
+    { "name": "公共接口-认证", "description": "无需登录的认证相关接口" },
+    { "name": "公共接口-药品", "description": "无需登录的药品查询接口" },
+    { "name": "公共接口-科室", "description": "无需登录的科室信息接口" },
+    { "name": "公共接口-预约", "description": "无需登录的预约相关接口" },
+    { "name": "受保护接口-患者", "description": "需要登录的患者相关接口" },
+    { "name": "受保护接口-预约", "description": "需要登录的预约管理接口" },
+    { "name": "受保护接口-费用", "description": "需要登录的费用查询接口" },
+    { "name": "受保护接口-报告", "description": "需要登录的医疗报告接口" },
+    { "name": "受保护接口-聊天", "description": "需要登录的聊天记录接口" },
+    { "name": "受保护接口-文件", "description": "需要登录的文件上传接口" }
+  ],
+  "paths": {
+    "/patient/login": {
+      "post": {
+        "tags": ["公共接口-认证"],
+        "summary": "用户登录",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["phone", "password"],
+                "properties": {
+                  "phone": { "type": "string", "description": "手机号", "example": "13800000001" },
+                  "password": { "type": "string", "description": "密码", "example": "Test1234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "登录成功" },
+          "401": { "description": "手机号或密码错误" }
+        }
+      }
+    },
+    "/patient/register": {
+      "post": {
+        "tags": ["公共接口-认证"],
+        "summary": "用户注册",
+        "operationId": "register",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "username", "password", "confirmPassword", "gender", "age", "phone", "idCard"],
+                "properties": {
+                  "name": { "type": "string", "description": "真实姓名", "example": "张三" },
+                  "username": { "type": "string", "description": "用户名", "example": "zhangsan" },
+                  "password": { "type": "string", "description": "密码", "example": "Test1234" },
+                  "confirmPassword": { "type": "string", "description": "确认密码", "example": "Test1234" },
+                  "gender": { "type": "string", "description": "性别", "enum": ["男", "女"], "example": "男" },
+                  "age": { "type": "integer", "description": "年龄", "example": 25 },
+                  "phone": { "type": "string", "description": "手机号", "example": "13800000001" },
+                  "address": { "type": "string", "description": "地址", "example": "北京市朝阳区" },
+                  "idCard": { "type": "string", "description": "身份证号", "example": "110101199001011234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "注册成功" },
+          "400": { "description": "参数验证失败" }
+        }
+      }
+    },
+    "/patient/login/send-code": {
+      "post": {
+        "tags": ["公共接口-认证"],
+        "summary": "发送验证码",
+        "operationId": "sendVerificationCode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["phone"],
+                "properties": {
+                  "phone": { "type": "string", "description": "手机号", "example": "13800000001" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "验证码发送成功" },
+          "429": { "description": "发送过于频繁" }
+        }
+      }
+    },
+    "/patient/login/forget": {
+      "put": {
+        "tags": ["公共接口-认证"],
+        "summary": "忘记密码-重置密码",
+        "operationId": "forgetPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["phone", "code", "newPassword", "confirmPassword"],
+                "properties": {
+                  "phone": { "type": "string", "description": "手机号", "example": "13800000001" },
+                  "code": { "type": "string", "description": "验证码", "example": "123456" },
+                  "newPassword": { "type": "string", "description": "新密码", "example": "NewPass1234" },
+                  "confirmPassword": { "type": "string", "description": "确认新密码", "example": "NewPass1234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "密码重置成功" },
+          "400": { "description": "验证码错误或密码不一致" }
+        }
+      }
+    },
+    "/medicine/list": {
+      "get": {
+        "tags": ["公共接口-药品"],
+        "summary": "药品列表",
+        "operationId": "listMedicines",
+        "parameters": [
+          { "name": "keyword", "in": "query", "schema": { "type": "string" }, "description": "搜索关键词", "example": "感冒" },
+          { "name": "category", "in": "query", "schema": { "type": "string" }, "description": "药品分类" },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": { "200": { "description": "药品列表" } }
+      }
+    },
+    "/medicine/{id}": {
+      "get": {
+        "tags": ["公共接口-药品"],
+        "summary": "药品详情",
+        "operationId": "getMedicineDetail",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "药品ID" }
+        ],
+        "responses": { "200": { "description": "药品详情" }, "404": { "description": "药品不存在" } }
+      }
+    },
+    "/medicine/ai-recommend": {
+      "post": {
+        "tags": ["公共接口-药品"],
+        "summary": "AI药品推荐",
+        "operationId": "aiRecommendMedicine",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["symptom"],
+                "properties": {
+                  "symptom": { "type": "string", "description": "症状描述", "example": "头痛发烧" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "AI推荐结果" } }
+      }
+    },
+    "/department/list": {
+      "get": {
+        "tags": ["公共接口-科室"],
+        "summary": "科室列表",
+        "operationId": "listDepartments",
+        "responses": { "200": { "description": "科室列表" } }
+      }
+    },
+    "/department/{id}": {
+      "get": {
+        "tags": ["公共接口-科室"],
+        "summary": "科室详情",
+        "operationId": "getDepartmentDetail",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "科室ID" }
+        ],
+        "responses": { "200": { "description": "科室详情" }, "404": { "description": "科室不存在" } }
+      }
+    },
+    "/department/{id}/doctors": {
+      "get": {
+        "tags": ["公共接口-科室"],
+        "summary": "科室下的医生列表",
+        "operationId": "getDepartmentDoctors",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "科室ID" }
+        ],
+        "responses": { "200": { "description": "医生列表" } }
+      }
+    },
+    "/department/doctors": {
+      "get": {
+        "tags": ["公共接口-科室"],
+        "summary": "所有医生列表",
+        "operationId": "getAllDoctors",
+        "responses": { "200": { "description": "所有医生列表" } }
+      }
+    },
+    "/appointment/schedules": {
+      "get": {
+        "tags": ["公共接口-预约"],
+        "summary": "排班查询",
+        "operationId": "getAvailableSchedules",
+        "parameters": [
+          { "name": "departmentId", "in": "query", "schema": { "type": "integer" }, "description": "科室ID" },
+          { "name": "doctorId", "in": "query", "schema": { "type": "integer" }, "description": "医生ID" },
+          { "name": "date", "in": "query", "schema": { "type": "string" }, "description": "日期", "example": "2026-05-01" }
+        ],
+        "responses": { "200": { "description": "排班列表" } }
+      }
+    },
+    "/appointment/ai-recommend": {
+      "post": {
+        "tags": ["公共接口-预约"],
+        "summary": "AI预约推荐",
+        "operationId": "aiRecommendAppointment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["symptom"],
+                "properties": {
+                  "symptom": { "type": "string", "description": "症状描述", "example": "头痛" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "AI推荐结果" } }
+      }
+    },
+    "/appointment/ai-recommend-with-schedules": {
+      "post": {
+        "tags": ["公共接口-预约"],
+        "summary": "AI预约推荐(含排班)",
+        "operationId": "aiRecommendWithSchedules",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["symptom"],
+                "properties": {
+                  "symptom": { "type": "string", "description": "症状描述", "example": "头痛" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "AI推荐结果+可用排班" } }
+      }
+    },
+    "/patient/me": {
+      "get": {
+        "tags": ["受保护接口-患者"],
+        "summary": "获取当前登录用户信息",
+        "operationId": "getCurrentUser",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "用户信息" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/patient/info": {
+      "get": {
+        "tags": ["受保护接口-患者"],
+        "summary": "获取当前患者详细信息",
+        "operationId": "getMyInfo",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "患者详细信息" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/patient/{patientId}": {
+      "get": {
+        "tags": ["受保护接口-患者"],
+        "summary": "获取指定患者信息(越权测试重点)",
+        "operationId": "getPatientInfo",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "patientId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "患者ID" }
+        ],
+        "responses": {
+          "200": { "description": "患者信息" },
+          "401": { "description": "未登录" },
+          "403": { "description": "无权访问" }
+        }
+      }
+    },
+    "/patient/list": {
+      "get": {
+        "tags": ["受保护接口-患者"],
+        "summary": "患者列表(需admin/doctor/pharmacist角色)",
+        "operationId": "listPatients",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "keyword", "in": "query", "schema": { "type": "string" }, "description": "搜索关键词" },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "患者列表" },
+          "401": { "description": "未登录" },
+          "403": { "description": "无权限" }
+        }
+      }
+    },
+    "/patient/me/update": {
+      "put": {
+        "tags": ["受保护接口-患者"],
+        "summary": "更新个人信息",
+        "operationId": "updateProfile",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "张三" },
+                  "username": { "type": "string", "example": "zhangsan" },
+                  "gender": { "type": "string", "enum": ["男", "女"] },
+                  "age": { "type": "integer", "example": 25 },
+                  "phone": { "type": "string", "example": "13800000001" },
+                  "address": { "type": "string", "example": "北京市" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "更新成功" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/patient/loginout": {
+      "post": {
+        "tags": ["受保护接口-患者"],
+        "summary": "退出登录",
+        "operationId": "logout",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "退出成功" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/patient/id-card": {
+      "post": {
+        "tags": ["受保护接口-患者"],
+        "summary": "验证密码后获取身份证号",
+        "operationId": "getIdCard",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["password"],
+                "properties": {
+                  "password": { "type": "string", "description": "当前密码", "example": "Test1234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "身份证号" },
+          "401": { "description": "未登录" },
+          "403": { "description": "密码错误" }
+        }
+      }
+    },
+    "/patient/medical-records": {
+      "get": {
+        "tags": ["受保护接口-患者"],
+        "summary": "获取当前患者病历列表",
+        "operationId": "getMyMedicalRecords",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "病历列表" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/patient/{patientId}/medical-records": {
+      "get": {
+        "tags": ["受保护接口-患者"],
+        "summary": "获取指定患者病历(越权测试重点)",
+        "operationId": "getPatientMedicalRecords",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "patientId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "患者ID" },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "病历列表" },
+          "401": { "description": "未登录" },
+          "403": { "description": "无权访问" }
+        }
+      }
+    },
+    "/patient/medical-record/{recordId}": {
+      "get": {
+        "tags": ["受保护接口-患者"],
+        "summary": "获取病历详情",
+        "operationId": "getMedicalRecordDetail",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "recordId", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "病历ID" }
+        ],
+        "responses": {
+          "200": { "description": "病历详情" },
+          "401": { "description": "未登录" },
+          "403": { "description": "无权访问" }
+        }
+      }
+    },
+    "/patient/visit-history": {
+      "get": {
+        "tags": ["受保护接口-患者"],
+        "summary": "获取就诊历史",
+        "operationId": "getMyVisitHistory",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "departmentId", "in": "query", "schema": { "type": "integer" } },
+          { "name": "doctorId", "in": "query", "schema": { "type": "integer" } },
+          { "name": "startDate", "in": "query", "schema": { "type": "string" }, "example": "2026-01-01" },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" }, "example": "2026-12-31" },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "就诊历史" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/appointment": {
+      "post": {
+        "tags": ["受保护接口-预约"],
+        "summary": "创建预约",
+        "operationId": "createAppointment",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["departmentId", "appointmentType", "appointmentDate", "timeSlot"],
+                "properties": {
+                  "departmentId": { "type": "integer", "description": "科室ID", "example": 1 },
+                  "doctorId": { "type": "integer", "description": "医生ID" },
+                  "appointmentType": { "type": "string", "description": "预约类型", "example": "普通" },
+                  "appointmentDate": { "type": "string", "description": "预约日期", "example": "2026-05-01" },
+                  "timeSlot": { "type": "string", "description": "时间段", "example": "08:00-09:00" },
+                  "description": { "type": "string", "description": "病情描述" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "预约成功" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/appointment/list": {
+      "get": {
+        "tags": ["受保护接口-预约"],
+        "summary": "我的预约列表",
+        "operationId": "listMyAppointments",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "预约状态" },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "预约列表" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/appointment/{id}": {
+      "get": {
+        "tags": ["受保护接口-预约"],
+        "summary": "预约详情",
+        "operationId": "getAppointmentDetail",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "预约ID" }
+        ],
+        "responses": {
+          "200": { "description": "预约详情" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/appointment/{id}/cancel": {
+      "put": {
+        "tags": ["受保护接口-预约"],
+        "summary": "取消预约",
+        "operationId": "cancelAppointment",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "预约ID" },
+          { "name": "cancelReason", "in": "query", "schema": { "type": "string" }, "description": "取消原因" }
+        ],
+        "responses": {
+          "200": { "description": "取消成功" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/appointment/{id}/reschedule": {
+      "put": {
+        "tags": ["受保护接口-预约"],
+        "summary": "改期预约",
+        "operationId": "rescheduleAppointment",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "预约ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["departmentId", "appointmentType", "appointmentDate", "timeSlot"],
+                "properties": {
+                  "departmentId": { "type": "integer", "example": 1 },
+                  "doctorId": { "type": "integer" },
+                  "appointmentType": { "type": "string", "example": "普通" },
+                  "appointmentDate": { "type": "string", "example": "2026-05-02" },
+                  "timeSlot": { "type": "string", "example": "09:00-10:00" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "改期成功" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/appointment/ai-triage-chat": {
+      "post": {
+        "tags": ["受保护接口-预约"],
+        "summary": "AI分诊对话(需登录)",
+        "operationId": "aiTriageChat",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": { "type": "string", "description": "用户消息", "example": "我头痛该怎么办" },
+                  "sessionId": { "type": "string", "description": "会话ID" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "AI回复" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/billing/list": {
+      "get": {
+        "tags": ["受保护接口-费用"],
+        "summary": "我的费用列表",
+        "operationId": "listMyBillings",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "费用列表" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/billing/{patientId}/list": {
+      "get": {
+        "tags": ["受保护接口-费用"],
+        "summary": "指定患者费用列表(越权测试重点)",
+        "operationId": "listPatientBillings",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "patientId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "患者ID" },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "费用列表" },
+          "401": { "description": "未登录" },
+          "403": { "description": "无权访问" }
+        }
+      }
+    },
+    "/billing/detail/{id}": {
+      "get": {
+        "tags": ["受保护接口-费用"],
+        "summary": "费用详情",
+        "operationId": "getBillingDetail",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "费用ID" }
+        ],
+        "responses": {
+          "200": { "description": "费用详情" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/billing/ai-explain": {
+      "post": {
+        "tags": ["受保护接口-费用"],
+        "summary": "AI费用解释",
+        "operationId": "aiExplainBilling",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["question"],
+                "properties": {
+                  "question": { "type": "string", "description": "费用问题", "example": "挂号费为什么这么贵" },
+                  "startDate": { "type": "string" },
+                  "endDate": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "AI解释" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/billing/ai-chat": {
+      "post": {
+        "tags": ["受保护接口-费用"],
+        "summary": "AI费用对话",
+        "operationId": "aiBillingChat",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": { "type": "string", "example": "我最近花了多少钱" },
+                  "startDate": { "type": "string" },
+                  "endDate": { "type": "string" },
+                  "history": { "type": "array", "items": { "type": "object" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "AI回复" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/billing/ai-chat-async": {
+      "post": {
+        "tags": ["受保护接口-费用"],
+        "summary": "AI费用对话(异步)",
+        "operationId": "aiBillingChatAsync",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": { "type": "string", "example": "帮我分析费用" },
+                  "startDate": { "type": "string" },
+                  "endDate": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "任务ID" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/billing/ai-task/{taskId}": {
+      "get": {
+        "tags": ["受保护接口-费用"],
+        "summary": "获取异步AI任务结果",
+        "operationId": "getAiTaskResult_billing",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "taskId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "任务ID" }
+        ],
+        "responses": {
+          "200": { "description": "任务结果" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/report/list": {
+      "get": {
+        "tags": ["受保护接口-报告"],
+        "summary": "报告列表",
+        "operationId": "listReports",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "reportType", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "报告列表" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/report/{id}": {
+      "get": {
+        "tags": ["受保护接口-报告"],
+        "summary": "报告详情",
+        "operationId": "getReportDetail",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "报告ID" }
+        ],
+        "responses": {
+          "200": { "description": "报告详情" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/report/generate": {
+      "post": {
+        "tags": ["受保护接口-报告"],
+        "summary": "生成报告",
+        "operationId": "generateReport",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reportType"],
+                "properties": {
+                  "reportType": { "type": "string", "description": "报告类型", "example": "health_summary" },
+                  "startDate": { "type": "string" },
+                  "endDate": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "报告生成结果" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/report/generate-stream": {
+      "post": {
+        "tags": ["受保护接口-报告"],
+        "summary": "流式生成报告(SSE)",
+        "operationId": "generateReportStream",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reportType"],
+                "properties": {
+                  "reportType": { "type": "string", "example": "health_summary" },
+                  "startDate": { "type": "string" },
+                  "endDate": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "SSE流" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/report/{id}/export-pdf": {
+      "get": {
+        "tags": ["受保护接口-报告"],
+        "summary": "导出PDF",
+        "operationId": "exportPdf",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "报告ID" }
+        ],
+        "responses": {
+          "200": { "description": "PDF文件流" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/report/{id}/confirm": {
+      "put": {
+        "tags": ["受保护接口-报告"],
+        "summary": "确认报告",
+        "operationId": "confirmReport",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "报告ID" }
+        ],
+        "responses": {
+          "200": { "description": "确认成功" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/chat-history/list": {
+      "get": {
+        "tags": ["受保护接口-聊天"],
+        "summary": "聊天记录列表",
+        "operationId": "listChatMessages",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "chatType", "in": "query", "required": true, "schema": { "type": "string" }, "description": "聊天类型" }
+        ],
+        "responses": {
+          "200": { "description": "聊天记录" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/chat-history/save": {
+      "post": {
+        "tags": ["受保护接口-聊天"],
+        "summary": "保存聊天消息",
+        "operationId": "saveChatMessage",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["chatType", "role", "content"],
+                "properties": {
+                  "chatType": { "type": "string", "example": "medicine" },
+                  "role": { "type": "string", "example": "user" },
+                  "content": { "type": "string", "example": "头痛怎么办" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "保存成功" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/chat-history/save-batch": {
+      "post": {
+        "tags": ["受保护接口-聊天"],
+        "summary": "批量保存聊天消息",
+        "operationId": "saveChatMessagesBatch",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["chatType", "messages"],
+                "properties": {
+                  "chatType": { "type": "string", "example": "medicine" },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": { "type": "string" },
+                        "content": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "保存成功" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/chat-history/clear": {
+      "delete": {
+        "tags": ["受保护接口-聊天"],
+        "summary": "清空聊天记录",
+        "operationId": "clearChatMessages",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "chatType", "in": "query", "required": true, "schema": { "type": "string" }, "description": "聊天类型" }
+        ],
+        "responses": {
+          "200": { "description": "清空成功" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/file/avatar": {
+      "post": {
+        "tags": ["受保护接口-文件"],
+        "summary": "上传头像",
+        "operationId": "uploadAvatar",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": { "type": "string", "format": "binary", "description": "头像文件(jpg/png)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "上传成功" },
+          "401": { "description": "未登录" }
+        }
+      },
+      "get": {
+        "tags": ["受保护接口-文件"],
+        "summary": "获取当前用户头像",
+        "operationId": "getAvatar",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "头像信息" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/medicine/ai-chat": {
+      "post": {
+        "tags": ["受保护接口-药品"],
+        "summary": "AI药品对话(需登录)",
+        "operationId": "aiMedicineChat",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": { "type": "string", "example": "感冒吃什么药" },
+                  "sessionId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "AI回复" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/medicine/ai-chat-async": {
+      "post": {
+        "tags": ["受保护接口-药品"],
+        "summary": "AI药品对话(异步)",
+        "operationId": "aiMedicineChatAsync",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": { "type": "string", "example": "感冒吃什么药" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "任务ID" },
+          "401": { "description": "未登录" }
+        }
+      }
+    },
+    "/medicine/ai-task/{taskId}": {
+      "get": {
+        "tags": ["受保护接口-药品"],
+        "summary": "获取异步AI任务结果",
+        "operationId": "getAiTaskResult_medicine",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "taskId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "任务ID" }
+        ],
+        "responses": {
+          "200": { "description": "任务结果" },
+          "401": { "description": "未登录" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "JSESSIONID"
+      }
+    }
+  }
+}

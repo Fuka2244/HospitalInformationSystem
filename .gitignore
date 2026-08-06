@@ -1,8 +1,16 @@
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+### Local archives and generated data ###
+*.zip
+*.class
+evaluation_report_*.txt
+/medicine-embedding-store.json
+/reports/pdf/
+/uploads/
+/src/main/resources/default.md
 
 ### STS ###
 .apt_generated
@@ -34,6 +42,4 @@ build/
 /frontend/node_modules/
 /frontend/dist/
 /frontend/dist/assets/
-/.mvn/
 /_tmp/
-/frontend/dist/
